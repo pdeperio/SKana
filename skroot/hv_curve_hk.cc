@@ -36,7 +36,7 @@ void hv_curve_hk(){
     const int nPMTtype = 6;
     
     Double_t PMTinfo[MAXPM][2] = {0};//flags
-    std::vector<Double_t> HKPMThv(MAXHKPM,0);
+    std::vector<Double_t> HKPMThv(MAXPM,0);
     Int_t hksize;
     //double year;
     //char skip[100];
@@ -104,19 +104,17 @@ void hv_curve_hk(){
     Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
     TFile *f[nfile];
-    //std::vector<std::vector<Double_t>> sk2peak(nfile);
-    //std::vector<std::vector<Double_t>> sk3peak(nfile);
-    std::vector<std::vector<Double_t>> hkpeak(nfile,vector<Double_t>(MAXHKPM,0));
-    //std::vector<std::vector<Double_t>> sk2peakerr(nfile);
-    //std::vector<std::vector<Double_t>> sk3peakerr(nfile);
-    std::vector<std::vector<Double_t>> hkpeakerr(nfile,vector<Double_t>(MAXHKPM,0));
-    //std::vector<std::vector<Double_t>> sk2hv(nfile);
-    //std::vector<std::vector<Double_t>> sk3hv(nfile);
-    std::vector<std::vector<Double_t>> hkhv(nfile,vector<Double_t>(MAXHKPM,0));
-    //std::vector<std::vector<Int_t>> sk2cable(nfile);
-    //std::vector<std::vector<Int_t>> sk3cable(nfile);
-    std::vector<std::vector<Int_t>> hkcable(nfile,vector<Int_t>(MAXHKPM,0));
-    std::vector<std::vector<Double_t>> hksigma(nfile,vector<Double_t>(MAXHKPM,0));
+    /*std::vector<std::vector<Double_t>> hkpeak(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Double_t>> hkpeakerr(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Double_t>> hkhv(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Int_t>> hkcable(nfile,vector<Int_t>(MAXPM,0));
+    std::vector<std::vector<Double_t>> hksigma(nfile,vector<Double_t>(MAXPM,0));*/
+    
+    std::vector<std::vector<Double_t>> hkpeak(nfile);
+    std::vector<std::vector<Double_t>> hkpeakerr(nfile);
+    std::vector<std::vector<Double_t>> hkhv(nfile);
+    std::vector<std::vector<Int_t>> hkcable(nfile);
+    std::vector<std::vector<Double_t>> hksigma(nfile);
     
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         std::cout << Form("Reading fit result file %d", runno[ifile]) << std::endl;
@@ -145,18 +143,20 @@ void hv_curve_hk(){
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
             
             std::cout << highv << " " << peak << " " << chid << std::endl;
-            hkpeak[ifile][chid-1] = peak;
+            /*hkpeak[ifile][chid-1] = peak;
             hkhv[ifile][chid-1] = highv;
             hkcable[ifile][chid-1] = chid;
-            //TH1D *h2 = (TH1D*)f[ifile]->Get(Form("h_spe_onoff_%d", chid));
-            //hkpeakerr[ifile].push_back(h2->GetFunction("f1peakall")->GetParError(1));
             hkpeakerr[ifile][chid-1] = peakerr;
-            //hkpeakerr[ifile].push_back(sqrt(pow(peakerr,2.0)+pow(0.055,2.0)));
-            //cout << "Fit peak err " << sqrt(pow(peakerr,2.0)+pow(0.055,2.0)) << endl;
             cout << "Fit peak err " << Form("%1.2e", peakerr) << endl;
-            //hkpeakerr[ifile].push_back(5e-3*sigma);
             hksigma[ifile][chid-1] = sigma;
-            HKPMThv[chid-1] = PMTinfo[iPMT][1];
+            HKPMThv[chid-1] = PMTinfo[iPMT][1];*/
+            hkpeak[ifile].push_back(peak);
+            hkhv[ifile].push_back(highv);
+            hkcable[ifile].push_back(chid);
+            hkpeakerr[ifile].push_back(peakerr);
+            cout << "Fit peak err " << Form("%1.2e", peakerr) << endl;
+            hksigma[ifile].push_back(sigma);
+            HKPMThv.push_back(PMTinfo[iPMT][1]);
         }
         
         f[ifile]->Close();
@@ -167,8 +167,6 @@ void hv_curve_hk(){
     
     
     TFile *fout = new TFile("hvscan_parameter.root", "recreate");
-    //TTree *trsk2 = new TTree("hvscan_sk2", "SK2 PMT HV Scan Parameter");
-    //TTree *trsk3 = new TTree("hvscan_sk3", "SK3 PMT HV Scan Parameter");
     TTree *trhk = new TTree("hvscan_hk", "HK PMT HV Scan Parameter");
     
     
@@ -204,6 +202,7 @@ void hv_curve_hk(){
     trhk->Branch("IndexErr", &betaerr_hk, "betaerr_hk/D");
     //trhk->Branch("OffsetErr", &offseterr_hk, "offseterr_hk/D");
     
+    //hksize = MAXPM;
     hksize = hkcable[0].size();
     TGraphErrors *ghv_hk[hksize];
     //TGraphErrors *gthr_sk[MAXPM];
@@ -246,7 +245,7 @@ void hv_curve_hk(){
                 continue;
             }
             ghv_hk[q]->SetPoint(ifile, hkhv[ifile][q], hkpeak[ifile][q]);
-            ghv_hk[q]->SetPointError(ifile, 0.2, hkpeakerr[ifile][q]);
+            ghv_hk[q]->SetPointError(ifile, 0.5, hkpeakerr[ifile][q]);
             if (hksigma[ifile][q] < 0.1) ghv_hk[q]->RemovePoint(ifile);
         }
     }
@@ -260,9 +259,15 @@ void hv_curve_hk(){
         //ghv_hk[q]->GetXaxis()->SetLimits(1500,2500);
         ghv_hk[q]->Fit(fHVhk[q], "BQN0");
         TVirtualFitter *gfitter = TVirtualFitter::Fitter(ghv_hk[q]);
-        gfitter->SetPrecision(0.05);
+        gfitter->SetPrecision(1);
         TFitResultPtr fitr = ghv_hk[q]->Fit(fHVhk[q], "SB+");
         int status = int(fitr);
+        for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
+            if (status == 4) {
+                ghv_hk[q]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+                fitr = ghv_hk[q]->Fit(fHVhk[q], "SB+");
+            }
+        }
         std::cout << Form("Fitting HK cable %06d", q) << std::endl;
         //ghv_hk[q]->Draw();
         //c1->Update();

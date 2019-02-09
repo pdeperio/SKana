@@ -21,30 +21,30 @@
 
 using namespace std;
 
-TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
+TF1* FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
     Int_t npx = 1000;
     Int_t entry = h->GetEntries();
     Int_t nbin = h->GetNbinsX();
     if (rebin > 1) h->Rebin(rebin);
     
     
-    TF1 *func1pe = new TF1("fgaus","gaus",-1+hv*0.008, 12+hv*0.008);
-    TF1 *func1pe_new = new TF1("fgaus_new", "gaus",-1+hv*0.008, 12+hv*0.008);
-    TF1 *func2peak_bs = new TF1("f2peakbs","gaus(0)+gaus(3)+(0.5*(([6]*[0]*((TMath::Erf(((x-[4])/[5])))+(1-TMath::Erf((x-[7]*[1])/[2]))-1))))",-1+hv*0.008,12+hv*0.008);
-    TF1 *func0peak = new TF1("fgaus0","gaus",-1+hv*0.008, 12+hv*0.008);
-    TF1 *func1peak = new TF1("fgaus1","gaus",-1+hv*0.008, 12+hv*0.008);
-    TF1 *funcbs = new TF1("fbs","(0.5*(([6]*[0]*((TMath::Erf(((x-[4])/[5])))+(1-TMath::Erf((x-[7]*[1])/[2]))-1))))",-1+hv*0.008, 12+hv*0.008);
+    TF1 *func1pe = new TF1("fgaus","gaus",0, 12);
+    TF1 *func1pe_new = new TF1("fgaus_new", "gaus",0, 12);
+    TF1 *func2peak_bs = new TF1("f2peakbs","gaus(0)+0.5*[3]*[0]*((TMath::Erf((x/[2])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)+0.25*[5]*[0]*((TMath::Erf((x-[1]-0.5*[2])/[2])+(1-TMath::Erf((x-[4]*[1])/[2])))-1)",0,12);
+    //TF1 *func0peak = new TF1("fgaus0","gaus",-1, 12);
+    TF1 *func1peak = new TF1("fgaus1","gaus",0, 12);
+    TF1 *funcbs = new TF1("fbs","0.5*[3]*[0]*((TMath::Erf((x/[2])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)+0.25*[5]*[0]*((TMath::Erf((x-[1]-0.5*[2])/[2])+(1-TMath::Erf((x-[4]*[1])/[2])))-1)",0, 12);
     
     
     func1pe->SetLineColor(2);
     func1pe_new->SetLineColor(46);
     func2peak_bs->SetLineColor(38);
-    func0peak->SetLineColor(30);
+    //func0peak->SetLineColor(30);
     func1peak->SetLineColor(9);
     funcbs->SetLineColor(7);
     
     func1pe->SetLineStyle(3);
-    func0peak->SetLineStyle(3);
+    //func0peak->SetLineStyle(3);
     func1peak->SetLineStyle(3);
     funcbs->SetLineStyle(3);
     
@@ -52,18 +52,18 @@ TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
     func1pe_new->SetNpx(npx);
     func2peak_bs->SetNpx(npx);
     func1peak->SetNpx(npx);
-    func0peak->SetNpx(npx);
+    //func0peak->SetNpx(npx);
     funcbs->SetNpx(npx);
     
-    Double_t peakx_pre[2] = {2.9+hv*0.008, 1.5+hv*0.008};
+    Double_t peakx_pre[2] = {2.9, 1.5};
     Double_t peaky_pre[2] = {h->GetBinContent(h->FindBin(peakx_pre[0])), h->GetBinContent(h->FindBin(peakx_pre[1]))};
     
     //preliminarily fit the main peak
     func1pe->SetParameters(h->GetMaximum(), peakx_pre[0], 1);
     func1pe->SetParLimits(0, 0, h->GetMaximum());
-    func1pe->SetParLimits(1, 1.5+hv*0.008, 10+hv*0.008);
+    func1pe->SetParLimits(1, 1.5, 10);
     func1pe->SetParLimits(2, 0, 3);
-    h->Fit(func1pe, "BNQ0", "", 1.5+hv*0.008, 10+hv*0.008);
+    h->Fit(func1pe, "BNQ0", "", 1.5, 10);
     
     //refit the main peak with tuned range, set to the fit of the hv=-100 data
     Double_t func1pe_low = func1pe->GetParameter(1) - func1pe->GetParameter(2);
@@ -82,33 +82,39 @@ TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
         
         for(int iSet=0; iSet<3;iSet++){
             func2peak_bs->SetParameter(iSet, func1pe_new->GetParameter(iSet));
-            func1peak->SetParameter(iSet, func1pe_new->GetParameter(iSet));
+            func2peak_bs->SetParLimits(iSet, func1pe_new->GetParameter(iSet)-func1pe_new->GetParError(iSet), func1pe_new->GetParameter(iSet)+func1pe_new->GetParError(iSet));
+            //func1peak->SetParameter(iSet, func1pe_new->GetParameter(iSet));
         }
         
-        func2peak_bs->SetParameter(3, func1pe_new->GetParameter(0)*0.25);
-        func2peak_bs->SetParameter(4, func1pe_new->GetParameter(1)-1.5*func1pe_new->GetParameter(2));
-        func2peak_bs->SetParameter(5, 0.7*func1pe_new->GetParameter(2));
-        func2peak_bs->SetParLimits(3, 0, 0.5*func1pe_new->GetParameter(0));
-        func2peak_bs->SetParLimits(4, 0, func1pe_new->GetParameter(1)-func1pe_new->GetParameter(2));
-        func2peak_bs->SetParLimits(5, 0.3*func1pe_new->GetParameter(2), func1pe_new->GetParameter(2));
-        func2peak_bs->SetParName(6, "1pe BG ratio");
-        func2peak_bs->SetParameter(6, 0.5);
-        func2peak_bs->SetParLimits(6, 0, 1);
-        func2peak_bs->SetParameter(7, 2);
-        func2peak_bs->SetParLimits(7, 1, 3);
+        //func2peak_bs->SetParameter(3, func1pe_new->GetParameter(0)*0.25);
+        //func2peak_bs->SetParameter(4, func1pe_new->GetParameter(1)-1.5*func1pe_new->GetParameter(2));
+        //func2peak_bs->SetParameter(5, 0.7*func1pe_new->GetParameter(2));
+        //func2peak_bs->SetParLimits(3, 0, 0.4*func1pe_new->GetParameter(0));
+        //func2peak_bs->SetParLimits(4, 0, func1pe_new->GetParameter(1)-func1pe_new->GetParameter(2));
+        //func2peak_bs->SetParLimits(5, 0.3*func1pe_new->GetParameter(2), func1pe_new->GetParameter(2));
+        func2peak_bs->SetParName(3, "1pe BG ratio");
+        func2peak_bs->SetParName(5, "2pe BG ratio");
+        func2peak_bs->SetParName(4, "2pe peak region");
+        func2peak_bs->SetParameter(3, 0.5);
+        func2peak_bs->SetParLimits(3, 0, 1);
+        func2peak_bs->SetParameter(4, 2);
+        func2peak_bs->SetParLimits(4, 1, 3);
+        func2peak_bs->SetParameter(5, 0.2);
+        func2peak_bs->SetParLimits(5, 0, func2peak_bs->GetParameter(3));
         
-         h->Fit(func2peak_bs,"Q+","",-1+hv*0.008, 12+hv*0.008);
+       
+        h->Fit(func2peak_bs,"BQ+","",0, 12);
         
         for(int iSet = 0; iSet < 3; iSet++){
-            func0peak->SetParameter(iSet, func2peak_bs->GetParameter(iSet+3));
-            funcbs->SetParameter(iSet, func2peak_bs->GetParameter(iSet));
-            funcbs->SetParameter(iSet+3, func2peak_bs->GetParameter(iSet+3));
+            func1peak->FixParameter(iSet, func2peak_bs->GetParameter(iSet));
+            funcbs->FixParameter(iSet, func2peak_bs->GetParameter(iSet));
+            funcbs->FixParameter(iSet+3, func2peak_bs->GetParameter(iSet+3));
         }
-        funcbs->SetParameter(6, func2peak_bs->GetParameter(6));
+        //funcbs->FixParameter(6, func2peak_bs->GetParameter(6));
         
-        h->Fit(func0peak,"Q+","", -1+hv*0.008, 10+hv*0.008);
-        h->Fit(func1peak,"Q+","", -1+hv*0.008, 10+hv*0.008);
-        h->Fit(funcbs,"Q+","", -1+hv*0.008, 10+hv*0.008);
+        //h->Fit(func0peak,"BQ+","", -1, 10);
+        h->Fit(func1peak,"BQ+","", 0, 10);
+        h->Fit(funcbs,"BQ+","", 0, 10);
         
     }
     
@@ -117,6 +123,8 @@ TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
     else func = func1pe_new;
     
     gPad->cd();
+    func1pe->Delete();
+    func1pe_new->Delete();
     
     h->Draw();
     gPad->Update();
@@ -136,8 +144,8 @@ TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
         st0->SetY2NDC(st0_lower_left_y + st_Height);
         TLatex *myt[6];
         myt[0] = new TLatex(0,0,Form("Single PE RESULT"));
-        if (func->GetNpar()>6) myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)>func->GetParameter(4)?func->GetParameter(1):func->GetParameter(4)));
-        else myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)));
+        //if (func->GetNpar()>6) myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)>func->GetParameter(4)?func->GetParameter(1):func->GetParameter(4)));
+        myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)));
         myt[2] = new TLatex(0,0,Form("SPE Peak #sigma = %1.2e [pC]",func->GetParameter(2)));
         myt[3] = new TLatex(0,0,Form("Func Max = %1.2e [pC]",func->GetMaximumX(0,10)));
         myt[4] = new TLatex(0,0,Form("Chi2ndf  = %1.2e",func->GetChisquare()/func->GetNDF()));
@@ -158,7 +166,22 @@ TF1* FitSK(TH1D* h, Int_t rebin = 1, Float_t hv = 0, Float_t PMTflag = 6){
         
         gPad->Modified();
     }
-    func->SetParError(1, func2peak_bs->GetParError(1));
+    
+    /*if (func->GetParameter(1)<func->GetParameter(4)){
+        Double_t temp, temperr, tempamp, tempsig;
+        tempamp = func->GetParameter(0);
+        temp = func->GetParameter(1);
+        tempsig = func->GetParameter(2);
+        temperr = func->GetParError(1);
+        func->SetParameter(0, func->GetParameter(3));
+        func->SetParameter(1, func->GetParameter(4));
+        func->SetParameter(2, func->GetParameter(5));
+        func->SetParError(1, func->GetParError(4));
+        func->SetParameter(3, tempamp);
+        func->SetParameter(4, temp);
+        func->SetParameter(5, tempsig);
+        func->SetParError(4, temperr);
+    }*/
     return func;
 }
 
@@ -222,10 +245,9 @@ void fit_hvscan_spe_hk(){
             PMTinfo[cableid-1][1]=pmtz;
             PMTinfo[cableid-1][2]=oldhv;
         }
+        connect.close();
     }
     
-    
-    connect.close();
     
     TFile *f[nfile];
     TFile *fout[nfile];
@@ -321,11 +343,6 @@ void fit_hvscan_spe_hk(){
                         Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
                         sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
                         peakerr = sigma * 1e-4;
-                    }
-                    else {
-                        peak = fge->GetParameter(1)>fge->GetParameter(4)?fge->GetParameter(1):fge->GetParameter(4);
-                        sigma = fge->GetParameter(1)>fge->GetParameter(4)?fge->GetParameter(2):fge->GetParameter(5);
-                        peakerr = fge->GetParameter(1)>fge->GetParameter(4)?fge->GetParError(1):fge->GetParError(4);
                     }
                 }
                 else {
