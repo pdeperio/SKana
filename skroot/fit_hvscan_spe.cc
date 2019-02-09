@@ -245,7 +245,6 @@ int main(int argc, char *argv[]) {// process the arguments
     
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
-    //const int nfile = 6;//number of files to read in
     const int MAXPM = 11146;
     const int nPMTtype = 3;
     
