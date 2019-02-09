@@ -352,8 +352,7 @@ int main(int argc, char *argv[]) {// process the arguments
     h_spe_peak->GetXaxis()->SetTitle("Peak [pC]");
     h_spe_chi2->GetXaxis()->SetTitle("Fit Chi2/ndf");
     
-    //TString infile = Form("output/spe_individual_%d_C.root", runno);
-    TString infile = Form("spe_individual_%d_C.root", runno); 
+    TString infile = Form("output/spe_individual_%d_C.root", runno);
     f = new TFile(infile,"read");
     fout = new TFile(outdir+Form("fit_result_%d_sk.root",runno),"recreate");
     fout->cd();
