@@ -99,8 +99,9 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
         func2peak->SetParName(2,"#sigma");
         
         for(int iSet=0; iSet<3;iSet++){
-            func2peak->FixParameter(iSet, func1pe_new->GetParameter(iSet));
-            func1peak->FixParameter(iSet, func1pe_new->GetParameter(iSet));
+	  func2peak->SetParameter(iSet, func1pe_new->GetParameter(iSet));
+	  func2peak->SetParLimits(iSet, func1pe_new->GetParameter(iSet)-func1pe_new->GetParError(iSet), func1pe_new->GetParameter(iSet)+func1pe_new->GetParError(iSet));
+            //func1peak->FixParameter(iSet, func1pe_new->GetParameter(iSet));
         }
         
         func2peak->SetParameter(3, func1pe_new->GetParameter(0));
@@ -125,8 +126,10 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
          }*/
         
         func = func2peak;
-        for(int iSet = 3; iSet < 6; iSet++){
-            funcexbs->FixParameter(iSet, func2peak->GetParameter(iSet));
+        for(int iSet = 0; iSet < 3; iSet++){
+            func1peak->FixParameter(iSet, func2peak->GetParameter(iSet));
+            //funcexbs->FixParameter(iSet, func2peak->GetParameter(iSet));
+            funcexbs->FixParameter(iSet+3, func2peak->GetParameter(iSet+3));
         }
         
         //h->Fit(funcexpo, "BQ+","", 0+hv*0.008, 10+hv*0.008);
@@ -349,7 +352,8 @@ int main(int argc, char *argv[]) {// process the arguments
     h_spe_peak->GetXaxis()->SetTitle("Peak [pC]");
     h_spe_chi2->GetXaxis()->SetTitle("Fit Chi2/ndf");
     
-    TString infile = Form("output/spe_individual_%d_C.root", runno);
+    //TString infile = Form("output/spe_individual_%d_C.root", runno);
+    TString infile = Form("spe_individual_%d_C.root", runno); 
     f = new TFile(infile,"read");
     fout = new TFile(outdir+Form("fit_result_%d_sk.root",runno),"recreate");
     fout->cd();
