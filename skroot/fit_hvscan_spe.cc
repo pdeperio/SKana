@@ -28,6 +28,7 @@ int getArgs(int argc, char* argv[]);
 int runno = -1;
 TString ConnectionFile="";
 Float_t hv_shift = 0;
+int SelectPMT = -1;
 #endif
 
 TString outdir = "hv_ana/";
@@ -37,7 +38,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
     Int_t entry = h->GetEntries();
     Int_t nbin = h->GetNbinsX();
     if (rebin > 1) h->Rebin(rebin);
-    TF1 *func;
+    TF1 *func = 0;
     //Int_t binmx = h->GetMaximumBin();
     //Double_t xmax = h->FindBin(binmx);
 
@@ -134,6 +135,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
         //h->Fit(funcpos,"BQ+","", 0+hv*0.008, 10+hv*0.008);
 
         funcskgaus->Delete();
+	func1pe_new->Delete();
     }
     
     else if (func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1) < 0.01){//fit assym gaus
@@ -152,8 +154,13 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
         func = funcskgaus;
 
 	func2peak->Delete();
+	func1pe_new->Delete();
     }
-    
+
+    if (!func) {
+      cout << "Error: func not set" << endl;
+      exit(-2);
+    }    
     
     //if (hv >= -100) func = func2peak;
     //else func = func1pe_new;
@@ -162,7 +169,6 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
     func1pe->Delete();
     func1peak->Delete();
     funcexbs->Delete();
-    func1pe_new->Delete();
     
     h->Draw();
     gPad->Update();
@@ -214,7 +220,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
 }
 
 #ifdef __CINT__
-void fit_hvscan_spe(int runno = -1, TString ConnectionFile = "", Float_t hv_shift=0){
+void fit_hvscan_spe(int runno = -1, TString ConnectionFile = "", Float_t hv_shift=0, int SelectPMT=-1){
     
 #else
 int main(int argc, char *argv[]) {// process the arguments
@@ -237,16 +243,6 @@ int main(int argc, char *argv[]) {// process the arguments
     gStyle->SetOptFit(0);
     //gStyle->SetPalette(kCool);
     
-    //Int_t runno[] = {80282};
-    //Double_t hvshift[] = {-75};
-    //Double_t threshold = {-0.69};
-    //Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
-    //Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
-    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
-    //Int_t runno[] = {78509, 78513, 78515};
-    //Float_t hvshift[] = {0., -100., -100.};
-    //Float_t threshold[] = {-0.69, -0.69, -0.50};
-    
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
     //const int nfile = 6;//number of files to read in
@@ -257,8 +253,6 @@ int main(int argc, char *argv[]) {// process the arguments
     int npmt;
     //double year;
     //char skip[100];
-    
-    int pmtid;
     
     ifstream connect;
     connect.open(ConnectionFile.Data());
@@ -370,7 +364,13 @@ int main(int argc, char *argv[]) {// process the arguments
     
     cout << "Inputted HV shift = " << hv_shift << endl;
 
-    for (Int_t iPMT = 0; iPMT < MAXPM; iPMT++){
+    int PMTRange[2] = {0, MAXPM};
+    if (SelectPMT>=0) {
+      PMTRange[0] = SelectPMT;
+      PMTRange[1] = SelectPMT+1;
+    }
+    
+    for (Int_t iPMT = PMTRange[0]; iPMT < PMTRange[1]; iPMT++){
         h_on[iPMT] = (TH1D*)f->Get(Form("h_spe_on_%d",iPMT+1));
         h_off[iPMT] = (TH1D*)f->Get(Form("h_spe_off_%d",iPMT+1));
         
@@ -526,6 +526,10 @@ int main(int argc, char *argv[]) {// process the arguments
                     ++argv; --argc;
                     break;
                     
+                case 'p':
+                    SelectPMT = atoi(argv[2]);
+                    ++argv; --argc;
+                    break;
             }
             
             ++argv; --argc;

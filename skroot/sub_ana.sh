@@ -29,10 +29,6 @@ mkdir -p ${SCRIPT_DIR}
 LOG_DIR=${WORKDIR}/hv_ana_log
 mkdir -p ${LOG_DIR}
 
-ERR_DIR=${WORKDIR}/hv_ana_err
-mkdir -p ${ERR_DIR}
-
-
 irun=0
 for run in ${RUNS[@]}; do
 
@@ -48,7 +44,7 @@ cd ${WORKDIR}
 ./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]}
 EOF
 
-    qsub -q calib -o ${LOG_DIR}/$run.log -e ${ERR_DIR}/$run.err ${SUBFILE}
+    qsub -q calib -o ${LOG_DIR}/$run.log -e ${LOG_DIR}/$run.log ${SUBFILE}
 
     irun=$(($irun+1))
 done
