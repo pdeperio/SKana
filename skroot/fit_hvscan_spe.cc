@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {// process the arguments
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(1);
     gStyle->SetOptFit(0);
-    //gStyle->SetPalette(kCool);
+    gStyle->SetPalette(109);
     
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {// process the arguments
     h_spe_peak->GetXaxis()->SetTitle("Peak [pC]");
     h_spe_chi2->GetXaxis()->SetTitle("Fit Chi2/ndf");
     
-    TString infile = Form("output/spe_individual_%d.root", runno);
+    TString infile = Form("output/spe_individual_%d_C.root", runno);
     f = new TFile(infile,"read");
     fout = new TFile(outdir+Form("fit_result_%d_sk.root",runno),"recreate");
     fout->cd();
@@ -431,7 +431,7 @@ int main(int argc, char *argv[]) {// process the arguments
             std::cout << "Handling PMT " << iPMT+1 << std::endl;
             if (peak <= 0){
                 negbad++;
-                //h_on[iPMT]->Draw();
+                h_on[iPMT]->Draw();
                 c1->Update();
                 c1->Print(outdir+Form("neg_bad_fit_%d_sk.pdf", runno));
                 outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "       negative peak" << "\n";
@@ -439,7 +439,7 @@ int main(int argc, char *argv[]) {// process the arguments
                 
             else if (peak <= 2&&peak > 0){
                 smallbad++;
-                //h_on[iPMT]->Draw();
+                h_on[iPMT]->Draw();
                 c1->Update();
                 c1->Print(outdir+Form("small_bad_fit_%d_sk.pdf", runno));
                 outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          small peak" << "\n";
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]) {// process the arguments
                 
             else if (peak > 4.5&&peak <= 6){
                 largebad++;
-                //h_on[iPMT]->Draw();
+                h_on[iPMT]->Draw();
                 c1->Update();
                 c1->Print(outdir+Form("big_bad_fit_%d_sk.pdf", runno));
                 outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          large peak" << "\n";
@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {// process the arguments
                 
             else if (peak > 6){
                 posbad++;
-                //h_on[iPMT]->Draw();
+                h_on[iPMT]->Draw();
                 c1->Update();
                 c1->Print(outdir+Form("pos_bad_fit_%d_sk.pdf", runno));
                 outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {// process the arguments
                 
             else if (peak > 2&&peak < 4.5&&(iPMT+1)%25==0){
                 //if (h_on[iPMT]->GetEntries()==0) continue;
-                //h_on[iPMT]->Draw();
+                h_on[iPMT]->Draw();
                 c1->Update();
                 c1->Print(outdir+Form("okay_fit_sample_%d_sk.pdf", runno));
                 //outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%.2f", PMTinfo[iPMT][2]+hvshift)  << setw(10) << Form("%.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
