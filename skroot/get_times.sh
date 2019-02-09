@@ -21,5 +21,5 @@ do
     echo ${DIFFSEC} 
 
     irun=$(($irun+1))
-    irun=0
+
 done
