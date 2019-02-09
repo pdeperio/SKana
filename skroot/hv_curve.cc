@@ -21,11 +21,23 @@
 #include <TPaveStats.h>
 using namespace std;
 
+#ifdef __CINT__
 void hv_curve(){
+#else
+int main(int argc, char *argv[]) {
+#endif
+  
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
+
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(kTRUE);
     gStyle->SetOptFit(1111);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
     
@@ -98,30 +110,31 @@ void hv_curve(){
     //Int_t runno[] = {78565, 78561, 78559, 78568};
     //Double_t hvshift[] = {-100, -50, 0, 50};
     //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.72};
-    Int_t runno[] = {80152, 80157, 80159, 80148, 80161, 80163, 80167};
+    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
     Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
     Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
     TFile *f[nfile];
-    std::vector<std::vector<Double_t>> skpeak(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> sk3peak(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> hkpeak(nfile);
-    std::vector<std::vector<Double_t>> skpeakerr(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> sk3peakerr(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> hkpeakerr(nfile);
-    std::vector<std::vector<Double_t>> skhv(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> sk3hv(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t>> hkhv(nfile);
-    std::vector<std::vector<Int_t>> skcable(nfile, std::vector<Int_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t>> sk3cable(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t>> hkcable(nfile);
-    std::vector<std::vector<Int_t>> sknhit(nfile, std::vector<Int_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t>> sk3nhit(nfile, std::vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t>> sksigma(nfile, std::vector<Double_t>(MAXPM,0));
+    
+    std::vector<std::vector<Double_t> > skpeak(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > sk3peak(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > hkpeak(nfile);
+    std::vector<std::vector<Double_t> > skpeakerr(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > sk3peakerr(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > hkpeakerr(nfile);
+    std::vector<std::vector<Double_t> > skhv(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > sk3hv(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Double_t> > hkhv(nfile);
+    std::vector<std::vector<Int_t> > skcable(nfile, std::vector<Int_t>(MAXPM,0));
+    //std::vector<std::vector<Int_t> > sk3cable(nfile, std::vector<Double_t>(MAXPM,0));
+    //std::vector<std::vector<Int_t> > hkcable(nfile);
+    std::vector<std::vector<Int_t> > sknhit(nfile, std::vector<Int_t>(MAXPM,0));
+    //std::vector<std::vector<Int_t> > sk3nhit(nfile, std::vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Double_t> > sksigma(nfile, std::vector<Double_t>(MAXPM,0));
     
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         std::cout << Form("Reading fit result file %d", runno[ifile]) << std::endl;
-        f[ifile] = new TFile(Form("fit_result_%d_sk.root",runno[ifile]),"read");
+        f[ifile] = new TFile(Form("hv_ana/fit_result_%d_sk.root",runno[ifile]),"read");
         TTree *tree = (TTree*)(f[ifile]->Get("spe"));
         Int_t entry = tree->GetEntries();
         std::cout << entry << std::endl;
@@ -146,7 +159,9 @@ void hv_curve(){
             tree->GetEntry(iPMT);
             //if (PMTinfo[chid-1][0]!=3 || PMTinfo[chid-1][0]!=4) continue;
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
-            std::cout << highv << " " << peak << " " << chid << std::endl;
+
+	    //std::cout << highv << " " << peak << " " << chid << std::endl;
+	    
             if (PMTinfo[chid-1][0]==3){
                 
                 if (nhits < 10){
@@ -282,8 +297,11 @@ void hv_curve(){
     //fHV->SetParLimits(0, 0, 1e-28);
     //fHV->SetParLimits(1, 3, 10);
     //fHV->SetParameter(2, -500);
+
+    cout << "Stage 1..." << endl;
     
     for (Int_t p = 0; p < MAXPM; p++){
+      
         ghv_sk[p] = new TGraphErrors();
         ghv_sk[p]->SetMarkerStyle(8);
         ghv_sk[p]->SetMarkerColor(2);
@@ -292,10 +310,12 @@ void hv_curve(){
         ghv_sk[p]->SetLineStyle(3);
         ghv_sk[p]->GetXaxis()->SetTitle("HV [V]");
         ghv_sk[p]->GetYaxis()->SetTitle("Peak [pC]");
-        if (PMTinfo[p][0] == 3 && skpeak[3][p] != 0){
+
+	if (PMTinfo[p][0] == 3 && skpeak[3][p] != 0){
             ghv_sk[p]->SetName(Form("SK2_PMT_HVscan_Cable_%06d", skcable[3][p]));
             ghv_sk[p]->SetTitle(Form("SK2_PMT_HVscan_Cable_%06d", skcable[3][p]));
         }
+	
         else if (PMTinfo[p][0] == 4 && skpeak[3][p] != 0){
             ghv_sk[p]->SetName(Form("SK3_PMT_HVscan_Cable_%06d", skcable[3][p]));
             ghv_sk[p]->SetTitle(Form("SK3_PMT_HVscan_Cable_%06d", skcable[3][p]));
@@ -306,6 +326,7 @@ void hv_curve(){
         fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x,[1])", 1500, 2500);
         fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])", 1500, 2500);
         fHVinvskerr[p] = new TF1(Form("fHVinvskerr%d", p), "pow(x/[0],1./[1])", 1500, 2500);
+	
         //fHVsk[p]->SetLineColorAlpha(4, 0.5);
         fHVsk[p]->SetLineColor(4);
         fHVsk[p]->SetLineStyle(3);
@@ -363,7 +384,9 @@ void hv_curve(){
         //g_thr[p]->GetXaxis()->SetTitle("Threshold [mV]");
         //g_thr[p]->GetYaxis()->SetTitle("Peak [pC]");
      }*/
-    
+
+    cout << "Stage 2..." << endl;
+
     vector<Int_t> removepoint(MAXPM, 0);
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         for (Int_t p = 0; p < MAXPM; p++){
@@ -399,7 +422,8 @@ void hv_curve(){
     Double_t targetQHPK = 2.243; // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
-    
+    cout << "Stage 3..." << endl;
+
     for (Int_t p = 0; p < MAXPM; p++){
         //ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
         if (PMTinfo[p][0] != 3 && PMTinfo[p][0] !=4) continue;
@@ -578,6 +602,8 @@ void hv_curve(){
     trun->SetFillStyle(0);
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
+
+    cout << "Stage 4..." << endl;
     
     c1->Print("SK_HV_Curves.pdf[");
     //mghv_sk->Draw();
