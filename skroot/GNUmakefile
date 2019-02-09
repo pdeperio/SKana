@@ -11,7 +11,7 @@ LOCAL_INC	=
 
 LOCAL_LIBS	= SKRootRead.o
 
-OBJS   = SKRootRead.o sample_snld fit_hvscan_spe
+OBJS   = SKRootRead.o sample_snld fit_hvscan_spe fit_hvscan_spe_hk hv_curve_hk individual_fit_hk
 
 all: $(OBJS) 
 
