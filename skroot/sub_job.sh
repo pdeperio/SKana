@@ -1,6 +1,8 @@
 #!/bin/bash -f
 
-RUNS=(80249 80254 80263 80265 80269 80275 80278 80282)
+RUNS=(080249 080254 080263 080265 080269 080275 080278 080282)
+
+WORKDIR=${PWD}
 
 datadir=/disk01/calib/sk5
 
@@ -17,21 +19,30 @@ mkdir -p ${SCRIPTDIR}
 
 for run in ${RUNS[@]}; do
 
-    OUTDIR=${BASEDIR}/$1
+    OUTDIR=${BASEDIR}/$run
     mkdir -p ${OUTDIR}
 
-    run=`echo $run | cut -c 1-4`
+    #run=`echo $run | cut -c 1-4`
 
-foreach rfmfile ( `ls $datadir/$1/` )
+    for rfmfile in `ls $datadir/$run/`; do
+	
+	nsub=`echo $rfmfile | cut -c 15-20`
+	ofile=`echo $rfmfile | cut -c 4-25`
 
-set nsub=`echo $rfmfile | cut -c 15-20`
-set ofile=`echo $rfmfile | cut -c 4-25`
+	SUBFILE=${SCRIPTDIR}/$run.$nsub.sh
+	cat > ${SUBFILE}<<EOF
+#!/bin/bash
+source /usr/local/sklib_gcc4.8.5/skofl-trunk/env.sh
+hostname
 
-/bin/cp go_header.csh script/$1.$nsub.csh
-echo 'source /usr/local/sklib_gcc4.8.5/skofl-trunk/env.csh' >> script/$1.$nsub.csh
-echo 'hostname' >> script/$1.$nsub.csh 
-echo './sample_snld '$datadir'/'$1'/'$rfmfile output/$1/'snld'$ofile >> script/$1.$nsub.csh
+cd ${WORKDIR}
 
-qsub -q calib -o out/$1.$nsub -e err/$1.$nsub script/$1.$nsub.csh
+./sample_snld ${datadir}/${run}/${rfmfile} ${OUTDIR}/snld${ofile}
 
+EOF
+	
+
+	echo qsub -q calib -o ${LOGDIR}/$run.$nsub -e ${ERRDIR}/$run.$nsub ${SUBFILE}
+
+    done
 done
