@@ -698,7 +698,7 @@ int main(int argc, char *argv[]) {// process the arguments
     fout->Close();
     outfile.close();
     outfile2.close();
-        
+
     h_spe_peak->Clear();
     h_spe_chi2->Clear();
     tree->Clear();
