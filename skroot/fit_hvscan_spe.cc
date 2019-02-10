@@ -416,6 +416,7 @@ int main(int argc, char *argv[]) {// process the arguments
     
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
+    //const int nfile = 6;//number of files to read in
     const int MAXPM = 11146;
     const int nPMTtype = 3;
     
@@ -525,7 +526,7 @@ int main(int argc, char *argv[]) {// process the arguments
     TString infile = Form("%s/spe_individual_%d_C.root", InputDir.Data(), runno, PMTtype.Data());
     f = new TFile(infile,"read");
     fout = new TFile(outdir+Form("fit_result_%d%s.root",runno, PMTtype.Data()),"recreate");
-    fout->cd();
+    //fout->cd();
     
     cout << "Opening: " << infile.Data() << endl;
     
@@ -568,7 +569,7 @@ int main(int argc, char *argv[]) {// process the arguments
         
         h_on[iPMT]->Add(h_off[iPMT],-1);
         
-        h_on[iPMT]->SetTitle(Form("PMT %d",iPMT+1));
+        h_on[iPMT]->SetTitle(Form("PMT_%d",iPMT+1));
         h_on[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
         h_on[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
         
@@ -589,7 +590,7 @@ int main(int argc, char *argv[]) {// process the arguments
 	else fge = FitSK((TH1D*)h_on[iPMT], 4, hv_shift, PMTinfo[iPMT][0]);
             
 	c1->Update();
-            
+  fout->cd();
 	h_on[iPMT]->Write();
                 
 	// Manual peak shifting in to fix strange cases
@@ -609,7 +610,7 @@ int main(int argc, char *argv[]) {// process the arguments
 	  //Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
 	  Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
 	  sigma = 2*FWHMhigh/(2.*TMath::Sqrt(TMath::Log(2)*2));
-	  peakerr = 0.01 * sigma;
+	  peakerr = 0.11;
 	}
 
 	// Good fits
@@ -623,7 +624,7 @@ int main(int argc, char *argv[]) {// process the arguments
 	ndf = fge->GetNDF();
 	rchi2 = chi2/ndf;
 	chid = iPMT+1;
-	nhit = h_on[iPMT]->GetEntries();
+	nhit = (Int_t)h_on[iPMT]->Integral();
 	//sigma = fge->GetParameter(2);
 	//peakerr = fge->GetParError(1);
 	//peakerr = fge->GetParError(4);

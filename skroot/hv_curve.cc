@@ -19,6 +19,9 @@
 #include <TFitResultPtr.h>
 #include <TVirtualFitter.h>
 #include <TPaveStats.h>
+#include <TROOT.h>
+#include <algorithm>
+#include <iterator>
 using namespace std;
 
 TString outdir = "hv_ana";
@@ -53,7 +56,8 @@ int main(int argc, char *argv[]) {
     gStyle->SetFrameFillColor(0);
     gStyle->SetFrameFillStyle(0);
     gStyle->SetPadColor(0);
-
+  
+    gROOT->SetBatch(kTRUE);
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(kTRUE);
     gStyle->SetOptFit(1111);
@@ -120,9 +124,7 @@ int main(int argc, char *argv[]) {
       cout << "Error: Connection file not open" << endl;
       exit (-1);
     }
-    
-    
-    
+
     ofstream outtxt1;
     outtxt1.open(outdir+"badcables.txt");
     outtxt1 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
@@ -133,10 +135,10 @@ int main(int argc, char *argv[]) {
     
     ofstream outtxt3;
     outtxt3.open(outdir+"badokfitting.txt");
+
     outtxt3 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
     
     TFile *f[nfile];
-    
     std::vector<std::vector<Double_t> > skpeak(nfile, std::vector<Double_t>(MAXPM,0));
     std::vector<std::vector<Double_t> > skpeakerr(nfile, std::vector<Double_t>(MAXPM,0));
     std::vector<std::vector<Double_t> > skhv(nfile, std::vector<Double_t>(MAXPM,0));
@@ -149,7 +151,7 @@ int main(int argc, char *argv[]) {
 
         TString InputFile = Form("%s/fit_result_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
         std::cout << "Reading fit result file: " << InputFile.Data() << endl;
-	f[ifile] = new TFile(InputFile,"read");
+        f[ifile] = new TFile(InputFile,"read");
 	
         TTree *tree = (TTree*)(f[ifile]->Get("spe"));
         Int_t entry = tree->GetEntries();
@@ -178,7 +180,8 @@ int main(int argc, char *argv[]) {
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
 
 	    //std::cout << "WTF " << highv << " " << peak << " " << chid << std::endl;
-
+      //std::cout << highv << " " << peak << " " << chid << " " << PMTinfo[chid-1] << " " << std::endl;
+  
 	    TString PMTtypeName = "UnknownPMTtype";
 	    if (AnalyzeHK) {
 	      if (PMTinfo[chid-1][0]==6) PMTtypeName = PMTtypeNames[hk];
@@ -192,21 +195,24 @@ int main(int argc, char *argv[]) {
 	    }
 	    
 	    if ( (AnalyzeHK && (peak <= 0 || peak > 10)) ||
-		 (!AnalyzeHK && nhits < 10) ) {
+		 (!AnalyzeHK && nhits < 20) ) {
 	      outtxt1 << setw(10) << skcable[ifile][chid-1] << setw(4) << " " << PMTtypeName.Data() << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
 
 	      continue;
 	    }
 	    
+      double ErrScaling = 2;
 	    skpeak[ifile][chid-1] = peak;
 	    skhv[ifile][chid-1] = highv;
 	    skcable[ifile][chid-1] = chid;
 	    sksigma[ifile][chid-1] = sigma;
-	    skpeakerr[ifile][chid-1] = peakerr; //pow((pow(peakerr,2)+pow(0.22,2)), 1/2);
+	    skpeakerr[ifile][chid-1] = ErrScaling*peakerr; //pow((pow(peakerr,2)+pow(0.22,2)), 1/2);
 	    SKPMThv[chid-1] = PMTinfo[chid-1][1];
 	    sknhit[ifile][chid-1] = nhits;
 	    goodchannel[ifile][chid-1] = 1;
             
+		cout << "Add " << PMTtypeName.Data() << " element " << nfile << " " << chid-1 << " Peak err is " << peakerr << endl;
+		cout << skpeak[ifile][chid-1] << " " << skhv[ifile][chid-1] << " " << sksigma[ifile][chid-1] << endl << endl;            
         }
 
 	f[ifile]->Close();
@@ -307,6 +313,7 @@ int main(int argc, char *argv[]) {
 	if (!goodchannel[0][p]) continue;
 
 	ghv_sk[p] = new TGraphErrors();
+
         ghv_sk[p]->SetMarkerStyle(8);
         ghv_sk[p]->SetMarkerColor(2);
         ghv_sk[p]->SetMarkerSize(1);
@@ -320,10 +327,9 @@ int main(int argc, char *argv[]) {
         
         //fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x-[2],[1])", 1500, 2500);
         //fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])+[2]", 1500, 2500);
-        fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x,[1])", 1500, 2500);
-        fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])", 1500, 2500);
-        fHVinvskerr[p] = new TF1(Form("fHVinvskerr%d", p), "pow(x/[0],1./[1])", 1500, 2500);
-	
+        fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*1e-20*pow(x,[1])", 1500, 2500);
+        fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/([0]*1e-20),1./[1])", 1500, 2500);
+        fHVinvskerr[p] = new TF1(Form("fHVinvskerr%d", p), "pow(x/([0]*1e-20),1./[1])", 1500, 2500);
         //fHVsk[p]->SetLineColorAlpha(4, 0.5);
         fHVsk[p]->SetLineColor(4);
         fHVsk[p]->SetLineStyle(3);
@@ -331,10 +337,11 @@ int main(int argc, char *argv[]) {
         fHVsk[p]->SetParName(0, "Factor");
         fHVsk[p]->SetParName(1, "Index #beta");
         //fHVsk[p]->SetParName(2, "Voltage Offset");
-        fHVsk[p]->SetParameter(0, 5e-18);
+        fHVsk[p]->SetParameter(0, 5);
         fHVsk[p]->SetParameter(1, 6);
         //fHVsk[p]->SetParLimits(0, 0, 2e-17);
-        if (!AnalyzeHK) fHVsk[p]->SetParLimits(1, 3, 11);
+        if (!AnalyzeHK) fHVsk[p]->SetParLimits(1, 0, 15);
+
         //fHVsk[p]->SetParameter(2, -500);
         //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
         //gthr_[p] = new TGraphErrors();
@@ -345,7 +352,6 @@ int main(int argc, char *argv[]) {
         //g_thr[p]->GetYaxis()->SetTitle("Peak [pC]");
     }
 
-    vector<Int_t> removepoint(MAXPM, 0);
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         for (Int_t p = 0; p < MAXPM; p++){
             /*if (sk2peak[ifile][p] <=0 || skhv[ifile][p] <= 0){
@@ -354,18 +360,15 @@ int main(int argc, char *argv[]) {
             }*/
 
 	    if (!ghv_sk[p]) continue;
+	    if (skcable[ifile][p] <= 0) continue;
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
 
-            if (AnalyzeHK) {
-	      ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
-	      if (sksigma[ifile][p] < 0.1)
+      ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
+      if (sksigma[ifile][p] < 0.1 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0){
 		ghv_sk[p]->RemovePoint(ifile);
+		cout << Form("Removing %dth point from PMT %d", ifile+1, skcable[ifile][p]) << endl << endl;
 	      
-	    } else {
-	      ghv_sk[p]->SetPointError(ifile, 0.2, skpeakerr[ifile][p]);
-	      if (sksigma[ifile][p] < 0.3 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0)
-                ghv_sk[p]->RemovePoint(ifile);
 	    }
         }
     }
@@ -375,14 +378,17 @@ int main(int argc, char *argv[]) {
     Double_t targetQHPK = 2.243; // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
-    TString fitOpts = "SMBE+";
+    TString fitOpts = "SMBE";
+    int minpoint = 3;
 
     for (Int_t p = 0; p < MAXPM; p++){
         if (!ghv_sk[p]) continue;
 	//ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
 
-        if (ghv_sk[p]->GetN() < 3) {
-            cout << "PMT " << p+1 << " has fewer than 3 points." << endl;
+        int npoints = ghv_sk[p]->GetN();
+
+        if (npoints < minpoint) {
+            cout << "PMT " << p+1 << " has fewer than " << minpoint << " points." << endl;
             continue;
         }
 
@@ -396,23 +402,48 @@ int main(int argc, char *argv[]) {
 	ghv_sk[p]->Fit(fHVsk[p], "BQN0");
         TVirtualFitter * gfitter = TVirtualFitter::Fitter(ghv_sk[p]);
 
-	if (AnalyzeHK) gfitter->SetPrecision(1);
-	else gfitter->SetPrecision(0.5);
-	
+	gfitter->SetPrecision(1);
+
         TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
         int status = (int)fitr;
+ 
+   vector<Double_t> slopes(npoints-1);
+	Double_t x[npoints];
+	Double_t y[npoints];
+	for (Int_t point = 0; point < npoints; point++){
+	  ghv_sk[p]->GetPoint(point,x[point], y[point]);
+	}
+	for (Int_t point = 0; point < npoints - 1; point++){
+	  slopes[point] = (y[point+1]-y[point])/(x[point+1]-x[point]);
+	}
+	vector<int> speakpoints(2);
+	speakpoints[1] = distance(slopes.begin(), max_element(slopes.begin(), slopes.end()));
+	speakpoints[0] = distance(slopes.begin(), min_element(slopes.begin(), slopes.end()));
+      
         for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
-	  status = (int)fitr;
-	    cout << "Status = " << status << endl;
+	  if (pointsrm > npoints - minpoint) break;
+          
+	  cout << "WTF status = " << status << endl;
 	    if (status == 4) {
-                ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+                if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+                else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
+
                 fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
             }
-	    else break;
+	  status = int(fitr);	  
+	  if (status != 4) break;
         }
 	
-        //ghv_sk[p]->Draw();
+	if (status == 4 && ghv_sk[p]->GetN()>4){
+	  ghv_sk[p]->RemovePoint(0);
+	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitopts);
+	  status = (int)fitr;
+	}
+        //std::cout << Form("Fitting SK%d cable %06d", PMTinfo[p][0] - 1, p) << std::endl;
+        
+        ghv_sk[p]->Draw("AP");
         //c1->Update();
+	fout->cd();
         ghv_sk[p]->Write();
         
 	channelid[ipmttype] = skcable[0][p];
@@ -464,7 +495,13 @@ int main(int argc, char *argv[]) {
         //mgthr_sk->Add(gthr_sk[id]);
         //fHV->Clear();
     }
-    
+  
+  
+  for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
+      if (tr[ipmttype])
+	tr[ipmttype]->Write();
+  fout->Close();
+
     bool isDrawn = 0;
     for (Int_t p = 0; p < MAXPM; p++){
 
@@ -505,49 +542,45 @@ int main(int argc, char *argv[]) {
     for (Int_t p = 0; p < MAXPM; p++){
       
         if (!ghv_sk[p]) continue;
+        if (ghv_sk[p]->GetN() < minpoint) continue;
+        if (skcable[0][p] <= 0) continue;
 
         ghv_sk[p]->Draw("AP");
 	
+        cout << "Drawing cable " << skcable[0][p] << endl;
+        
         //std::cout << skcable[0][p] << std::endl;
         t->Clear();
 
-        t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
-        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
-        t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
-        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
-        t->Draw("same");
-        trun->Draw("same");
-        c1->Update();
+        if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
 
-	/*
-	if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
-            t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
-            ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
-            t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
-            ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
-            t->Draw("same");
-            trun->Draw("same");
-            c1->Update();
-        }
-        
-        TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
-        ps->SetX1NDC(0.1);
-        ps->SetX2NDC(0.4);*/
+          t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
+        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
+          t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
+        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
+          t->Draw("same");
+          trun->Draw("same");
+          c1->Update();
         
         TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
         ps->SetX1NDC(0.1);
         ps->SetX2NDC(0.4);
+	if (ps != (TPaveStats*)0){
+	  //ps = (TPaveStats*)fHVsk[p]->FindObject("stats");
+	  ps->SetX1NDC(0.1);
+	  ps->SetX2NDC(0.5);
+	  ps->SetY1NDC(0.65);
+	  ps->SetY2NDC(0.9);
+	}
+	else {
+	  cout << "No function in the graph for cable " << skcable[0][p] << " " << fHVsk[p]->GetNDF() << endl;
+	}
         c1->Modified();
         c1->Update();
         c1->Print(CanvasName);
     }
     c1->Print(CanvasName+"]");
-
-    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
-      if (tr[ipmttype])
-	tr[ipmttype]->Write();
     
-    fout->Close();
     outtxt1.close();
     outtxt2.close();
     outtxt3.close();
