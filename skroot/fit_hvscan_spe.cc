@@ -20,6 +20,9 @@
 #include <TBranch.h>
 #include <TMath.h>
 #include <TString.h>
+//#include <Math/Factory.h>
+//#include <TMinuitMinimizer.h>
+
 
 using namespace std;
 
@@ -413,6 +416,10 @@ int main(int argc, char *argv[]) {// process the arguments
     gStyle->SetOptStat(1);
     gStyle->SetOptFit(0);
     gStyle->SetPalette(109);
+
+
+    //TMinuitMinimizer * minimizer = (TMinuitMinimizer*) ROOT::Math::Factory::CreateMinimizer("","");
+    //minimizer->SuppressMinuitWarning(true);
     
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     

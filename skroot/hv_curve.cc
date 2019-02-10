@@ -299,6 +299,8 @@ int main(int argc, char *argv[]) {
 
     for (Int_t p = 0; p < MAXPM; p++){
 
+        if (p%1000==0) cout << "Making graph for channel: " << p << endl;
+      
         int ipmttype = -1;
         if (AnalyzeHK) {
 	  if (PMTinfo[p][0]==6) ipmttype = hk;
@@ -423,7 +425,7 @@ int main(int argc, char *argv[]) {
         for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
 	  if (pointsrm > npoints - minpoint) break;
           
-	  cout << "WTF status = " << status << endl;
+	  cout << "  status = " << status << endl;
 	    if (status == 4) {
                 if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
                 else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
