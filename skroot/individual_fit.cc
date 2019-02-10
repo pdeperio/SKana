@@ -415,9 +415,9 @@ int main(int argc, char *argv[]) {
        Int_t okchannel = okaych[iok];
 
       int ipmttype = -1;
-      if (PMTinfo[okchannel[isk]-1]==3) ipmttype = sk2;
-      else if (PMTinfo[okchannel[isk]-1]==4) ipmttype = sk3;
-      else if (PMTinfo[okchannel[isk]-1]==6) ipmttype = hk;
+      if (PMTinfo[okchannel-1]==3) ipmttype = sk2;
+      else if (PMTinfo[okchannel-1]==4) ipmttype = sk3;
+      else if (PMTinfo[okchannel-1]==6) ipmttype = hk;
       
       gr1ok = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", okchannel));
 

@@ -364,10 +364,10 @@ int main(int argc, char *argv[]) {
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
 
-      ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
-      if (sksigma[ifile][p] < 0.1 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0){
-		ghv_sk[p]->RemovePoint(ifile);
-		cout << Form("Removing %dth point from PMT %d", ifile+1, skcable[ifile][p]) << endl << endl;
+	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
+	    if (sksigma[ifile][p] < 0.1 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0){
+	      ghv_sk[p]->RemovePoint(ifile);
+	      cout << Form("Removing %dth point from PMT %d", ifile+1, skcable[ifile][p]) << endl << endl;
 	      
 	    }
         }
@@ -407,7 +407,7 @@ int main(int argc, char *argv[]) {
         TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
         int status = (int)fitr;
  
-   vector<Double_t> slopes(npoints-1);
+	vector<Double_t> slopes(npoints-1);
 	Double_t x[npoints];
 	Double_t y[npoints];
 	for (Int_t point = 0; point < npoints; point++){
@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
 	
 	if (status == 4 && ghv_sk[p]->GetN()>4){
 	  ghv_sk[p]->RemovePoint(0);
-	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitopts);
+	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
 	  status = (int)fitr;
 	}
         //std::cout << Form("Fitting SK%d cable %06d", PMTinfo[p][0] - 1, p) << std::endl;
@@ -495,12 +495,13 @@ int main(int argc, char *argv[]) {
         //mgthr_sk->Add(gthr_sk[id]);
         //fHV->Clear();
     }
+
   
-  
-  for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
       if (tr[ipmttype])
 	tr[ipmttype]->Write();
-  fout->Close();
+  
+    fout->Close();
 
     bool isDrawn = 0;
     for (Int_t p = 0; p < MAXPM; p++){
@@ -555,16 +556,15 @@ int main(int argc, char *argv[]) {
         if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
 
           t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
-        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
+	  ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
           t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
-        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
+	  ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
           t->Draw("same");
           trun->Draw("same");
           c1->Update();
+	}
         
-        TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
-        ps->SetX1NDC(0.1);
-        ps->SetX2NDC(0.4);
+	TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
 	if (ps != (TPaveStats*)0){
 	  //ps = (TPaveStats*)fHVsk[p]->FindObject("stats");
 	  ps->SetX1NDC(0.1);
@@ -575,9 +575,9 @@ int main(int argc, char *argv[]) {
 	else {
 	  cout << "No function in the graph for cable " << skcable[0][p] << " " << fHVsk[p]->GetNDF() << endl;
 	}
-        c1->Modified();
-        c1->Update();
-        c1->Print(CanvasName);
+	c1->Modified();
+	c1->Update();
+	c1->Print(CanvasName);
     }
     c1->Print(CanvasName+"]");
     
