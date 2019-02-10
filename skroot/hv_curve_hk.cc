@@ -22,11 +22,25 @@
 
 using namespace std;
 
+TString outdir="hv_ana_hk_feb09/";
+
+#ifdef __CINT__
 void hv_curve_hk(){
+#else
+int main(int argc, char *argv[]) {
+#endif
+
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
+
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(kTRUE);
     gStyle->SetOptFit(1111);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
     
@@ -34,6 +48,10 @@ void hv_curve_hk(){
     const int MAXPM = 11146;
     const int MAXHKPM = 136;
     const int nPMTtype = 6;
+
+    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
+    Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
+    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
     Double_t PMTinfo[MAXPM][2] = {0};//flags
     std::vector<Double_t> HKPMThv(MAXPM,0);
@@ -44,7 +62,7 @@ void hv_curve_hk(){
     int pmtid;
     
     ifstream connect;
-    connect.open("connection.super.sk-5.dat");
+    connect.open("/disk02/usr6/pdeperio/precalib_2018/connection.super.sk-5.dat");
     std::string line;
     
     for (Int_t head = 0; head < 51; head++){
@@ -85,40 +103,34 @@ void hv_curve_hk(){
     connect.close();
     
     ofstream outtxt1;
-    outtxt1.open("badcables.txt");
+    outtxt1.open(outdir+"badcables.txt");
     outtxt1 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << "\n";
     
     ofstream outtxt2;
-    outtxt2.open("badfitting.txt");
+    outtxt2.open(outdir+"badfitting.txt");
     outtxt2 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(8) << " LHV [V]" << setw(8) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
     
     ofstream outtxt3;
-    outtxt3.open("badokfitting.txt");
+    outtxt3.open(outdir+"badokfitting.txt");
     outtxt3 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
     
-    //Int_t runno[] = {78565, 78561, 78559, 78568};
-    //Double_t hvshift[] = {-100, -50, 0, 50};
-    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.72};
-    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
-    Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
-    Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
     TFile *f[nfile];
-    /*std::vector<std::vector<Double_t>> hkpeak(nfile,vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t>> hkpeakerr(nfile,vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t>> hkhv(nfile,vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Int_t>> hkcable(nfile,vector<Int_t>(MAXPM,0));
-    std::vector<std::vector<Double_t>> hksigma(nfile,vector<Double_t>(MAXPM,0));*/
+    /*std::vector<std::vector<Double_t> > hkpeak(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Double_t> > hkpeakerr(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Double_t> > hkhv(nfile,vector<Double_t>(MAXPM,0));
+    std::vector<std::vector<Int_t> > hkcable(nfile,vector<Int_t>(MAXPM,0));
+    std::vector<std::vector<Double_t> > hksigma(nfile,vector<Double_t>(MAXPM,0));*/
     
-    std::vector<std::vector<Double_t>> hkpeak(nfile);
-    std::vector<std::vector<Double_t>> hkpeakerr(nfile);
-    std::vector<std::vector<Double_t>> hkhv(nfile);
-    std::vector<std::vector<Int_t>> hkcable(nfile);
-    std::vector<std::vector<Double_t>> hksigma(nfile);
+    std::vector<std::vector<Double_t> > hkpeak(nfile);
+    std::vector<std::vector<Double_t> > hkpeakerr(nfile);
+    std::vector<std::vector<Double_t> > hkhv(nfile);
+    std::vector<std::vector<Int_t> > hkcable(nfile);
+    std::vector<std::vector<Double_t> > hksigma(nfile);
     
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         std::cout << Form("Reading fit result file %d", runno[ifile]) << std::endl;
-        f[ifile] = new TFile(Form("fit_result_%d.root",runno[ifile]),"read");
+        f[ifile] = new TFile(outdir+Form("fit_result_%d.root",runno[ifile]),"read");
         TTree *tree = (TTree*)(f[ifile]->Get("spe"));
         Int_t entry = tree->GetEntries();
         std::cout << entry << std::endl;
@@ -139,10 +151,13 @@ void hv_curve_hk(){
         
         for (Int_t iPMT = 0; iPMT < entry; iPMT++){
             tree->GetEntry(iPMT);
+
+	    if (!ifile) cout << "WTF Start " <<  chid << " " << PMTinfo[iPMT][0] << endl;
+
             if (PMTinfo[chid-1][0] != 6) continue;
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
             
-            std::cout << highv << " " << peak << " " << chid << std::endl;
+            //std::cout << highv << " " << peak << " " << chid << std::endl;
             /*hkpeak[ifile][chid-1] = peak;
             hkhv[ifile][chid-1] = highv;
             hkcable[ifile][chid-1] = chid;
@@ -154,9 +169,11 @@ void hv_curve_hk(){
             hkhv[ifile].push_back(highv);
             hkcable[ifile].push_back(chid);
             hkpeakerr[ifile].push_back(peakerr);
-            cout << "Fit peak err " << Form("%1.2e", peakerr) << endl;
+            //cout << "Fit peak err " << Form("%1.2e", peakerr) << endl;
             hksigma[ifile].push_back(sigma);
             HKPMThv.push_back(PMTinfo[iPMT][1]);
+
+
         }
         
         f[ifile]->Close();
@@ -166,7 +183,7 @@ void hv_curve_hk(){
     
     
     
-    TFile *fout = new TFile("hvscan_parameter.root", "recreate");
+    TFile *fout = new TFile(outdir+"hvscan_parameter.root", "recreate");
     TTree *trhk = new TTree("hvscan_hk", "HK PMT HV Scan Parameter");
     
     
@@ -240,6 +257,9 @@ void hv_curve_hk(){
     
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         for (Int_t q = 0; q < hksize; q++){
+
+	  //cout << setw(10) << hkcable[ifile][q] << setw(4) << "  HK" << setw(10) << hkhv[ifile][q] << setw(10) << hvshift[ifile] << " " << hkpeak[ifile][q] << std::endl;
+	  
             if (hkpeak[ifile][q] <= 0 || hkpeak[ifile][q] > 10){
                 outtxt1 << setw(10) << hkcable[ifile][q] << setw(4) << "  HK" << setw(10) << hkhv[ifile][q] << setw(10) << hvshift[ifile] << std::endl;
                 continue;
@@ -254,21 +274,27 @@ void hv_curve_hk(){
     // 1.8e7/(1e-12/1.60217657e-19) = 2.884
     Double_t targetQHPK = 2.243; // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
+
+    TString fitOpts = "Q SMBE+";
     
     for (Int_t q = 0; q < hksize; q++){
-        //ghv_hk[q]->GetXaxis()->SetLimits(1500,2500);
+
+      std::cout << endl << Form("Fitting HK cable %06d", hkcable[0][q]) << std::endl;
+	//ghv_hk[q]->GetXaxis()->SetLimits(1500,2500);
         ghv_hk[q]->Fit(fHVhk[q], "BQN0");
         TVirtualFitter *gfitter = TVirtualFitter::Fitter(ghv_hk[q]);
         gfitter->SetPrecision(1);
-        TFitResultPtr fitr = ghv_hk[q]->Fit(fHVhk[q], "SB+");
+        TFitResultPtr fitr = ghv_hk[q]->Fit(fHVhk[q], fitOpts);
         int status = int(fitr);
         for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
-            if (status == 4) {
+	    status = int(fitr);
+	    if (status == 4) {
                 ghv_hk[q]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
-                fitr = ghv_hk[q]->Fit(fHVhk[q], "SB+");
+                fitr = ghv_hk[q]->Fit(fHVhk[q], fitOpts);
             }
+	    else break;
         }
-        std::cout << Form("Fitting HK cable %06d", q) << std::endl;
+
         //ghv_hk[q]->Draw();
         //c1->Update();
         ghv_hk[q]->Write();
@@ -308,8 +334,9 @@ void hv_curve_hk(){
         //mgthr_hk->Add(gthr_hk[id]);
         //fHV->Clear();
     }
-    
-    c1->Print("HK_SPE_HV.pdf[");
+
+    TString CanvasName = outdir+"HK_SPE_HV.pdf";
+    c1->Print(CanvasName+"[");
     fHVhk[0]->Draw();
     for (Int_t q = 1; q < hksize; q++){
         //ghv_hk[q]->Draw("same");
@@ -322,8 +349,8 @@ void hv_curve_hk(){
     //legend2->Draw("same");
     //c1->Update();
     c1->Modified();
-    c1->Print("HK_SPE_HV.pdf");
-    c1->Print("HK_SPE_HV.pdf]");
+    c1->Print(CanvasName);
+    c1->Print(CanvasName+"]");
     
     
     TPaveText *t = new TPaveText(.4,.15,.9,.25,"NDC");
@@ -335,8 +362,9 @@ void hv_curve_hk(){
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
     //trun->AddText(Form("Run %s", runlist.Data()));
-    
-    c1->Print("HK_HV_Curves.pdf[");
+
+    CanvasName = outdir+"HK_HV_Curves.pdf";
+    c1->Print(CanvasName+"[");
     for (Int_t q = 0; q < hksize; q++){
         ghv_hk[q]->Draw("AP");
         t->Clear();
@@ -353,9 +381,9 @@ void hv_curve_hk(){
         ps->SetX2NDC(0.4);
         c1->Modified();
         c1->Update();
-        c1->Print("HK_HV_Curves.pdf");
+        c1->Print(CanvasName);
     }
-    c1->Print("HK_HV_Curves.pdf]");
+    c1->Print(CanvasName+"]");
     
     trhk->Write();
     //mghv_sk->Write();

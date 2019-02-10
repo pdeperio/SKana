@@ -1,17 +1,26 @@
-#!/bin/csh -f
+#!/bin/bash -f
 
-if ( "$1" == "" ) then
-    echo usage: sub_job.csh run datadir
-    exit
-endif
+RUNS=(80249 80254 80263 80265 80269 80275 80278 80282)
 
-mkdir -p ./out
-mkdir -p ./err
-mkdir -p ./script
-mkdir -p output/$1
+datadir=/disk01/calib/sk5
 
-set datadir=$2
-set run=`echo $1 | cut -c 1-4`
+BASEDIR=output
+
+LOGDIR=${BASEDIR}/out
+mkdir -p ${LOGDIR}
+
+ERRDIR=${BASEDIR}/err
+mkdir -p ${ERRDIR}
+
+SCRIPTDIR=${BASEDIR}/script
+mkdir -p ${SCRIPTDIR}
+
+for run in ${RUNS[@]}; do
+
+    OUTDIR=${BASEDIR}/$1
+    mkdir -p ${OUTDIR}
+
+    run=`echo $run | cut -c 1-4`
 
 foreach rfmfile ( `ls $datadir/$1/` )
 
@@ -25,4 +34,4 @@ echo './sample_snld '$datadir'/'$1'/'$rfmfile output/$1/'snld'$ofile >> script/$
 
 qsub -q calib -o out/$1.$nsub -e err/$1.$nsub script/$1.$nsub.csh
 
-end
+done

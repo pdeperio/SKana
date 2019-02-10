@@ -21,12 +21,32 @@
 #include <TPaveStats.h>
 using namespace std;
 
+TString outdir = "hv_ana";
+
 #ifdef __CINT__
-void hv_curve(){
+void hv_curve(TString PMTtype = "", TString InputDir = "hv_ana"){
+
 #else
+
+TString PMTtype = "";
+TString InputDir = outdir;
+
+int getArgs(int argc, char* argv[]);
+
 int main(int argc, char *argv[]) {
+
+    int args = getArgs(argc, argv);
+    if(args != 0){
+        std::cerr << "Usage " << std::endl;
+        return 0;
+    }
 #endif
   
+    outdir += PMTtype + "/";
+
+    bool AnalyzeHK = 0;
+    if (PMTtype.Contains("hk")) AnalyzeHK = 1;
+    
     gStyle->SetFrameBorderMode(0);
     gStyle->SetTitleBorderSize(0);
     gStyle->SetTitleFillColor(0);
@@ -44,18 +64,21 @@ int main(int argc, char *argv[]) {
     const int nfile = 7;//number of files to read in
     const int MAXPM = 11146;
     const int MAXHKPM = 136;
-    const int nPMTtype = 6;
-    
+    const int nPMTtypes = 3;
+    enum PMTtypeEnum {hk, sk2, sk3};
+    TString PMTtypeNames[nPMTtypes] = {"HK", "SK2", "SK3"};
+ 
+    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
+    Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
+    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
+
     Int_t PMTinfo[MAXPM][2] = {0};//flags
     std::vector<Double_t> SKPMThv(MAXPM,0);
-    int npmt;
-    //double year;
-    //char skip[100];
     
     int pmtid;
     
     ifstream connect;
-    connect.open("connection.super.sk-5.dat");
+    connect.open("/disk02/usr6/pdeperio/precalib_2018/connection.super.sk-5.dat");
     std::string line;
     
     for (Int_t head = 0; head < 51; head++){
@@ -96,45 +119,33 @@ int main(int argc, char *argv[]) {
     connect.close();
     
     ofstream outtxt1;
-    outtxt1.open("badcables.txt");
+    outtxt1.open(outdir+"badcables.txt");
     outtxt1 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
     
     ofstream outtxt2;
-    outtxt2.open("badfitting.txt");
+    outtxt2.open(outdir+"badfitting.txt");
     outtxt2 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(8) << " LHV [V]" << setw(8) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
     
     ofstream outtxt3;
-    outtxt3.open("badokfitting.txt");
+    outtxt3.open(outdir+"badokfitting.txt");
     outtxt3 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
-    
-    //Int_t runno[] = {78565, 78561, 78559, 78568};
-    //Double_t hvshift[] = {-100, -50, 0, 50};
-    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.72};
-    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
-    Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
-    Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
     TFile *f[nfile];
     
     std::vector<std::vector<Double_t> > skpeak(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > sk3peak(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > hkpeak(nfile);
     std::vector<std::vector<Double_t> > skpeakerr(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > sk3peakerr(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > hkpeakerr(nfile);
     std::vector<std::vector<Double_t> > skhv(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > sk3hv(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Double_t> > hkhv(nfile);
     std::vector<std::vector<Int_t> > skcable(nfile, std::vector<Int_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t> > sk3cable(nfile, std::vector<Double_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t> > hkcable(nfile);
     std::vector<std::vector<Int_t> > sknhit(nfile, std::vector<Int_t>(MAXPM,0));
-    //std::vector<std::vector<Int_t> > sk3nhit(nfile, std::vector<Double_t>(MAXPM,0));
     std::vector<std::vector<Double_t> > sksigma(nfile, std::vector<Double_t>(MAXPM,0));
-    
+    std::vector<std::vector<Double_t> > goodchannel(nfile, std::vector<Double_t>(MAXPM,0));
+
     for (Int_t ifile = 0; ifile < nfile; ifile++){
-        std::cout << Form("Reading fit result file %d", runno[ifile]) << std::endl;
-        f[ifile] = new TFile(Form("hv_ana/fit_result_%d_sk.root",runno[ifile]),"read");
+
+        TString InputFile = Form("%s/fit_result_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
+        std::cout << "Reading fit result file: " << InputFile.Data() << endl;
+	f[ifile] = new TFile(InputFile,"read");
+	
         TTree *tree = (TTree*)(f[ifile]->Get("spe"));
         Int_t entry = tree->GetEntries();
         std::cout << entry << std::endl;
@@ -157,128 +168,103 @@ int main(int argc, char *argv[]) {
         
         for (Int_t iPMT = 0; iPMT < entry; iPMT++){
             tree->GetEntry(iPMT);
+
             //if (PMTinfo[chid-1][0]!=3 || PMTinfo[chid-1][0]!=4) continue;
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
 
-	    //std::cout << highv << " " << peak << " " << chid << std::endl;
+	    //std::cout << "WTF " << highv << " " << peak << " " << chid << std::endl;
+
+	    TString PMTtypeName = "UnknownPMTtype";
+	    if (AnalyzeHK) {
+	      if (PMTinfo[chid-1][0]==6) PMTtypeName = PMTtypeNames[hk];
+	      else continue;
+	      
+	    } else {
+	      
+	      if (PMTinfo[chid-1][0]==3) PMTtypeName = PMTtypeNames[sk2];
+	      else if (PMTinfo[chid-1][0]==4) PMTtypeName = PMTtypeNames[sk3];
+	      else continue;
+	    }
 	    
-            if (PMTinfo[chid-1][0]==3){
-                
-                if (nhits < 10){
-                    outtxt1 << setw(10) << skcable[ifile][chid-1] << setw(4) << " SK2" << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
-                    continue;
-                }
-                skpeak[ifile][chid-1] = peak;
-                skhv[ifile][chid-1] = highv;
-                skcable[ifile][chid-1] = chid;
-                sksigma[ifile][chid-1] = sigma;
-                //TH1D *h1 = (TH1D*)f[ifile]->Get(Form("h_spe_onoff_%d", chid));
-                skpeakerr[ifile][chid-1] = pow((pow(peakerr,2)+pow(0.22,2)), 1/2);
-                SKPMThv[chid-1] = PMTinfo[chid-1][1];
-                sknhit[ifile][chid-1] = nhits;
-                
-            }
-            
-            else if (PMTinfo[chid-1][0]==4){
-                if (nhits < 10) {
-                    outtxt1 << setw(10) << skcable[ifile][chid-1] << setw(4) << " SK3" << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
-                    continue;
-                }
-                skpeak[ifile][chid-1] = peak;
-                skhv[ifile][chid-1] = highv;
-                skcable[ifile][chid-1] = chid;
-                sksigma[ifile][chid-1] = sigma;
-                //TH1D *h1 = (TH1D*)f[ifile]->Get(Form("h_spe_onoff_%d", chid));
-                //sk3peakerr[ifile].push_back(h1->GetFunction("f1peakall")->GetParError(1));
-                skpeakerr[ifile][chid-1] = pow((pow(peakerr,2)+pow(0.22,2)), 1/2);
-                SKPMThv[chid-1] = PMTinfo[chid-1][1];
-                sknhit[ifile][chid-1] = nhits;
-            }
+	    if ( (AnalyzeHK && (peak <= 0 || peak > 10)) ||
+		 (!AnalyzeHK && nhits < 10) ) {
+	      outtxt1 << setw(10) << skcable[ifile][chid-1] << setw(4) << " " << PMTtypeName.Data() << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
+
+	      continue;
+	    }
+	    
+	    skpeak[ifile][chid-1] = peak;
+	    skhv[ifile][chid-1] = highv;
+	    skcable[ifile][chid-1] = chid;
+	    sksigma[ifile][chid-1] = sigma;
+	    skpeakerr[ifile][chid-1] = peakerr; //pow((pow(peakerr,2)+pow(0.22,2)), 1/2);
+	    SKPMThv[chid-1] = PMTinfo[chid-1][1];
+	    sknhit[ifile][chid-1] = nhits;
+	    goodchannel[ifile][chid-1] = 1;
             
         }
-        
-        f[ifile]->Close();
-        std::cout << Form("Closed fit result file %d", runno[ifile]) << std::endl;
+
+	f[ifile]->Close();
+        std::cout << "Closed fit result file" << std::endl;
     }
     
+    TFile *fout = new TFile(outdir+Form("hvscan_parameter%s.root", PMTtype.Data()), "recreate");
+	    
+    TTree *tr[nPMTtypes] = {0};
+    if (AnalyzeHK)
+      tr[hk] = new TTree("hvscan_hk", PMTtypeNames[hk]+" PMT HV Scan Parameter");
+
+    else {
+      tr[sk2] = new TTree("hvscan_sk2", PMTtypeNames[sk2]+" PMT HV Scan Parameter");
+      tr[sk3] = new TTree("hvscan_sk3", PMTtypeNames[sk3]+" PMT HV Scan Parameter");
+    }
     
-    
-    
-    TFile *fout = new TFile("hvscan_parameter_sk.root", "recreate");
-    TTree *trsk2 = new TTree("hvscan_sk2", "SK2 PMT HV Scan Parameter");
-    TTree *trsk3 = new TTree("hvscan_sk3", "SK3 PMT HV Scan Parameter");
-    //TTree *trhk = new TTree("hvscan_hk", "HK PMT HV Scan Parameter");
-    
-    Int_t channelid_sk2;
-    Double_t geighthv_sk2;
-    Double_t geighthverr_sk2;
-    Double_t gfourhv_sk2;
-    Double_t gfourhverr_sk2;
-    Double_t gshifthv_sk2;
-    Double_t rchi2_sk2;
-    Double_t prob_sk2;
-    Double_t norm_sk2;
-    Double_t beta_sk2;
-    Double_t offset_sk2 = 0;
-    Double_t normerr_sk2;
-    Double_t betaerr_sk2;
-    Double_t offseterr_sk2 = 0;
-    Int_t channelid_sk3;
-    Double_t geighthv_sk3;
-    Double_t geighthverr_sk3;
-    Double_t gfourhv_sk3;
-    Double_t gfourhverr_sk3;
-    Double_t gshifthv_sk3;
-    Double_t rchi2_sk3;
-    Double_t prob_sk3;
-    Double_t norm_sk3;
-    Double_t beta_sk3;
-    Double_t offset_sk3 = 0;
-    Double_t normerr_sk3;
-    Double_t betaerr_sk3;
-    Double_t offseterr_sk3 = 0;
-    //TFile *fscan = new TFile("ID_Scan.root","recreate");
-    
-    trsk2->Branch("Channel", &channelid_sk2, "channelid_sk2/I");
-    trsk2->Branch("HighGainHV", &geighthv_sk2, "geighthv_sk2/D");
-    trsk2->Branch("HighGainHVerr", &geighthverr_sk2, "geighthverr_sk2/D");
-    trsk2->Branch("LowGainHV", &gfourhv_sk2, "gfourhv_sk2/D");
-    trsk2->Branch("LowGainHVerr", &gfourhverr_sk2, "gfourhverr_sk2/D");
-    trsk2->Branch("HVshiftsk2", &gshifthv_sk2, "gshifthv_sk2/D");
-    trsk2->Branch("Chi2", &rchi2_sk2, "rchi2_sk2/D");
-    trsk2->Branch("Prob", &prob_sk2, "prob_sk2/D");
-    trsk2->Branch("Normalization", &norm_sk2, "norm_sk2/D");
-    trsk2->Branch("Index", &beta_sk2, "beta_sk2/D");
-    //trsk->Branch("Offset", &offset_sk, "offset_sk/D");
-    trsk2->Branch("NormErr", &normerr_sk2, "normerr_sk2/D");
-    trsk2->Branch("IndexErr", &betaerr_sk2, "betaerr_sk2/D");
-    //trsk->Branch("OffsetErr", &offseterr_sk, "offseterr_sk/D");
-   
-    trsk3->Branch("Channel", &channelid_sk3, "channelid_sk3/I");
-    trsk3->Branch("HighGainHV", &geighthv_sk3, "geighthv_sk3/D");
-    trsk3->Branch("HighGainHVerr", &geighthverr_sk3, "geighthv_sk3/D");
-    trsk3->Branch("LowGainHV", &gfourhv_sk3, "gfourhv_sk3/D");
-    trsk3->Branch("LowGainHVerr", &gfourhverr_sk3, "gfourhv_sk3/D");
-    trsk3->Branch("HVshiftsk3", &gshifthv_sk3, "gshifthv_sk3/D");
-    trsk3->Branch("Chi2", &rchi2_sk3, "rchi2_sk3/D");
-    trsk3->Branch("Prob", &prob_sk3, "prob_sk3/D");
-    trsk3->Branch("Normalization", &norm_sk3, "norm_sk3/D");
-    trsk3->Branch("Index", &beta_sk3, "beta_sk3/D");
-    //trsk->Branch("Offset", &offset_sk, "offset_sk/D");
-    trsk3->Branch("NormErr", &normerr_sk3, "normerr_sk3/D");
-    trsk3->Branch("IndexErr", &betaerr_sk3, "betaerr_sk3/D");
-    //trsk->Branch("OffsetErr", &offseterr_sk, "offseterr_sk/D");
-    
+    Int_t channelid[nPMTtypes];
+    Double_t geighthv[nPMTtypes];
+    Double_t geighthverr[nPMTtypes];
+    Double_t gfourhv[nPMTtypes];
+    Double_t gfourhverr[nPMTtypes];
+    Double_t gshifthv[nPMTtypes];
+    Double_t rchi2[nPMTtypes];
+    Double_t prob[nPMTtypes];
+    Double_t norm[nPMTtypes];
+    Double_t beta[nPMTtypes];
+    Double_t offset[nPMTtypes] = {0};
+    Double_t normerr[nPMTtypes];
+    Double_t betaerr[nPMTtypes];
+    Double_t offseterr[nPMTtypes] = {0};
+    Double_t resolution[nPMTtypes] = {0};
+
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
+
+      if (!tr[ipmttype]) continue;
+      
+      tr[ipmttype]->Branch("Channel", &channelid[ipmttype], "channelid/I");
+      tr[ipmttype]->Branch("HighGainHV", &geighthv[ipmttype], "geighthv/D");
+      tr[ipmttype]->Branch("HighGainHVerr", &geighthverr[ipmttype], "geighthverr/D");
+      tr[ipmttype]->Branch("LowGainHV", &gfourhv[ipmttype], "gfourhv/D");
+      tr[ipmttype]->Branch("LowGainHVerr", &gfourhverr[ipmttype], "gfourhverr/D");
+      tr[ipmttype]->Branch("HVshift", &gshifthv[ipmttype], "gshifthv/D");
+      tr[ipmttype]->Branch("Chi2", &rchi2[ipmttype], "rchi2/D");
+      tr[ipmttype]->Branch("Prob", &prob[ipmttype], "prob/D");
+      tr[ipmttype]->Branch("Normalization", &norm[ipmttype], "norm/D");
+      tr[ipmttype]->Branch("Resolution", &resolution[ipmttype], "resolution/D");
+      tr[ipmttype]->Branch("Index", &beta[ipmttype], "beta/D");
+      //trsk->Branch("Offset", &offset_sk, "offset_sk/D");
+      tr[ipmttype]->Branch("NormErr", &normerr[ipmttype], "normerr/D");
+      tr[ipmttype]->Branch("IndexErr", &betaerr[ipmttype], "betaerr/D");
+      //trsk->Branch("OffsetErr", &offseterr[ipmttype], "offseterr/D");
+    }
     
     //Int_t sk2size = skcable[0].size();
     //Int_t sk3size = skcable[0].size();
-    TGraphErrors *ghv_sk[MAXPM];
+    TGraphErrors *ghv_sk[MAXPM] = {0};
     //TGraphErrors *ghv_sk[sk3size];
    
-    TF1 *fHVsk[MAXPM];
-    //TF1 *fHVsk[sk3size];
-    TF1 *fHVinvsk[MAXPM];
-    TF1 *fHVinvskerr[MAXPM];
+    TF1 *fHVsk[MAXPM] = {0};
+    //TF1 *fHVsk[sk3size] = {0};
+    TF1 *fHVinvsk[MAXPM] = {0};
+    TF1 *fHVinvskerr[MAXPM] = {0};
     //TF1 *fHVinvsk[sk3size];
     
     //fHV = new TF1("fHV", "[0]*pow(x,[1])", 1500, 2500);
@@ -298,11 +284,22 @@ int main(int argc, char *argv[]) {
     //fHV->SetParLimits(1, 3, 10);
     //fHV->SetParameter(2, -500);
 
-    cout << "Stage 1..." << endl;
-    
     for (Int_t p = 0; p < MAXPM; p++){
-      
-        ghv_sk[p] = new TGraphErrors();
+
+        int ipmttype = -1;
+        if (AnalyzeHK) {
+	  if (PMTinfo[p][0]==6) ipmttype = hk;
+	  else continue;
+	      
+	} else {
+	  if (PMTinfo[p][0]==3) ipmttype = sk2;
+	  else if (PMTinfo[p][0]==4) ipmttype = sk3;
+	  else continue;
+	}
+
+	if (!goodchannel[0][p]) continue;
+
+	ghv_sk[p] = new TGraphErrors();
         ghv_sk[p]->SetMarkerStyle(8);
         ghv_sk[p]->SetMarkerColor(2);
         ghv_sk[p]->SetMarkerSize(1);
@@ -311,15 +308,8 @@ int main(int argc, char *argv[]) {
         ghv_sk[p]->GetXaxis()->SetTitle("HV [V]");
         ghv_sk[p]->GetYaxis()->SetTitle("Peak [pC]");
 
-	if (PMTinfo[p][0] == 3 && skpeak[3][p] != 0){
-            ghv_sk[p]->SetName(Form("SK2_PMT_HVscan_Cable_%06d", skcable[3][p]));
-            ghv_sk[p]->SetTitle(Form("SK2_PMT_HVscan_Cable_%06d", skcable[3][p]));
-        }
-	
-        else if (PMTinfo[p][0] == 4 && skpeak[3][p] != 0){
-            ghv_sk[p]->SetName(Form("SK3_PMT_HVscan_Cable_%06d", skcable[3][p]));
-            ghv_sk[p]->SetTitle(Form("SK3_PMT_HVscan_Cable_%06d", skcable[3][p]));
-        }
+	ghv_sk[p]->SetName(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", skcable[0][p]));
+	ghv_sk[p]->SetTitle(PMTtypeNames[ipmttype]+Form(" PMT HV scan (Cable %06d)", skcable[0][p]));
         
         //fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x-[2],[1])", 1500, 2500);
         //fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])+[2]", 1500, 2500);
@@ -337,7 +327,7 @@ int main(int argc, char *argv[]) {
         fHVsk[p]->SetParameter(0, 5e-18);
         fHVsk[p]->SetParameter(1, 6);
         //fHVsk[p]->SetParLimits(0, 0, 2e-17);
-        fHVsk[p]->SetParLimits(1, 3, 11);
+        if (!AnalyzeHK) fHVsk[p]->SetParLimits(1, 3, 11);
         //fHVsk[p]->SetParameter(2, -500);
         //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
         //gthr_[p] = new TGraphErrors();
@@ -347,45 +337,6 @@ int main(int argc, char *argv[]) {
         //g_thr[p]->GetXaxis()->SetTitle("Threshold [mV]");
         //g_thr[p]->GetYaxis()->SetTitle("Peak [pC]");
     }
-    
-    /*for (Int_t pp = 0; pp < sk3size; pp++){
-        ghv_sk[p] = new TGraphErrors();
-        ghv_sk[p]->SetMarkerStyle(8);
-        ghv_sk[p]->SetMarkerColor(2);
-        ghv_sk[p]->SetMarkerSize(1);
-        ghv_sk[p]->SetLineColor(15);
-        ghv_sk[p]->SetLineStyle(3);
-        ghv_sk[p]->GetXaxis()->SetTitle("HV [V]");
-        ghv_sk[p]->GetYaxis()->SetTitle("Peak [pC]");
-        ghv_sk[p]->SetName(Form("SK_PMT_HVscan_Cable_%06d", skcable[0][p]));
-        ghv_sk[p]->SetTitle(Form("SK_PMT_HVscan_Cable_%06d", skcable[0][p]));
-        
-        //fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x-[2],[1])", 1500, 2500);
-        //fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])+[2]", 1500, 2500);
-        fHVsk[p] = new TF1(Form("fHVsk3%d", pp), "[0]*pow(x,[1])", 1500, 2500);
-        fHVinvsk[p] = new TF1(Form("fHVinvsk3%d", pp), "pow(x/[0],1./[1])", 1500, 2500);
-        //fHVsk[p]->SetLineColorAlpha(4, 0.5);
-        fHVsk[p]->SetLineColor(4);
-        fHVsk[p]->SetLineStyle(3);
-        fHVsk[p]->SetLineWidth(1);
-        fHVsk[p]->SetParName(0, "Factor");
-        fHVsk[p]->SetParName(1, "Index #beta");
-        //fHVsk[p]->SetParName(2, "Voltage Offset");
-        fHVsk[p]->SetParameter(0, 1e-18);
-        fHVsk[p]->SetParameter(1, 8);
-        fHVsk[p]->SetParLimits(0, 0, 5e-18);
-        fHVsk[p]->SetParLimits(1, 5, 11);
-        //fHVsk[p]->SetParameter(2, -500);
-        //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
-        //gthr_[p] = new TGraphErrors();
-        //g_thr[p]->SetMarkerStyle(8);
-        //g_thr[p]->SetMarkerColor(2);
-        //g_thr[p]->SetLineColor(15);
-        //g_thr[p]->GetXaxis()->SetTitle("Threshold [mV]");
-        //g_thr[p]->GetYaxis()->SetTitle("Peak [pC]");
-     }*/
-
-    cout << "Stage 2..." << endl;
 
     vector<Int_t> removepoint(MAXPM, 0);
     for (Int_t ifile = 0; ifile < nfile; ifile++){
@@ -394,27 +345,22 @@ int main(int argc, char *argv[]) {
                 outtxt1 << setw(10) << skcable[ifile][p] << setw(4) << " SK2" << setw(10) << skhv[ifile][p] << setw(10) << hvshift[ifile] << std::endl;
                 continue;
             }*/
-            if (PMTinfo[p][0] != 3 && PMTinfo[p][0] != 4) continue;
-            ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
-            ghv_sk[p]->SetPointError(ifile, 0.2, skpeakerr[ifile][p]);
-            if (sksigma[ifile][p] < 0.3 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0)
+
+	    if (!ghv_sk[p]) continue;
+	    
+	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
+
+            if (AnalyzeHK) {
+	      ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
+	      if (sksigma[ifile][p] < 0.1)
+		ghv_sk[p]->RemovePoint(ifile);
+	      
+	    } else {
+	      ghv_sk[p]->SetPointError(ifile, 0.2, skpeakerr[ifile][p]);
+	      if (sksigma[ifile][p] < 0.3 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0)
                 ghv_sk[p]->RemovePoint(ifile);
-            /*if (skhv[ifile][p] > 0 && skpeak[ifile][p]>0){
-                ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
-                ghv_sk[p]->SetPointError(ifile, 0.2, skpeakerr[ifile][p]);
-            }*/
-            
+	    }
         }
-        
-        /*for (Int_t pp = 0; pp < sk3size; pp++){
-            if (sk3peak[ifile][p] <=0 || skhv[ifile][p] <= 0){
-                outtxt1 << setw(10) << skcable[ifile][p] << setw(4) << " SK3" << setw(10) << skhv[ifile][p] << setw(10) << hvshift[ifile] << std::endl;
-                continue;
-            }
-            ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], sk3peak[ifile][p]);
-            ghv_sk[p]->SetPointError(ifile, 0.2, sk3peakerr[ifile][p]);
-        }*/
-        
     }
     
     Double_t targetQ = 2.884; // 1.8e7 gain
@@ -422,106 +368,89 @@ int main(int argc, char *argv[]) {
     Double_t targetQHPK = 2.243; // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
-    cout << "Stage 3..." << endl;
+    TString fitOpts = "SMBE+";
 
     for (Int_t p = 0; p < MAXPM; p++){
-        //ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
-        if (PMTinfo[p][0] != 3 && PMTinfo[p][0] !=4) continue;
+        if (!ghv_sk[p]) continue;
+	//ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
+
         if (ghv_sk[p]->GetN() < 3) {
             cout << "PMT " << p+1 << " has fewer than 3 points." << endl;
             continue;
-            
         }
-        ghv_sk[p]->Fit(fHVsk[p], "BQN0");
+
+        int ipmttype = -1;
+	if (PMTinfo[p][0]==6) ipmttype = hk;
+	else if (PMTinfo[p][0]==3) ipmttype = sk2;
+	else if (PMTinfo[p][0]==4) ipmttype = sk3;
+
+        std::cout << endl << Form("Fitting %s cable %06d", PMTtypeNames[ipmttype].Data(), p) << std::endl;
+
+	ghv_sk[p]->Fit(fHVsk[p], "BQN0");
         TVirtualFitter * gfitter = TVirtualFitter::Fitter(ghv_sk[p]);
-        gfitter->SetPrecision(0.5);
-        TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p],"SB+");
-        int status = int(fitr);
-        std::cout << Form("Fitting SK%d cable %06d", PMTinfo[p][0] - 1, p) << std::endl;
+
+	if (AnalyzeHK) gfitter->SetPrecision(1);
+	else gfitter->SetPrecision(0.5);
+	
+        TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
+        int status = (int)fitr;
+        for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
+	  status = (int)fitr;
+	    cout << "Status = " << status << endl;
+	    if (status == 4) {
+                ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+                fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
+            }
+	    else break;
+        }
+	
         //ghv_sk[p]->Draw();
         //c1->Update();
         ghv_sk[p]->Write();
         
-        if (PMTinfo[p][0] == 3){
-            channelid_sk2 = skcable[2][p];
-            norm_sk2 = fHVsk[p]->GetParameter(0);
-            beta_sk2 = fHVsk[p]->GetParameter(1);
-            //offset_sk = fHVsk[p]->GetParameter(2);
-            normerr_sk2 = fHVsk[p]->GetParError(0);
-            betaerr_sk2 = fHVsk[p]->GetParError(1);
-            //offseterr_sk = fHVsk[p]->GetParError(2);
-            rchi2_sk2 = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
-            prob_sk2 = fHVsk[p]->GetProb();
-            fHVinvsk[p]->SetParameter(0, fHVsk[p]->GetParameter(0));
-            fHVinvsk[p]->SetParameter(1, fHVsk[p]->GetParameter(1));
-            fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
-            fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
-            //fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-            geighthv_sk2 = fHVinvsk[p]->Eval(targetQ);
-            gfourhv_sk2 = fHVinvsk[p]->Eval(targetQHPK);
-            geighthverr_sk2 = fHVinvskerr[p]->Eval(targetQ) - geighthv_sk2;
-            gfourhverr_sk2 = fHVinvskerr[p]->Eval(targetQHPK) - gfourhv_sk2;
-            gshifthv_sk2 = geighthv_sk2 - SKPMThv[p];
-            trsk2->Fill();
+	channelid[ipmttype] = skcable[0][p];
+	norm[ipmttype] = fHVsk[p]->GetParameter(0);
+	beta[ipmttype] = fHVsk[p]->GetParameter(1);
+	//offset_sk = fHVsk[p]->GetParameter(2);
+	normerr[ipmttype] = fHVsk[p]->GetParError(0);
+	betaerr[ipmttype] = fHVsk[p]->GetParError(1);
+	//offseterr_sk = fHVsk[p]->GetParError(2);
+	rchi2[ipmttype] = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
+	prob[ipmttype] = fHVsk[p]->GetProb();
+	fHVinvsk[p]->SetParameter(0, fHVsk[p]->GetParameter(0));
+	fHVinvsk[p]->SetParameter(1, fHVsk[p]->GetParameter(1));
+	fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
+	fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
+	//fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
+	geighthv[ipmttype] = fHVinvsk[p]->Eval(targetQ);
+	gfourhv[ipmttype] = fHVinvsk[p]->Eval(targetQHPK);
+	geighthverr[ipmttype] = fHVinvskerr[p]->Eval(targetQ) - geighthv[ipmttype];
+	gfourhverr[ipmttype] = fHVinvskerr[p]->Eval(targetQHPK) - gfourhv[ipmttype];
+	gshifthv[ipmttype] = geighthv[ipmttype] - SKPMThv[p];
+        resolution[ipmttype] = sksigma[2][p]/skpeak[2][p];
+	tr[ipmttype]->Fill();
             
-            if (status == 4){
-                fHVsk[p]->SetLineColor(2);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK2" << setw(8) << Form("%1.2f", gfourhv_sk2) << setw(8) << Form("%1.2f", geighthv_sk2) << setw(25) << Form("%1.2e(%1.2e)", norm_sk2, normerr_sk2) << setw(20) << Form("%1.2f(%1.2f)", beta_sk2, betaerr_sk2) << setw(15) << Form("%1.3f", rchi2_sk2 ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
-                
-                if (rchi2_sk2 < 10 && rchi2_sk2 > 0 && prob_sk3 > 0.0001){
-                    outtxt3 << setw(10) << skcable[2][p] << setw(4) << " SK2" << setw(15) << Form("%1.3f", rchi2_sk2 ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm_sk2, normerr_sk2) << setw(20) << Form("%1.2f(%1.2f)", beta_sk2, betaerr_sk2) << "\n";
-                }
-            }
-            else if (rchi2_sk2 > 10 && prob_sk2 < 0.0001){
-                fHVsk[p]->SetLineColor(6);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK2" << setw(8) << Form("%1.2f", gfourhv_sk2) << setw(8) << Form("%1.2f", geighthv_sk2) << setw(25) << Form("%1.2e(%1.2e)", norm_sk2, normerr_sk2) << setw(20) << Form("%1.2f(%1.2f)", beta_sk2, betaerr_sk2) << setw(15) << Form("%1.3f", rchi2_sk2 ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
-            }
-            else if (rchi2_sk2 == 0 && prob_sk2 == 1){
-                fHVsk[p]->SetLineColor(3);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK2" << setw(8) << Form("%1.2f", gfourhv_sk2) << setw(8) << Form("%1.2f", geighthv_sk2) << setw(25) << Form("%1.2e(%1.2e)", norm_sk2, normerr_sk2) << setw(20) << Form("%1.2f(%1.2f)", beta_sk2, betaerr_sk2) << setw(15) << Form("%1.3f", rchi2_sk2 ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
-            }
-        }
-        
-        
-        else if (PMTinfo[p][0] == 4){
-            channelid_sk3 = skcable[2][p];
-            norm_sk3 = fHVsk[p]->GetParameter(0);
-            beta_sk3 = fHVsk[p]->GetParameter(1);
-            //offset_sk = fHVsk[p]->GetParameter(2);
-            normerr_sk3 = fHVsk[p]->GetParError(0);
-            betaerr_sk3 = fHVsk[p]->GetParError(1);
-            //offseterr_sk = fHVsk[p]->GetParError(2);
-            rchi2_sk3 = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
-            prob_sk3 = fHVsk[p]->GetProb();
-            fHVinvsk[p]->SetParameter(0, fHVsk[p]->GetParameter(0));
-            fHVinvsk[p]->SetParameter(1, fHVsk[p]->GetParameter(1));
-            //fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-            geighthv_sk3 = fHVinvsk[p]->Eval(targetQ);
-            gfourhv_sk3 = fHVinvsk[p]->Eval(targetQHPK);
-            geighthverr_sk3 = fHVinvskerr[p]->Eval(targetQ) - geighthv_sk3;
-            gfourhverr_sk3 = fHVinvskerr[p]->Eval(targetQHPK) - gfourhv_sk3;
-            gshifthv_sk3 = geighthv_sk3 - SKPMThv[p];
-            trsk3->Fill();
-            
-            if (status == 4){
-                fHVsk[p]->SetLineColor(2);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
-                
-                if (rchi2_sk3 < 10 && rchi2_sk3 >0 && prob_sk3 > 0.0001){
-                    outtxt3 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << "\n";
-                }
-            }
-            else if (rchi2_sk3 > 10 && prob_sk3 < 0.0001){
-                fHVsk[p]->SetLineColor(6);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
-            }
-            
-            else if (rchi2_sk3 == 0 && prob_sk3 == 1){
-                fHVsk[p]->SetLineColor(3);
-                outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
-            }
-        }
-        
+	if (status == 4){
+	  fHVsk[p]->SetLineColor(2);
+	  outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
+
+	  if (!AnalyzeHK) {
+	    if (rchi2[ipmttype] < 10 && rchi2[ipmttype] > 0 && prob[ipmttype] > 0.0001){
+	      outtxt3 << setw(10) << skcable[0][p] << setw(4) << " SK2" << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << "\n";
+	    }
+	  }
+	}
+
+	else if (!AnalyzeHK) {
+	  if (rchi2[ipmttype] > 10 && prob[ipmttype] < 0.0001){
+	    fHVsk[p]->SetLineColor(6);
+	    outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
+	  }
+	  else if (rchi2[ipmttype] == 0 && prob[ipmttype] == 1){
+	    fHVsk[p]->SetLineColor(3);
+	    outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
+	  }
+	}
        
         //mghv_sk->Add(ghv_sk[p]);
         //mghv_sk->Add(fHVsk[p]);
@@ -529,70 +458,27 @@ int main(int argc, char *argv[]) {
         //fHV->Clear();
     }
     
-    /*for (Int_t pp = 0; pp < sk3size; pp++){
-        //ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
-        ghv_sk[p]->Fit(fHVsk[p], "BQN0");
-        TVirtualFitter *gfitter = TVirtualFitter::Fitter(ghv_sk[p]);
-        gfitter->SetPrecision(0.1);
-        TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p],"SB+");
-        int status = int(fitr);
-        std::cout << Form("Fitting SK 3 cable %06d", pp) << std::endl;
-        //ghv_sk[p]->Draw();
-        //c1->Update();
-        ghv_sk[p]->Write();
-        channelid_sk3 = skcable[2][p];
-        norm_sk3 = fHVsk[p]->GetParameter(0);
-        beta_sk3 = fHVsk[p]->GetParameter(1);
-        //offset_sk = fHVsk[p]->GetParameter(2);
-        normerr_sk3 = fHVsk[p]->GetParError(0);
-        betaerr_sk3 = fHVsk[p]->GetParError(1);
-        //offseterr_sk = fHVsk[p]->GetParError(2);
-        rchi2_sk3 = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
-        prob_sk3 = fHVsk[p]->GetProb();
-        fHVinvsk[p]->SetParameter(0, fHVsk[p]->GetParameter(0));
-        fHVinvsk[p]->SetParameter(1, fHVsk[p]->GetParameter(1));
-        //fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-        geighthv_sk3 = fHVinvsk[p]->Eval(targetQ);
-        gfourhv_sk3 = fHVinvsk[p]->Eval(targetQHPK);
-        gshifthv_sk3 = geighthv_sk3 - SKPMThv3[p];
-        trsk3->Fill();
-        
-        if (status == 4){
-            fHVsk[p]->SetLineColor(2);
-            outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
-            
-            if (rchi2_sk3 < 10 && rchi2_sk3 >0 && prob_sk3 > 0.0001){
-                outtxt3 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << "\n";
-            }
-        }
-        else if (rchi2_sk3 > 10 && prob_sk3 < 0.0001){
-            fHVsk[p]->SetLineColor(6);
-            outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
-        }
-        
-        else if (rchi2_sk3 == 0 && prob_sk3 == 1){
-            fHVsk[p]->SetLineColor(3);
-            outtxt2 << setw(10) << skcable[2][p] << setw(4) << " SK3" << setw(8) << Form("%1.2f", gfourhv_sk3) << setw(8) << Form("%1.2f", geighthv_sk3) << setw(25) << Form("%1.2e(%1.2e)", norm_sk3, normerr_sk3) << setw(20) << Form("%1.2f(%1.2f)", beta_sk3, betaerr_sk3) << setw(15) << Form("%1.3f", rchi2_sk3) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
-        }
-        //mghv_sk->Add(ghv_sk[p]);
-        //mghv_sk->Add(fHVsk[p]);
-        //mgthr_sk->Add(gthr_sk[id]);
-        //fHV->Clear();
-    }*/
+    bool isDrawn = 0;
+    for (Int_t p = 0; p < MAXPM; p++){
 
-    
-    c1->Print("SK_SPE_HV.pdf[");
-    //mghv_sk->Draw();
-    fHVsk[0]->Draw();
-    for (Int_t p = 1; p < MAXPM; p++){
-        if (PMTinfo[p][0] != 3 && PMTinfo[p][0] != 4) continue;
-        fHVsk[p]->Draw("same");
+      if (!fHVsk[p]) continue;
+
+      if (!isDrawn)
+	fHVsk[p]->Draw();
+      
+      else {
+	fHVsk[p]->Draw("same");
+	isDrawn = 1;
+      }
     }
     
+    TString CanvasName = "_SPE_HV.pdf";
+    if (AnalyzeHK) CanvasName = outdir+"HK"+CanvasName;
+    else CanvasName = outdir+"SK"+CanvasName;
+
     c1->Update();
     c1->Modified();
-    c1->Print("SK_SPE_HV.pdf");
-    c1->Print("SK_SPE_HV.pdf]");
+    c1->Print(CanvasName);
 
     TPaveText *t = new TPaveText(.4,.15,.9,.25,"NDC");
     TPaveText *trun = new TPaveText(.4,.25,.9,.35,"NDC");
@@ -602,17 +488,32 @@ int main(int argc, char *argv[]) {
     trun->SetFillStyle(0);
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
-
-    cout << "Stage 4..." << endl;
     
-    c1->Print("SK_HV_Curves.pdf[");
+    CanvasName = "_HV_Curves.pdf";
+    if (AnalyzeHK) CanvasName = outdir+"HK"+CanvasName;
+    else CanvasName = outdir+"SK"+CanvasName;
+    c1->Print(CanvasName+"[");
+    
     //mghv_sk->Draw();
     for (Int_t p = 0; p < MAXPM; p++){
-        if (PMTinfo[p][0] != 3 && PMTinfo[p][0] != 4) continue;
+      
+        if (!ghv_sk[p]) continue;
+
         ghv_sk[p]->Draw("AP");
-        /*std::cout << skcable[0][p] << std::endl;
+	
+        //std::cout << skcable[0][p] << std::endl;
         t->Clear();
-        if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
+
+        t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
+        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
+        t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
+        ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
+        t->Draw("same");
+        trun->Draw("same");
+        c1->Update();
+
+	/*
+	if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
             t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
             ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
             t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
@@ -626,18 +527,47 @@ int main(int argc, char *argv[]) {
         ps->SetX1NDC(0.1);
         ps->SetX2NDC(0.4);*/
         
+        TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
+        ps->SetX1NDC(0.1);
+        ps->SetX2NDC(0.4);
         c1->Modified();
         c1->Update();
-        c1->Print("SK_HV_Curves.pdf");
+        c1->Print(CanvasName);
     }
-    c1->Print("SK_HV_Curves.pdf]");
+    c1->Print(CanvasName+"]");
 
-   
-    trsk2->Write();
-    trsk3->Write();
-   
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
+      if (tr[ipmttype])
+	tr[ipmttype]->Write();
+    
     fout->Close();
     outtxt1.close();
     outtxt2.close();
     outtxt3.close();
 }
+ 
+#ifndef __CINT__
+    int getArgs(int argc, char* argv[]){
+        
+        while( (argc > 1) && (argv[1][0] == '-') ){
+            switch(argv[1][1]){
+	      
+	        case 't':
+                    PMTtype = argv[2];
+		    InputDir += PMTtype + "/";
+                   ++argv; --argc;
+                    break;
+		    
+	        case 'i':
+                    InputDir = argv[2];
+                    ++argv; --argc;
+                    break;
+            }
+            
+            ++argv; --argc;
+        }
+        
+        return 0;
+        
+    }
+#endif

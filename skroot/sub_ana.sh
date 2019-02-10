@@ -1,4 +1,14 @@
 #!/bin/bash -f
+################################################
+#
+# Usage:
+#         ./sub_ana.sh      # For SK PMTs only
+#
+#         ./sub_ana.sh _hk  # For HK PMTs only
+#
+################################################
+
+PMT_TYPE=$1
 
 WORKDIR=${PWD}
 
@@ -21,12 +31,13 @@ for hv in ${HV_SET[@]}; do
     
 done
 
-mkdir -p ./hv_ana
+BASEDIR=${WORKDIR}/hv_ana${PMT_TYPE}
+mkdir -p ${BASEDIR}
 
-SCRIPT_DIR=${WORKDIR}/hv_ana_script
+SCRIPT_DIR=${BASEDIR}/script
 mkdir -p ${SCRIPT_DIR}
 
-LOG_DIR=${WORKDIR}/hv_ana_log
+LOG_DIR=${BASEDIR}/log
 mkdir -p ${LOG_DIR}
 
 irun=0
@@ -41,7 +52,8 @@ hostname
 
 cd ${WORKDIR}
 
-./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]}
+./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]} -t ${PMT_TYPE}
+
 EOF
 
     qsub -q calib -o ${LOG_DIR}/$run.log -e ${LOG_DIR}/$run.log ${SUBFILE}

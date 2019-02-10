@@ -22,11 +22,25 @@
 
 using namespace std;
 
+TString outdir="hv_ana_hk/";
+
+#ifdef __CINT__
 void individual_fit_hk(){
+#else
+int main(int argc, char *argv[]) {
+#endif
+
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
+
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat("e");
     gStyle->SetOptFit(1111);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     gStyle->SetStatX(0.43);
     gStyle->SetStatY(0.9);
     gStyle->SetStatW(0.18);
@@ -48,17 +62,17 @@ void individual_fit_hk(){
     Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
     Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
-    TFile *fin1 = new TFile("hvscan_parameter.root", "Read");
+    TFile *fin1 = new TFile(outdir+"hvscan_parameter.root", "Read");
     //TFile *fin2 = new TFile("hvscan_parameter_offset.root", "Read");
     TFile *fitfin[7];
     for (Int_t i = 0; i < nfile; i++){
-        fitfin[i] = new TFile(Form("fit_result_%d.root", runno[i]), "Read");
+        fitfin[i] = new TFile(Form(outdir+"fit_result_%d_hk.root", runno[i]), "Read");
     }
     
     Int_t PMTinfo[11146] = {0};
     
     ifstream connect;
-    connect.open("connection.super.sk-5.dat");
+    connect.open("/disk02/usr6/pdeperio/precalib_2018/connection.super.sk-5.dat");
     std::string line;
     
     for (Int_t head = 0; head < 51; head++){
@@ -110,7 +124,7 @@ void individual_fit_hk(){
     }
     
     ifstream intxt1;
-    intxt1.open("badfitting.txt");
+    intxt1.open(outdir+"badfitting.txt");
     if (intxt1.fail()){
         std::cerr << "Error opening file intxt1" << std::endl;
         exit(1);
@@ -146,7 +160,10 @@ void individual_fit_hk(){
     
     TCanvas * c1 = new TCanvas("c1","c1",250*((nfile+1)/2),500);
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Failed_HV_Fit_HK.pdf[");
+
+    TString CanvasName = outdir+"Failed_HV_Fit_HK.pdf";
+    c1->Print(CanvasName+"[");
+    
     for (Int_t ihk =0; ihk < badchhksize; ihk++){
         Int_t c1divide = ihk * (nfile+1) % (8) + 1;
         Int_t c2divide;
@@ -167,24 +184,27 @@ void individual_fit_hk(){
                 std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Failed_HV_Fit_HK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
                 
             }
         }
         if (ihk == badchhksize - 1 && c2divide != 0){
-            c1->Print("Failed_HV_Fit_HK.pdf");
+            c1->Print(CanvasName);
             //c1->Clear();
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Failed_HV_Fit_HK.pdf]");
+    c1->Print(CanvasName+"]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Large_HV_Chi2_HK.pdf[");
+
+    CanvasName = outdir+"Large_HV_Chi2_HK.pdf";
+    c1->Print(CanvasName+"[");
+
     for (Int_t ihk =0; ihk < largechhksize; ihk++){
         Int_t c1divide = ihk * (nfile+1) % 8 + 1;
         Int_t c2divide;
@@ -205,26 +225,29 @@ void individual_fit_hk(){
                 std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Large_HV_Chi2_HK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
                 
             }
         }
         if (ihk == largechhksize - 1 && c2divide != 0){
-            c1->Print("Large_HV_Chi2_HK.pdf");
+            c1->Print(CanvasName);
             //c1->Clear();
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Large_HV_Chi2_HK.pdf]");
+    c1->Print(CanvasName+"]");
     
     
    
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Okay_fit_HK.pdf[");
+
+    CanvasName = outdir+"Okay_fit_HK.pdf";
+    c1->Print(CanvasName+"[");
+
     for (Int_t iok =0; iok < okaychsize; iok++){
         Int_t c1divide = iok * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
@@ -235,31 +258,33 @@ void individual_fit_hk(){
         c1->cd(c1divide);
         gr1ok->Draw("AP");
         c1->Update();
-        TH1D * hsk1[nfile];
+        TH1D * hsk1[nfile];// = {0};
         for (Int_t i = 0; i < nfile; i++){
             c2divide = c1divide + i + 1;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
             std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
-            hsk1[i]->Draw();
+            //if (hsk1[i])
+	    hsk1[i]->Draw();
+	    //else cout << "Warning: hsk1 does not exist for ifile=" << i << endl;
             c1->Update();
-            if (c2divide < (nfile+1)) {
-                std::cout << "Drawing c1 " << c2divide << std::endl;
-            }
+            if (c2divide < (nfile+1)) 
+	      std::cout << "Drawing c1 " << c2divide << std::endl;
+
             else {
-                c1->Print("Okay_fit_HK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
                 
             }
         }
         if (iok == okaychsize - 1 && c2divide != 0){
-            c1->Print("Okay_fit_HK.pdf");
+            c1->Print(CanvasName);
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Okay_fit_HK.pdf]");
+    c1->Print(CanvasName+"]");
     
     /*
      c1->Clear();

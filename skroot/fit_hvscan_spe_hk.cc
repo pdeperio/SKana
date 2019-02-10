@@ -18,8 +18,19 @@
 #include <TSpectrum.h>
 #include <TTree.h>
 #include <TBranch.h>
+#include <TMath.h>
 
 using namespace std;
+
+#ifndef __CINT__
+int getArgs(int argc, char* argv[]);
+int runno = -1;
+TString ConnectionFile="";
+Float_t hv_shift = 0;
+int SelectPMT = -1;
+#endif
+
+TString outdir = "hv_ana_hk/";
 
 TF1* FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
     Int_t npx = 1000;
@@ -186,311 +197,349 @@ TF1* FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
 }
 
 
-void fit_hvscan_spe_hk(){
+
+#ifdef __CINT__
+void fit_hvscan_spe_hk(int runno = -1, TString ConnectionFile = "", Float_t hv_shift=0, int SelectPMT=-1){
     
+#else
+  int main(int argc, char *argv[]) {// process the arguments
+    int args = getArgs(argc, argv);
+    if(args != 0){
+      std::cerr << "Usage " << std::endl;
+      return 0;
+    }
+#endif
+    
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
+
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(1);
     gStyle->SetOptFit(0);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     
-    //Int_t runno[] = {78559};
-    //Double_t hvshift[] = {0};
-    //Double_t threshold = {-0.69};
-    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
-    Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
-    Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
 
-    const int nfile = 7;//number of files to read in
     const int MAXPM = 11146;
     const int nPMTtype = 6;
     
     Float_t PMTinfo[MAXPM][3];//flag, place, hv
-    //int npmt;
-    //int pmtid;
     
     ifstream connect;
-    connect.open("connection.super.sk-5.dat");
+    connect.open(ConnectionFile.Data());
     std::string line;
     
     for (Int_t head = 0; head < 51; head++){
-        getline(connect, line);
+      getline(connect, line);
     }//reading header of the connection table
     
     if (connect.is_open()){
-        while (!connect.eof()){
-            Int_t cableid;
-            std::string supadd;
-            std::string supsubadd;
-            Int_t supserial;
-            Int_t modserial;
-            Int_t hutnum;
-            Int_t tkobnum;
-            Int_t tkomodadd;
-            Int_t qbch;
-            Int_t hvcrate;
-            Int_t hvmodadd;
-            Int_t hvch;
-            Float_t oldhv; // applied hv (to change)
-            std::string pmtserial; // serial (check criteria)
-            Int_t pmtflag;
-            std::string qbip;
-            Int_t pmtx, pmty, pmtz;
-            Int_t odpadnum_hut, odpadnum_crate, odpadnum_mod, odpadnum_ch;
+      while (!connect.eof()){
+	Int_t cableid;
+	std::string supadd;
+	std::string supsubadd;
+	Int_t supserial;
+	Int_t modserial;
+	Int_t hutnum;
+	Int_t tkobnum;
+	Int_t tkomodadd;
+	Int_t qbch;
+	Int_t hvcrate;
+	Int_t hvmodadd;
+	Int_t hvch;
+	Float_t oldhv; // applied hv (to change)
+	std::string pmtserial; // serial (check criteria)
+	Int_t pmtflag;
+	std::string qbip;
+	Int_t pmtx, pmty, pmtz;
+	Int_t odpadnum_hut, odpadnum_crate, odpadnum_mod, odpadnum_ch;
             
-            connect >> cableid >> supadd >> supsubadd >> supserial >> modserial >> hutnum >> tkobnum >> tkomodadd >> qbch >> hvcrate >> hvmodadd >> hvch >> oldhv >> pmtserial >> pmtflag >> qbip >> pmtx >> pmty >> pmtz >> odpadnum_hut >> odpadnum_crate >> odpadnum_mod >> odpadnum_ch;
+	connect >> cableid >> supadd >> supsubadd >> supserial >> modserial >> hutnum >> tkobnum >> tkomodadd >> qbch >> hvcrate >> hvmodadd >> hvch >> oldhv >> pmtserial >> pmtflag >> qbip >> pmtx >> pmty >> pmtz >> odpadnum_hut >> odpadnum_crate >> odpadnum_mod >> odpadnum_ch;
             
-            if (cableid <1 || cableid > 11146) continue;
-            PMTinfo[cableid-1][0]=pmtflag;
-            PMTinfo[cableid-1][1]=pmtz;
-            PMTinfo[cableid-1][2]=oldhv;
-        }
-        connect.close();
+	if (cableid <1 || cableid > 11146) continue;
+	PMTinfo[cableid-1][0]=pmtflag;
+	PMTinfo[cableid-1][1]=pmtz;
+	PMTinfo[cableid-1][2]=oldhv;
+      }
+      connect.close();
     }
     
     
-    TFile *f[nfile];
-    TFile *fout[nfile];
+    TFile *f;
+    TFile *fout;
     TH1D * h_on[MAXPM];
     TH1D * h_off[MAXPM];
-    
-    
    
-    for (Int_t ifile = 0; ifile < nfile; ifile++){
-        int negbad = 0;
-        int smallbad = 0;
-        int largebad =0;
-        int posbad = 0;
-        int nofit = 0;//counters
+    int negbad = 0;
+    int smallbad = 0;
+    int largebad =0;
+    int posbad = 0;
+    int nofit = 0;//counters
         
-        Int_t chid;
-        Double_t peak;
-        //Double_t perr;
-        Double_t chi2;
-        Double_t peakerr;
-        Double_t ndf;
-        //Double_t pvalue;
-        Double_t highv;
-        Double_t rchi2;
-        Double_t sigma;
-        Int_t nhit;
+    Int_t chid;
+    Double_t peak;
+    //Double_t perr;
+    Double_t chi2;
+    Double_t peakerr;
+    Double_t ndf;
+    //Double_t pvalue;
+    Double_t highv;
+    Double_t rchi2;
+    Double_t sigma;
+    Int_t nhit;
         
-        TTree *tree = new TTree("spe", "SPE Peaks");
-        tree->Branch("Channel", &chid, "chid/I");
-        tree->Branch("HV", &highv, "highv/D");
-        tree->Branch("Peak", &peak, "peak/D");
-        tree->Branch("Peakerr", &peakerr, "peakerr/D");
-        tree->Branch("Chi2", &rchi2, "rchi2/D");
-        tree->Branch("Sigma", &sigma, "sigma/D");
-        tree->Branch("Nhits", &nhit, "nhit/I");
+    TTree *tree = new TTree("spe", "SPE Peaks");
+    tree->Branch("Channel", &chid, "chid/I");
+    tree->Branch("HV", &highv, "highv/D");
+    tree->Branch("Peak", &peak, "peak/D");
+    tree->Branch("Peakerr", &peakerr, "peakerr/D");
+    tree->Branch("Chi2", &rchi2, "rchi2/D");
+    tree->Branch("Sigma", &sigma, "sigma/D");
+    tree->Branch("Nhits", &nhit, "nhit/I");
         
-        ofstream outfile;
-        outfile.open(Form("badpeak_%d.txt", runno[ifile]));
-        outfile << setw(10) << "     Cable" << setw(10) << "    HV [V]" << setw(10) << " Peak [pC]" << setw(20) << "         Err Message\n";
+    ofstream outfile;
+    outfile.open(outdir+Form("badpeak_%d.txt", runno));
+    outfile << setw(10) << "     Cable" << setw(10) << "    HV [V]" << setw(10) << " Peak [pC]" << setw(20) << "         Err Message\n";
         
-        ofstream outfile2;
-        outfile2.open(Form("nofit_%d.txt", runno[ifile]));
-        
-        
-        c1->Print(Form("neg_bad_fit_%d.pdf[", runno[ifile]));
-        c1->Print(Form("small_bad_fit_%d.pdf[", runno[ifile]));
-        c1->Print(Form("big_bad_fit_%d.pdf[", runno[ifile]));
-        c1->Print(Form("pos_bad_fit_%d.pdf[", runno[ifile]));
-        c1->Print(Form("okay_fit_sample_%d.pdf[", runno[ifile]));
+    ofstream outfile2;
+    outfile2.open(outdir+Form("nofit_%d.txt", runno));
         
         
-        TH1D * h_spe_peak_hk = new TH1D("h_spe_peak_hk","spe_peak_hk",120,0,6);
-        TH1D * h_spe_chi2_hk = new TH1D("h_spe_chi2_hk","spe_chi2_hk",200,0,40);
+    c1->Print(outdir+Form("neg_bad_fit_%d.pdf[", runno));
+    c1->Print(outdir+Form("small_bad_fit_%d.pdf[", runno));
+    c1->Print(outdir+Form("big_bad_fit_%d.pdf[", runno));
+    c1->Print(outdir+Form("pos_bad_fit_%d.pdf[", runno));
+    c1->Print(outdir+Form("okay_fit_sample_%d.pdf[", runno));
         
         
-        h_spe_peak_hk->GetXaxis()->SetTitle("Peak [pC]");
-        h_spe_chi2_hk->GetXaxis()->SetTitle("Fit Chi2/ndf");
+    TH1D * h_spe_peak_hk = new TH1D("h_spe_peak_hk","spe_peak_hk",120,0,6);
+    TH1D * h_spe_chi2_hk = new TH1D("h_spe_chi2_hk","spe_chi2_hk",200,0,40);
         
-        f[ifile] = new TFile(Form("spe_individual_%d_C.root",runno[ifile]),"read");
-        fout[ifile] = new TFile(Form("fit_result_%d.root",runno[ifile]),"recreate");
-        fout[ifile]->cd();
         
-        for (Int_t iPMT = 0; iPMT < MAXPM; iPMT++){
-            if (PMTinfo[iPMT][0] != 6) continue;
-            h_on[iPMT] = (TH1D*)f[ifile]->Get(Form("h_spe_on_%d",iPMT+1));
-            h_off[iPMT] = (TH1D*)f[ifile]->Get(Form("h_spe_off_%d",iPMT+1));
-            h_on[iPMT]->Sumw2();
-            h_off[iPMT]->Sumw2();
-            h_on[iPMT]->Add(h_off[iPMT],-1);
-            h_on[iPMT]->SetTitle(Form("PMT %d",iPMT+1));
-            h_on[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
-            h_on[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
-            h_on[iPMT]->GetXaxis()->SetRangeUser(-3,15);
-            h_on[iPMT]->Draw();
-            //TH1D *h = (TH1D*)h_on[iPMT]->Clone();
-            if (h_on[iPMT]->GetEntries() < 10 && PMTinfo[iPMT][0] == 6){
-                nofit++;
-                outfile2 << iPMT+1 << std::endl;
-                continue;
-            }
+    h_spe_peak_hk->GetXaxis()->SetTitle("Peak [pC]");
+    h_spe_chi2_hk->GetXaxis()->SetTitle("Fit Chi2/ndf");
+        
+    f = new TFile(Form("output/spe_individual_%d_C.root",runno),"read");
+    fout = new TFile(outdir+Form("fit_result_%d.root",runno),"recreate");
+    fout->cd();
+        
+    for (Int_t iPMT = 0; iPMT < MAXPM; iPMT++){
+      if (PMTinfo[iPMT][0] != 6) continue;
+      h_on[iPMT] = (TH1D*)f->Get(Form("h_spe_on_%d",iPMT+1));
+      h_off[iPMT] = (TH1D*)f->Get(Form("h_spe_off_%d",iPMT+1));
+      h_on[iPMT]->Sumw2();
+      h_off[iPMT]->Sumw2();
+      h_on[iPMT]->Add(h_off[iPMT],-1);
+      h_on[iPMT]->SetTitle(Form("PMT %d",iPMT+1));
+      h_on[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
+      h_on[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
+      h_on[iPMT]->GetXaxis()->SetRangeUser(-3,15);
+      h_on[iPMT]->Draw();
+      //TH1D *h = (TH1D*)h_on[iPMT]->Clone();
+
+      if (h_on[iPMT]->Integral() < 20 && PMTinfo[iPMT][0] == 6){
+	nofit++;
+	outfile2 << iPMT+1 << std::endl;
+	continue;
+      }
          
-            if (PMTinfo[iPMT][0] == 6){
-                highv = PMTinfo[iPMT][2] + hvshift[ifile];
+      if (PMTinfo[iPMT][0] == 6){
+	highv = PMTinfo[iPMT][2];
                 
-                TF1 *fge = FitSK((TH1D*)h_on[iPMT], 2, hvshift[ifile], PMTinfo[iPMT][0]);
+	TF1 *fge = FitSK((TH1D*)h_on[iPMT], 2, hv_shift, PMTinfo[iPMT][0]);
                
-                c1->Update();
-                h_on[iPMT]->Write();
-                if (fge->GetNpar() > 6) {
-                    if ((TMath::Abs(fge->GetMaximumX(0,6) - fge->GetParameter(1)) >= 1) || fge->GetParameter(1) > 10){
-                        peak = fge->GetMaximumX(0, 6);
-                        Double_t FWHMlow  = peak-fge->GetX(fge->Eval(peak)*0.5, 0, peak);
-                        Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
-                        sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
-                        peakerr = sigma * 1e-4;
-                    }
-                }
-                else {
-                    if (fge->GetParameter(1) < 0 || fge->GetParameter(1) > 10){
-                        peak = fge->GetMaximumX(0,6);
-                        Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
-                        Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
-                        sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
-                        peakerr = sigma * 1e-4;
-                    }
-                    else {
-                        peak = fge->GetParameter(1);
-                        sigma = fge->GetParameter(2);
-                        peakerr = fge->GetParError(1);
-                    }
-                }
-                chi2 = fge->GetChisquare();
-                ndf = fge->GetNDF();
-                rchi2 = chi2/ndf;
-                chid = iPMT+1;
-                nhit = h_on[iPMT]->GetEntries();
-                //peakerr = fge->GetParError(1);
-                //peakerr = fge->GetParError(4);
-                tree->Fill();
-            }
+	c1->Update();
+	h_on[iPMT]->Write();
+	if (fge->GetNpar() > 6) {
+	  if ((TMath::Abs(fge->GetMaximumX(0,6) - fge->GetParameter(1)) >= 1) || fge->GetParameter(1) > 10){
+	    peak = fge->GetMaximumX(0, 6);
+	    Double_t FWHMlow  = peak-fge->GetX(fge->Eval(peak)*0.5, 0, peak);
+	    Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
+	    sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
+	    peakerr = sigma * 1e-4;
+	  }
+	}
+	else {
+	  if (fge->GetParameter(1) < 0 || fge->GetParameter(1) > 10){
+	    peak = fge->GetMaximumX(0,6);
+	    Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
+	    Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
+	    sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
+	    peakerr = sigma * 1e-4;
+	  }
+	  else {
+	    peak = fge->GetParameter(1);
+	    sigma = fge->GetParameter(2);
+	    peakerr = fge->GetParError(1);
+	  }
+	}
+	chi2 = fge->GetChisquare();
+	ndf = fge->GetNDF();
+	rchi2 = chi2/ndf;
+	chid = iPMT+1;
+	nhit = h_on[iPMT]->GetEntries();
+	//peakerr = fge->GetParError(1);
+	//peakerr = fge->GetParError(4);
+	tree->Fill();
+      }
             
-            std::cout << "Handling PMT " << iPMT+1 << std::endl;
-            if (peak <= 0){
-                negbad++;
-                //h_on[iPMT]->Draw();
-                c1->Update();
-                c1->Print(Form("neg_bad_fit_%d.pdf", runno[ifile]));
-                outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2]+hvshift[ifile])  << setw(10) << Form("%0.2f",peak) << setw(20) << "       negative peak" << "\n";
-            }
+      std::cout << "Handling PMT " << iPMT+1 << std::endl;
+      if (peak <= 0){
+	negbad++;
+	//h_on[iPMT]->Draw();
+	c1->Update();
+	c1->Print(outdir+Form("neg_bad_fit_%d.pdf", runno));
+	outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "       negative peak" << "\n";
+      }
             
-            else if (peak <= 2&&peak > 0){
-                smallbad++;
-                //h_on[iPMT]->Draw();
-                c1->Update();
-                c1->Print(Form("small_bad_fit_%d.pdf", runno[ifile]));
-                outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2]+hvshift[ifile])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          small peak" << "\n";
-            }
+      else if (peak <= 2&&peak > 0){
+	smallbad++;
+	//h_on[iPMT]->Draw();
+	c1->Update();
+	c1->Print(outdir+Form("small_bad_fit_%d.pdf", runno));
+	outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          small peak" << "\n";
+      }
             
-            else if (peak > 4.5&&peak <= 6){
-                largebad++;
-                //h_on[iPMT]->Draw();
-                c1->Update();
-                c1->Print(Form("big_bad_fit_%d.pdf", runno[ifile]));
-                outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2]+hvshift[ifile])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          large peak" << "\n";
-            }
+      else if (peak > 4.5&&peak <= 6){
+	largebad++;
+	//h_on[iPMT]->Draw();
+	c1->Update();
+	c1->Print(outdir+Form("big_bad_fit_%d.pdf", runno));
+	outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "          large peak" << "\n";
+      }
             
-            else if (peak > 6){
-                posbad++;
-                //h_on[iPMT]->Draw();
-                c1->Update();
-                c1->Print(Form("pos_bad_fit_%d.pdf", runno[ifile]));
-                outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2]+hvshift[ifile])  << setw(10) << Form("%0.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
-            }
+      else if (peak > 6){
+	posbad++;
+	//h_on[iPMT]->Draw();
+	c1->Update();
+	c1->Print(outdir+Form("pos_bad_fit_%d.pdf", runno));
+	outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%0.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%0.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
+      }
             
-            else if (peak > 2&&peak < 4.5){
-                //if (h_on[iPMT]->GetEntries()==0) continue;
-                //h_on[iPMT]->Draw();
-                c1->Update();
-                c1->Print(Form("okay_fit_sample_%d.pdf", runno[ifile]));
-                //outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%.2f", PMTinfo[iPMT][2]+hvshift[ifile])  << setw(10) << Form("%.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
-            }
+      else if (peak > 2&&peak < 4.5){
+	//if (h_on[iPMT]->GetEntries()==0) continue;
+	//h_on[iPMT]->Draw();
+	c1->Update();
+	c1->Print(outdir+Form("okay_fit_sample_%d.pdf", runno));
+	//outfile << setw(10) << Form("%06d",iPMT+1) << setw(10) << Form("%.2f", PMTinfo[iPMT][2])  << setw(10) << Form("%.2f",peak) << setw(20) << "     larger 6pC peak" << "\n";
+      }
     
-            else if (PMTinfo[iPMT][0]==6 && PMTinfo[iPMT][1]<=1656){
-                //hkpeak[ifile].push_back(peak);
-                //hkchi2[ifile].push_back(chi2/ndf);
-                //skperr[ifile].push_back(peakerr);
-                //skpvalue[ifile].push_back(pvalue);
-                h_spe_peak_hk->Fill(peak);
-                h_spe_chi2_hk->Fill(chi2/ndf);
-                //h_spe_p_hk->Fill(pvalue);
-                //h_spe_perr_hk->Fill(peakerr);
+      else if (PMTinfo[iPMT][0]==6 && PMTinfo[iPMT][1]<=1656){
+	//hkpeak.push_back(peak);
+	//hkchi2.push_back(chi2/ndf);
+	//skperr.push_back(peakerr);
+	//skpvalue.push_back(pvalue);
+	h_spe_peak_hk->Fill(peak);
+	h_spe_chi2_hk->Fill(chi2/ndf);
+	//h_spe_p_hk->Fill(pvalue);
+	//h_spe_perr_hk->Fill(peakerr);
+      }
+            
+    }
+    h_spe_peak_hk->Write();
+    h_spe_chi2_hk->Write();
+    //h_spe_p_hk->Write();
+    //h_spe_perr_hk->Write();
+    tree->Write();
+        
+    TLegend *legend = new TLegend(0.1,0.85,0.7,0.9);
+    //legend->SetNColumns(2);
+    //legend->AddEntry(h_spe_peak, "SK PMT", "l");
+    legend->AddEntry(h_spe_peak_hk, "HK PMT", "l");
+        
+        
+    c1->Print(outdir+Form("hk_spe_peak_%06d.pdf[",runno));
+    //c1->SetLogy();
+    //gStyle->SetOptStats(0);
+    //h_spe_peak->SetLineStyle(2);
+    //h_spe_peak->SetLineColor(kRed);
+    //h_spe_peak->Draw();
+    h_spe_peak_hk->SetLineColor(kBlue);
+    h_spe_peak_hk->SetFillColor(kBlue);
+    h_spe_peak_hk->Draw();
+    legend->Draw("same");
+    c1->Update();
+    c1->Print(outdir+Form("hk_spe_peak_%06d.pdf",runno));
+    c1->Print(outdir+Form("hk_spe_peak_%06d.pdf]",runno));
+        
+    c1->Print(outdir+Form("hk_spe_chi2_%06d.pdf[",runno));
+    //h_spe_chi2->SetLineStyle(2);
+    //h_spe_chi2->SetLineColor(kRed);
+    //h_spe_chi2->Draw();
+    h_spe_chi2_hk->SetLineColor(kBlue);
+    h_spe_chi2_hk->SetFillColor(kBlue);
+    h_spe_chi2_hk->Draw();
+    legend->Draw("same");
+    c1->Update();
+    c1->Print(outdir+Form("hk_spe_chi2_%06d.pdf",runno));
+    c1->Print(outdir+Form("hk_spe_chi2_%06d.pdf]",runno));
+        
+    
+    c1->Print(outdir+Form("neg_bad_fit_%d.pdf]", runno));
+    c1->Print(outdir+Form("small_bad_fit_%d.pdf]", runno));
+    c1->Print(outdir+Form("big_bad_fit_%d.pdf]", runno));
+    c1->Print(outdir+Form("pos_bad_fit_%d.pdf]", runno));
+    c1->Print(outdir+Form("okay_fit_sample_%d.pdf]", runno));
+        
+    outfile << "\n" << "\n" << "================================================\n";
+    outfile << "In total " << negbad << " PMTs failed the fit to negative peak." << std::endl;
+    outfile << "In total " << smallbad << " PMTs failed the fit to small not okay peak." << std::endl;
+    outfile << "In total " << largebad << " PMTs failed the fit to large but okay peak." << std::endl;
+    outfile << "In total " << posbad << " PMTs failed the fit to too large peak." << std::endl;
+    outfile << "In total " << nofit << " PMTs have no data." << std::endl;
+        
+        
+    f->Close();
+    fout->Close();
+    outfile.close();
+    outfile2.close();
+        
+        
+    h_spe_peak_hk->Clear();
+    h_spe_chi2_hk->Clear();
+    //h_spe_p_hk->Clear();
+    //h_spe_perr_hk->Clear();
+    tree->Clear();
+    c1->Clear();
+        
+        
+  }
+
+#ifndef __CINT__
+    int getArgs(int argc, char* argv[]){
+        
+        while( (argc > 1) && (argv[1][0] == '-') ){
+            switch(argv[1][1]){
+                    
+                case 'r':
+                    runno    = atoi(argv[2]);
+                    ++argv; --argc;
+                    break;
+                    
+                case 'c':
+                    ConnectionFile = argv[2];
+                    ++argv; --argc;
+                    break;
+                    
+                case 'h':
+                    hv_shift = atof(argv[2]);
+                    ++argv; --argc;
+                    break;
+                    
+                case 'p':
+                    SelectPMT = atoi(argv[2]);
+                    ++argv; --argc;
+                    break;
             }
             
+            ++argv; --argc;
         }
-        h_spe_peak_hk->Write();
-        h_spe_chi2_hk->Write();
-        //h_spe_p_hk->Write();
-        //h_spe_perr_hk->Write();
-        tree->Write();
         
-        auto *legend = new TLegend(0.1,0.85,0.7,0.9);
-        //legend->SetNColumns(2);
-        //legend->AddEntry(h_spe_peak, "SK PMT", "l");
-        legend->AddEntry(h_spe_peak_hk, "HK PMT", "l");
-        
-        
-        c1->Print(Form("hk_spe_peak_%06d.pdf[",runno[ifile]));
-        //c1->SetLogy();
-        //gStyle->SetOptStats(0);
-        //h_spe_peak->SetLineStyle(2);
-        //h_spe_peak->SetLineColor(kRed);
-        //h_spe_peak->Draw();
-        h_spe_peak_hk->SetLineColor(kBlue);
-        h_spe_peak_hk->SetFillColor(kBlue);
-        h_spe_peak_hk->Draw();
-        legend->Draw("same");
-        c1->Update();
-        c1->Print(Form("hk_spe_peak_%06d.pdf",runno[ifile]));
-        c1->Print(Form("hk_spe_peak_%06d.pdf]",runno[ifile]));
-        
-        c1->Print(Form("hk_spe_chi2_%06d.pdf[",runno[ifile]));
-        //h_spe_chi2->SetLineStyle(2);
-        //h_spe_chi2->SetLineColor(kRed);
-        //h_spe_chi2->Draw();
-        h_spe_chi2_hk->SetLineColor(kBlue);
-        h_spe_chi2_hk->SetFillColor(kBlue);
-        h_spe_chi2_hk->Draw();
-        legend->Draw("same");
-        c1->Update();
-        c1->Print(Form("hk_spe_chi2_%06d.pdf",runno[ifile]));
-        c1->Print(Form("hk_spe_chi2_%06d.pdf]",runno[ifile]));
-        
-    
-        c1->Print(Form("neg_bad_fit_%d.pdf]", runno[ifile]));
-        c1->Print(Form("small_bad_fit_%d.pdf]", runno[ifile]));
-        c1->Print(Form("big_bad_fit_%d.pdf]", runno[ifile]));
-        c1->Print(Form("pos_bad_fit_%d.pdf]", runno[ifile]));
-        c1->Print(Form("okay_fit_sample_%d.pdf]", runno[ifile]));
-        
-        outfile << "\n" << "\n" << "================================================\n";
-        outfile << "In total " << negbad << " PMTs failed the fit to negative peak." << std::endl;
-        outfile << "In total " << smallbad << " PMTs failed the fit to small not okay peak." << std::endl;
-        outfile << "In total " << largebad << " PMTs failed the fit to large but okay peak." << std::endl;
-        outfile << "In total " << posbad << " PMTs failed the fit to too large peak." << std::endl;
-        outfile << "In total " << nofit << " PMTs have no data." << std::endl;
-        
-        
-        f[ifile]->Close();
-        fout[ifile]->Close();
-        outfile.close();
-        outfile2.close();
-        
-        
-        h_spe_peak_hk->Clear();
-        h_spe_chi2_hk->Clear();
-        //h_spe_p_hk->Clear();
-        //h_spe_perr_hk->Clear();
-        tree->Clear();
-        c1->Clear();
-        
+        return 0;
         
     }
-   
-    
-    
-}
+#endif

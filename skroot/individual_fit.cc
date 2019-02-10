@@ -22,11 +22,23 @@
 
 using namespace std;
 
+#ifdef __CINT__
 void individual_fit(){
+#else
+int main(int argc, char *argv[]) {
+#endif
+
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
+
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat("e");
     gStyle->SetOptFit(1111);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     gStyle->SetStatX(0.43);
     gStyle->SetStatY(0.9);
     gStyle->SetStatW(0.18);
@@ -40,8 +52,9 @@ void individual_fit(){
     Float_t st0_lower_left_y = 0.65;
     Float_t st_Width = 0.45;
     Float_t st_Height = 0.2;
-   
-    Int_t runno[] = {80152, 80157, 80159, 80148, 80161, 80163, 80167};
+
+    const int nfile = 7;
+    Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
     Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
     Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
@@ -266,7 +279,7 @@ void individual_fit(){
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Zero_HV_Chi2_SK.pdf]");*/
+    c1->Print("Zero_HV_Chi2_SK.pdf]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
@@ -293,8 +306,8 @@ void individual_fit(){
             }
             else {
                 c1->Print("Okay_fit.pdf");
-                1->Clear();
-                cc1->Divide((nfile+1)/2,2);
+                c1->Clear();
+                c1->Divide((nfile+1)/2,2);
                 
             }
         }
