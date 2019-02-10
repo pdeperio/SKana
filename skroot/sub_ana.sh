@@ -22,6 +22,7 @@ for hv in ${HV_SET[@]}; do
 
     if [ $hv == 0 ]; then
 	CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5.dat
+        ln -sf ${CONNECTION_SET}
 
     else
 	CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5${hv}.dat

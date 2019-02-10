@@ -22,12 +22,32 @@
 
 using namespace std;
 
+TString outdir = "hv_ana";
+
 #ifdef __CINT__
-void individual_fit(){
+void individual_fit(TString PMTtype = "", TString InputDir = "hv_ana"){
 #else
+TString PMTtype = "";
+TString InputDir = outdir;
+
+int getArgs(int argc, char* argv[]);
+
 int main(int argc, char *argv[]) {
+
+    int args = getArgs(argc, argv);
+    if(args != 0){
+        std::cerr << "Usage " << std::endl;
+        return 0;
+    }
 #endif
 
+    outdir += PMTtype + "/";
+
+    bool AnalyzeHK = 0;
+    if (PMTtype.Contains("hk")) AnalyzeHK = 1;
+
+    gErrorIgnoreLevel = kWarning; // For removing TCanvas::Print msgs
+    
     gStyle->SetFrameBorderMode(0);
     gStyle->SetTitleBorderSize(0);
     gStyle->SetTitleFillColor(0);
@@ -56,13 +76,18 @@ int main(int argc, char *argv[]) {
     const int nfile = 7;
     Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
     Double_t hvshift[] = {-75, -50, -25, 0, 25, 50, 75};
-    Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
+    //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
     
-    TFile *fin1 = new TFile("hvscan_parameter_sk.root", "Read");
+    const int nPMTtypes = 3;
+    enum PMTtypeEnum {hk, sk2, sk3};
+    TString PMTtypeNames[nPMTtypes] = {"HK", "SK2", "SK3"};
+
+    TFile *fin1 = new TFile(InputDir+"hvscan_parameter"+PMTtype+".root", "Read");
     //TFile *fin2 = new TFile("hvscan_parameter_offset.root", "Read");
+    
     TFile *fitfin[7];
-    for (Int_t i = 0; i < 4; i++){
-        fitfin[i] = new TFile(Form("fit_result_%d_sk.root", runno[i]), "Read");
+    for (Int_t i = 0; i < nfile; i++){
+        fitfin[i] = new TFile(InputDir+Form("fit_result_%d"+PMTtype+".root", runno[i]), "Read");
     }
     
     Int_t PMTinfo[11146] = {0};
@@ -103,35 +128,46 @@ int main(int argc, char *argv[]) {
             //PMTinfo[cableid-1][1]=pmtz;
             //PMTinfo[cableid-1][2]=oldhv;
         }
+	
+	connect.close();
+	
+    } else {
+      cout << "Error: Connection file not open" << endl;
+      exit (-1);
     }
+    
     
     std::vector<Int_t> badchsk;
     std::vector<Int_t> largechsk;
     std::vector<Int_t> zerochsk;
     std::vector<Int_t> okaych;
     
-    TTree * trsk2 = (TTree*)fin1->Get("hvscan_sk2");
-    TTree * trsk3 = (TTree*)fin1->Get("hvscan_sk3");
+    TTree *tr[nPMTtypes] = {0};
+    Int_t nentry[nPMTtypes] = {0};
+    Int_t skch[nPMTtypes] = {0};
     
-    Int_t nentry_sk2 = trsk2->GetEntries();
-    Int_t nentry_sk3 = trsk3->GetEntries();
-    //Int_t nentry_hk = trhk->GetEntries();
-    Int_t sk2ch, sk3ch;
-    trsk2->SetBranchAddress("Channel", &sk2ch);
-    trsk3->SetBranchAddress("Channel", &sk3ch);
-    
-    for (Int_t itry2 = 0; itry2 < nentry_sk2; itry2++){
-        trsk2->GetEntry(itry2);
-        okaych.push_back(sk2ch);
-    }
-    for (Int_t itry3 = 0; itry3 < nentry_sk3; itry3++){
-        trsk3->GetEntry(itry3);
-        okaych.push_back(sk3ch);
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
+      if (AnalyzeHK && ipmttype!=hk) continue;
+      else if (!AnalyzeHK && ipmttype==hk) continue;
+
+      TString PMTtypeNameLower = PMTtypeNames[ipmttype];
+      PMTtypeNameLower.ToLower();
+
+      tr[ipmttype] = (TTree*)fin1->Get("hvscan_"+PMTtypeNameLower);
+
+      nentry[ipmttype] = tr[ipmttype]->GetEntries();
+      
+      tr[ipmttype]->SetBranchAddress("Channel", &skch[ipmttype]);
+
+      for (Int_t itry = 0; itry < nentry[ipmttype]; itry++){
+        tr[ipmttype]->GetEntry(itry);
+        okaych.push_back(skch[ipmttype]);
+      }
     }
     
     
     ifstream intxt1;
-    intxt1.open("badfitting.txt");
+    intxt1.open(InputDir+"badfitting.txt");
     if (intxt1.fail()){
         std::cerr << "Error opening file intxt1" << std::endl;
         exit(1);
@@ -143,21 +179,29 @@ int main(int argc, char *argv[]) {
             std::string pmt, norm, beta;
             Double_t lhv, hhv, chi2, prob;
             std::string comment;
-            
+
             intxt1 >> channel >> pmt >> lhv >> hhv >> norm >> beta >> chi2 >> prob >> comment;
             
-            std::cout << channel << " " << pmt << std::endl;
+            //std::cout << channel << " " << pmt << std::endl;
             okaych.erase(std::remove(okaych.begin(), okaych.end(), channel), okaych.end());
-            
-            if ((pmt == "SK2" || pmt == "SK3") && comment == "Failed_to_find_minimum"){
+
+	    if (AnalyzeHK && pmt != PMTtypeNames[hk]) {
+	      continue;
+	    }
+	    else if (!AnalyzeHK && 
+		     !(pmt == PMTtypeNames[sk2] || pmt == PMTtypeNames[sk3])) {
+	      continue;
+	    }
+	    
+            if (comment == "Failed_to_find_minimum"){
                 badchsk.push_back(channel);
                 //std::cout << "Add 1 badch for SK PMT" << std::endl;
             }
-            else if ((pmt == "SK2" || pmt == "SK3") && comment == "Chi2_>>_1"){
+            else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
                 //std::cout << "Add 1 badch for SK PMT" << std::endl;
             }
-            else if ((pmt == "SK2" || pmt == "SK3") && comment == "Chi2_=_0"){
+            else if (comment == "Chi2_=_0"){
                 zerochsk.push_back(channel);
             }
         }
@@ -171,155 +215,208 @@ int main(int argc, char *argv[]) {
     
     TCanvas * c1 = new TCanvas("c1","c1",250*((nfile+1)/2),500);
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Failed_HV_Fit_SK.pdf[");
-    c1->Print("Failed_HV_Fit_SK.pdf[");
+
+    TString PMTtypeName = "SK";
+    if (AnalyzeHK) PMTtypeName = "HK";
+
+    TString CanvasName = outdir+"Failed_HV_Fit_"+PMTtypeName+".pdf";
+    
+    c1->Print(CanvasName+"[");
+
     for (Int_t isk =0; isk < badchsksize; isk++){
+
         Int_t c1divide = isk * (nfile+1) % (8) + 1;
         Int_t c2divide = 0;
-        std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
-        TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(Form("SK_PMT_HVscan_Cable_%06d", badchsk[isk]));
+	
+        //std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
+
+	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeName+Form("_PMT_HVscan_Cable_%06d", badchsk[isk]));
+	
         c1->cd(c1divide);
         gr1sk->Draw("AP");
         c1->Update();
-        TH1D * hsk1[nfile];
+
+	TH1D * hsk1[nfile];
+	
         for (Int_t i = 0; i < nfile; i++){
-            c2divide = c1divide + i + 1;
+
+	    c2divide = c1divide + i + 1;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",badchsk[isk]));
-            std:: cout << "c2divide: " << c2divide << std::endl;
+
+	    std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
-            if (c2divide < (nfile+1)) {
-                std::cout << "Drawing c1 " << c2divide << std::endl;
+
+	    if (c2divide < (nfile+1)) {
+	      //std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Failed_HV_Fit_SK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
-                
             }
         }
+	
         if (isk == badchsksize - 1 && c2divide != 0){
-            c1->Print("Failed_HV_Fit_SK.pdf");
+            c1->Print(CanvasName);
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Failed_HV_Fit_SK.pdf]");
+    c1->Print(CanvasName+"]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Large_HV_Chi2_SK.pdf[");
+
+    CanvasName = outdir+"Large_HV_Chi2_"+PMTtypeName+".pdf";
+    c1->Print(CanvasName+"[");
+
     for (Int_t isk =0; isk < largechsksize; isk++){
+
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
-        std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
-        TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(Form("SK_PMT_HVscan_Cable_%06d", largechsk[isk]));
+        //std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
+
+	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeName+Form("_PMT_HVscan_Cable_%06d", largechsk[isk]));
+	
         c1->cd(c1divide);
         gr1sk->Draw("AP");
         c1->Update();
+	
         TH1D * hsk1[nfile];
+	
         for (Int_t i = 0; i < nfile; i++){
+	  
             c2divide = c1divide + i + 1;
-            hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
-            std:: cout << "c2divide: " << c2divide << std::endl;
+
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
+
+	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
-            if (c2divide < (nfile+1)) {
-                std::cout << "Drawing c1 " << c2divide << std::endl;
+
+	    if (c2divide < (nfile+1)) {
+	        //std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Large_HV_Chi2_SK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
-                
             }
         }
         if (isk == largechsksize - 1 && c2divide != 0){
-            c1->Print("Large_HV_Chi2_SK.pdf");
+            c1->Print(CanvasName);
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Large_HV_Chi2_SK.pdf]");
+    c1->Print(CanvasName+"]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Zero_HV_Chi2_SK.pdf[");
+
+    CanvasName = outdir+"Zero_HV_Chi2_"+PMTtypeName+".pdf";
+    c1->Print(CanvasName+"[");
+
     for (Int_t isk =0; isk < zerochsksize; isk++){
+
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
-        std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
-        TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(Form("SK_PMT_HVscan_Cable_%06d", zerochsk[isk]));
+
+	//std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
+
+	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeName+Form("_PMT_HVscan_Cable_%06d", zerochsk[isk]));
+	
         c1->cd(c1divide);
         gr1sk->Draw("AP");
         c1->Update();
-        TH1D * hsk1[nfile];
-        for (Int_t i = 0; i < nfile; i++){
+
+	TH1D * hsk1[nfile];
+
+	for (Int_t i = 0; i < nfile; i++){
+	  
             c2divide = c1divide + i + 1;
-            hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
-            std:: cout << "c2divide: " << c2divide << std::endl;
+
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
+
+	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
-            if (c2divide < (nfile+1)) {
-                std::cout << "Drawing c1 " << c2divide << std::endl;
+
+	    if (c2divide < (nfile+1)) {
+	      //std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Zero_HV_Chi2_SK.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
                 
             }
         }
         if (isk == zerochsksize - 1 && c2divide != 0){
-            c1->Print("Zero_HV_Chi2_SK.pdf");
+            c1->Print(CanvasName);
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Zero_HV_Chi2_SK.pdf]");
+    c1->Print(CanvasName+"]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
-    c1->Print("Okay_fit.pdf[");
+
+    CanvasName = outdir+"Okay_fit_"+PMTtypeName+".pdf";
+    c1->Print(CanvasName+"[");
+
     for (Int_t iok =0; iok < okaychsize; iok++){
+
+        if (iok%100 == 0) cout << "Plotting #" << iok << endl;
+      
         Int_t c1divide = iok * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
-        std:: cout << "c1divide: " << c1divide << " iok: " << iok+1 << "okchannel: " << okaych[iok] << std::endl;
-        TGraphErrors * gr1ok;
+
+	//std:: cout << "c1divide: " << c1divide << " iok: " << iok+1 << "okchannel: " << okaych[iok] << std::endl;
+
+	TGraphErrors * gr1ok;
         Int_t okchannel = okaych[iok];
-        c1->cd(c1divide);
+
+        gr1ok = (TGraphErrors*)fin1->Get(PMTtypeName+Form("_PMT_HVscan_Cable_%06d", okchannel));
+
+	c1->cd(c1divide);
         gr1ok->Draw("AP");
         c1->Update();
-        TH1D * hsk1[nfile];
-        for (Int_t i = 0; i < nfile; i++){
+
+	TH1D * hsk1[nfile];
+
+	for (Int_t i = 0; i < nfile; i++){
+	  
             c2divide = c1divide + i + 1;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
-            std:: cout << "c2divide: " << c2divide << std::endl;
+
+	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
-            if (c2divide < 25) {
-                std::cout << "Drawing c1 " << c2divide << std::endl;
+
+	    if (c2divide < (nfile+1)) {
+	      //std::cout << "Drawing c1 " << c2divide << std::endl;
             }
             else {
-                c1->Print("Okay_fit.pdf");
+                c1->Print(CanvasName);
                 c1->Clear();
                 c1->Divide((nfile+1)/2,2);
                 
             }
         }
         if (iok == largechsksize - 1 && c2divide != 0){
-            c1->Print("Okay_fit.pdf");
+            c1->Print(CanvasName);
         }
         //c1count++;
     }
     c1->Modified();
-    c1->Print("Okay_fit.pdf]");
-    
-
+    c1->Print(CanvasName+"]");
     
     fin1->Close();
 
@@ -327,3 +424,29 @@ int main(int argc, char *argv[]) {
         fitfin[i]->Close();
     }
 }
+
+#ifndef __CINT__
+    int getArgs(int argc, char* argv[]){
+        
+        while( (argc > 1) && (argv[1][0] == '-') ){
+            switch(argv[1][1]){
+	      
+	        case 't':
+                    PMTtype = argv[2];
+		    InputDir += PMTtype + "/";
+                   ++argv; --argc;
+                    break;
+		    
+	        case 'i':
+                    InputDir = argv[2];
+                    ++argv; --argc;
+                    break;
+            }
+            
+            ++argv; --argc;
+        }
+        
+        return 0;
+        
+    }
+#endif

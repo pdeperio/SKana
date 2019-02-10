@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     int pmtid;
     
     ifstream connect;
-    connect.open("/disk02/usr6/pdeperio/precalib_2018/connection.super.sk-5.dat");
+    connect.open("connection.super.sk-5.dat");
     std::string line;
     
     for (Int_t head = 0; head < 51; head++){
@@ -113,10 +113,15 @@ int main(int argc, char *argv[]) {
             //PMTinfo[cableid-1][1]=pmtz;
             PMTinfo[cableid-1][1]=oldhv;
         }
+
+	connect.close();
+	
+    } else {
+      cout << "Error: Connection file not open" << endl;
+      exit (-1);
     }
     
     
-    connect.close();
     
     ofstream outtxt1;
     outtxt1.open(outdir+"badcables.txt");
@@ -211,12 +216,14 @@ int main(int argc, char *argv[]) {
     TFile *fout = new TFile(outdir+Form("hvscan_parameter%s.root", PMTtype.Data()), "recreate");
 	    
     TTree *tr[nPMTtypes] = {0};
-    if (AnalyzeHK)
-      tr[hk] = new TTree("hvscan_hk", PMTtypeNames[hk]+" PMT HV Scan Parameter");
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
+      if (AnalyzeHK && ipmttype!=hk) continue;
+      else if (!AnalyzeHK && ipmttype==hk) continue;
 
-    else {
-      tr[sk2] = new TTree("hvscan_sk2", PMTtypeNames[sk2]+" PMT HV Scan Parameter");
-      tr[sk3] = new TTree("hvscan_sk3", PMTtypeNames[sk3]+" PMT HV Scan Parameter");
+      TString PMTtypeNameLower = PMTtypeNames[ipmttype];
+      PMTtypeNameLower.ToLower();
+      
+      tr[ipmttype] = new TTree("hvscan_"+PMTtypeNameLower, PMTtypeNames[ipmttype]+" PMT HV Scan Parameter");
     }
     
     Int_t channelid[nPMTtypes];
