@@ -248,6 +248,7 @@ int main(int argc, char *argv[]) {// process the arguments
     
     TCanvas * c1 = new TCanvas("c1","c1",800,800);
     
+    //const int nfile = 6;//number of files to read in
     const int MAXPM = 11146;
     const int nPMTtype = 3;
     
@@ -352,10 +353,11 @@ int main(int argc, char *argv[]) {// process the arguments
     h_spe_peak->GetXaxis()->SetTitle("Peak [pC]");
     h_spe_chi2->GetXaxis()->SetTitle("Fit Chi2/ndf");
     
-    TString infile = Form("output/spe_individual_%d_C.root", runno);
+    //TString infile = Form("output/spe_individual_%d_C.root", runno);
+    TString infile = Form("spe_individual_%d_C.root", runno); 
     f = new TFile(infile,"read");
     fout = new TFile(outdir+Form("fit_result_%d_sk.root",runno),"recreate");
-    fout->cd();
+    //fout->cd();
     
     cout << "Opening: " << infile.Data() << endl;
     
@@ -381,7 +383,7 @@ int main(int argc, char *argv[]) {// process the arguments
         
         h_on[iPMT]->Add(h_off[iPMT],-1);
         
-        h_on[iPMT]->SetTitle(Form("PMT %d",iPMT+1));
+        h_on[iPMT]->SetTitle(Form("PMT_%d",iPMT+1));
         h_on[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
         h_on[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
         
@@ -389,7 +391,7 @@ int main(int argc, char *argv[]) {// process the arguments
         h_on[iPMT]->Draw();
         
         // Flag 3: SK-2 PMT, Flag 4: SK-3 PMT
-        if (h_on[iPMT]->GetEntries() < 15 && (PMTinfo[iPMT][0] == 3 || PMTinfo[iPMT][0] == 4)){
+        if (h_on[iPMT]->Integral() < 20 && (PMTinfo[iPMT][0] == 3 || PMTinfo[iPMT][0] == 4)){
             nofit++;
             outfile2 << iPMT+1 << std::endl;
             continue;
@@ -403,7 +405,7 @@ int main(int argc, char *argv[]) {// process the arguments
             TF1 *fge = FitSK((TH1D*)h_on[iPMT], 4, hv_shift, PMTinfo[iPMT][0]);
             
             c1->Update();
-            
+            fout->cd();
             h_on[iPMT]->Write();
                 
             
@@ -412,7 +414,7 @@ int main(int argc, char *argv[]) {// process the arguments
                 //Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak_temp);
                 Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
                 sigma = 2*FWHMhigh/(2.*TMath::Sqrt(TMath::Log(2)*2));
-                peakerr = 0.01 * sigma;
+                peakerr = 0.11;
             }
             else {
                 peak = fge->GetParameter(1);
@@ -424,7 +426,7 @@ int main(int argc, char *argv[]) {// process the arguments
             ndf = fge->GetNDF();
             rchi2 = chi2/ndf;
             chid = iPMT+1;
-            nhit = h_on[iPMT]->GetEntries();
+            nhit = (Int_t)h_on[iPMT]->Integral();
             //sigma = fge->GetParameter(2);
             //peakerr = fge->GetParError(1);
             //peakerr = fge->GetParError(4);

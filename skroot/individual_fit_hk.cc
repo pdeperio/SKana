@@ -26,7 +26,7 @@ void individual_fit_hk(){
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat("e");
     gStyle->SetOptFit(1111);
-    gStyle->SetPalette(kCool);
+    //gStyle->SetPalette(kCool);
     gStyle->SetStatX(0.43);
     gStyle->SetStatY(0.9);
     gStyle->SetStatW(0.18);

@@ -323,7 +323,7 @@ void fit_hvscan_spe_hk(){
             h_on[iPMT]->GetXaxis()->SetRangeUser(-3,15);
             h_on[iPMT]->Draw();
             //TH1D *h = (TH1D*)h_on[iPMT]->Clone();
-            if (h_on[iPMT]->GetEntries() < 10 && PMTinfo[iPMT][0] == 6){
+            if (h_on[iPMT]->Integral() < 20 && PMTinfo[iPMT][0] == 6){
                 nofit++;
                 outfile2 << iPMT+1 << std::endl;
                 continue;
