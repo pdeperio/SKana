@@ -1,13 +1,28 @@
 # Super-K SPE and HV Scanning Analysis
 
-1. ./sub_job.sh
 
-2. ./sub_ana.sh
+## Extract charge distribution histograms
 
-3. ./sub_hvfit.sh
+```
+./sub_job.sh
+```
 
-4. ./merge_hvfit.sh
+## Do SPE fitts
 
-5. ./sub_plot.sh
+```
+./sub_ana.sh
+```
 
-6. ./merge_pdfs.sh
+## Do HV scan fits
+
+```
+./sub_hvfit.sh
+./merge_hvfit.sh
+```
+
+## Plotting stuff
+
+```
+./sub_plot.sh
+./merge_pdfs.sh
+```
