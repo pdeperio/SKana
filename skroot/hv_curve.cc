@@ -33,6 +33,8 @@ void hv_curve(TString PMTtype = "", TString InputDir = "hv_ana"){
 
 TString PMTtype = "";
 TString InputDir = outdir;
+const int MAXRANGE = 99999999;
+int PlotRange[2] = {0, MAXRANGE};
 
 int getArgs(int argc, char* argv[]);
 
@@ -47,9 +49,11 @@ int main(int argc, char *argv[]) {
   
     outdir += PMTtype + "/";
 
-    bool AnalyzeHK = 0;
-    if (PMTtype.Contains("hk")) AnalyzeHK = 1;
-    
+    enum AnalyzeEnum {all, sk, hk};
+    int AnalyzeWhat = all;
+    if (PMTtype.Contains("sk")) AnalyzeWhat = sk;
+    if (PMTtype.Contains("hk")) AnalyzeWhat = hk;
+
     gStyle->SetFrameBorderMode(0);
     gStyle->SetTitleBorderSize(0);
     gStyle->SetTitleFillColor(0);
@@ -69,7 +73,7 @@ int main(int argc, char *argv[]) {
     const int MAXPM = 11146;
     const int MAXHKPM = 136;
     const int nPMTtypes = 3;
-    enum PMTtypeEnum {hk, sk2, sk3};
+    enum PMTtypeEnum {hkpmt, sk2pmt, sk3pmt};
     TString PMTtypeNames[nPMTtypes] = {"HK", "SK2", "SK3"};
  
     Int_t runno[] = {80282, 80278, 80275, 80269, 80265, 80263, 80254};
@@ -125,18 +129,24 @@ int main(int argc, char *argv[]) {
       exit (-1);
     }
 
-    ofstream outtxt1;
-    outtxt1.open(outdir+"badcables.txt");
-    outtxt1 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
-    
-    ofstream outtxt2;
-    outtxt2.open(outdir+"badfitting.txt");
-    outtxt2 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(8) << " LHV [V]" << setw(8) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
-    
-    ofstream outtxt3;
-    outtxt3.open(outdir+"badokfitting.txt");
+    TString filename = outdir+"badcables";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
+    ofstream outtxt_badcables;
+    outtxt_badcables.open(filename+".txt");
+    outtxt_badcables << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
 
-    outtxt3 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
+    filename = outdir+"badfittings";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
+    ofstream outtxt_badfit;
+    outtxt_badfit.open(filename+".txt");
+    outtxt_badfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(8) << " LHV [V]" << setw(8) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
+    
+    filename = outdir+"badokfitting";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
+    ofstream outtxt_badokfit;
+    outtxt_badokfit.open(filename+".txt");
+
+    outtxt_badokfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
     
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
@@ -173,30 +183,47 @@ int main(int argc, char *argv[]) {
         tree->SetBranchAddress("Channel", &chid);
         tree->SetBranchAddress("Nhits", &nhits);
         
-        for (Int_t iPMT = 0; iPMT < entry; iPMT++){
+        for (Int_t iPMT =  PlotRange[0]; iPMT < min(entry, PlotRange[1]); iPMT++){
             tree->GetEntry(iPMT);
 
-            //if (PMTinfo[chid-1][0]!=3 || PMTinfo[chid-1][0]!=4) continue;
+		   //if (PMTinfo[chid-1][0]!=3 || PMTinfo[chid-1][0]!=4) continue;
             //if (chid == 3761 || chid == 69) continue;//the two cables don't show up in the nominal hv run
 
 	    //std::cout << "WTF " << highv << " " << peak << " " << chid << std::endl;
       //std::cout << highv << " " << peak << " " << chid << " " << PMTinfo[chid-1] << " " << std::endl;
   
 	    TString PMTtypeName = "UnknownPMTtype";
-	    if (AnalyzeHK) {
-	      if (PMTinfo[chid-1][0]==6) PMTtypeName = PMTtypeNames[hk];
-	      else continue;
-	      
-	    } else {
-	      
-	      if (PMTinfo[chid-1][0]==3) PMTtypeName = PMTtypeNames[sk2];
-	      else if (PMTinfo[chid-1][0]==4) PMTtypeName = PMTtypeNames[sk3];
-	      else continue;
+	    int iPMTtype = -1;
+
+	    // Flag 6: HK PMT
+	    if (PMTinfo[iPMT][0] == 6) {
+	      iPMTtype = hk;
+	      PMTtypeName = PMTtypeNames[hkpmt];
 	    }
 	    
-	    if ( (AnalyzeHK && (peak <= 0 || peak > 10)) ||
-		 (!AnalyzeHK && nhits < 20) ) {
-	      outtxt1 << setw(10) << skcable[ifile][chid-1] << setw(4) << " " << PMTtypeName.Data() << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
+	    // Flag 3: SK-2 PMT, Flag 4: SK-3 PMT, 
+	    else if (PMTinfo[iPMT][0] == 3) {
+	      iPMTtype = sk;
+	      PMTtypeName = PMTtypeNames[sk2pmt];
+	    }
+	    
+	    else if (PMTinfo[iPMT][0] == 4) {
+	      iPMTtype = sk;
+	      PMTtypeName = PMTtypeNames[sk3pmt];
+	    }
+	  
+	    else {
+	      //cout << "Unknown PMT type: " << PMTinfo[iPMT][0] << endl;
+	      continue;
+	    }
+
+
+	    // Select only HK or SK PMTs if specified above
+	    if (AnalyzeWhat == hk && iPMTtype != hk) continue;
+	    else if (AnalyzeWhat == sk && iPMTtype != sk) continue;
+	    
+	    if (peak <= 0 || peak > 10) {
+	      outtxt_badcables << setw(10) << skcable[ifile][chid-1] << setw(4) << " " << PMTtypeName.Data() << setw(10) << skhv[ifile][chid-1] << setw(10) << hvshift[ifile] << setw(10) << nhits << std::endl;
 
 	      continue;
 	    }
@@ -219,17 +246,16 @@ int main(int argc, char *argv[]) {
         std::cout << "Closed fit result file" << std::endl;
     }
     
-    TFile *fout = new TFile(outdir+Form("hvscan_parameter%s.root", PMTtype.Data()), "recreate");
+    filename = outdir+"hvscan_parameter";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
+    TFile *fout = new TFile(filename+".root", "recreate");
 	    
     TTree *tr[nPMTtypes] = {0};
     for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
-      if (AnalyzeHK && ipmttype!=hk) continue;
-      else if (!AnalyzeHK && ipmttype==hk) continue;
+      if (AnalyzeWhat == hk && ipmttype!=hk) continue;
+      else if (AnalyzeWhat == sk && ipmttype==hk) continue;
 
-      TString PMTtypeNameLower = PMTtypeNames[ipmttype];
-      PMTtypeNameLower.ToLower();
-      
-      tr[ipmttype] = new TTree("hvscan_"+PMTtypeNameLower, PMTtypeNames[ipmttype]+" PMT HV Scan Parameter");
+      tr[ipmttype] = new TTree("hvscan_"+PMTtypeNames[ipmttype], PMTtypeNames[ipmttype]+" PMT HV Scan Parameter");
     }
     
     Int_t channelid[nPMTtypes];
@@ -269,51 +295,28 @@ int main(int argc, char *argv[]) {
       //trsk->Branch("OffsetErr", &offseterr[ipmttype], "offseterr/D");
     }
     
-    //Int_t sk2size = skcable[0].size();
-    //Int_t sk3size = skcable[0].size();
     TGraphErrors *ghv_sk[MAXPM] = {0};
-    //TGraphErrors *ghv_sk[sk3size];
    
     TF1 *fHVsk[MAXPM] = {0};
-    //TF1 *fHVsk[sk3size] = {0};
     TF1 *fHVinvsk[MAXPM] = {0};
     TF1 *fHVinvskerr[MAXPM] = {0};
-    //TF1 *fHVinvsk[sk3size];
-    
-    //fHV = new TF1("fHV", "[0]*pow(x,[1])", 1500, 2500);
-    //fHVinv = new TF1("fHVinv", "pow(x/[0],1./[1])", 1500, 2500);
-    //fHV = new TF1("fHV", "[0]*pow((x-[2]),[1])");
-    //fHVinv = new TF1("fHVinv", "pow(x/[0],1./[1])+[2]");
-    //fHV->SetTitle(Form("ID%03d %s", ipmt+1, PMTserial[ipmt].Data()));
-    //fHV->SetLineColor(kMagenta);
-    //fHV->SetLineStyle(2);
-    //fHV->SetLineWidth(1);
-    //fHV->SetParName(0, "Factor");
-    //fHV->SetParName(1, "Index #beta");
-    //fHV->SetParName(2, "Voltage Offset");
-    //fHV->SetParameter(0, 6e-29);
-    //fHV->SetParameter(1, 8.5);
-    //fHV->SetParLimits(0, 0, 1e-28);
-    //fHV->SetParLimits(1, 3, 10);
-    //fHV->SetParameter(2, -500);
 
     for (Int_t p = 0; p < MAXPM; p++){
 
         if (p%1000==0) cout << "Making graph and functions for channel: " << p << endl;
       
         int ipmttype = -1;
-        if (AnalyzeHK) {
-	  if (PMTinfo[p][0]==6) ipmttype = hk;
-	  else continue;
-	      
-	} else {
-	  if (PMTinfo[p][0]==3) ipmttype = sk2;
-	  else if (PMTinfo[p][0]==4) ipmttype = sk3;
-	  else continue;
+	if (PMTinfo[p][0] == 6) ipmttype = hkpmt;
+	else if (PMTinfo[p][0] == 3) ipmttype = sk2pmt;
+	else if (PMTinfo[p][0] == 4) ipmttype = sk3pmt;
+	else {
+	  //cout << "Unknown PMT type: " << PMTinfo[iPMT][0] << endl;
+	  continue;
 	}
-
+	    
 	if (!goodchannel[0][p]) continue;
-	//if (skcable[3][p] <= 0) continue;
+	if (skcable[0][p] <= 0) continue;
+	
 	ghv_sk[p] = new TGraphErrors();
 
         ghv_sk[p]->SetMarkerStyle(8);
@@ -342,7 +345,7 @@ int main(int argc, char *argv[]) {
         fHVsk[p]->SetParameter(0, 5);
         fHVsk[p]->SetParameter(1, 6);
         //fHVsk[p]->SetParLimits(0, 0, 2e-17);
-        if (!AnalyzeHK) fHVsk[p]->SetParLimits(1, 0, 15);
+        if (AnalyzeWhat == sk) fHVsk[p]->SetParLimits(1, 0, 15);
 
         //fHVsk[p]->SetParameter(2, -500);
         //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
@@ -357,12 +360,11 @@ int main(int argc, char *argv[]) {
     for (Int_t ifile = 0; ifile < nfile; ifile++){
         for (Int_t p = 0; p < MAXPM; p++){
             /*if (sk2peak[ifile][p] <=0 || skhv[ifile][p] <= 0){
-                outtxt1 << setw(10) << skcable[ifile][p] << setw(4) << " SK2" << setw(10) << skhv[ifile][p] << setw(10) << hvshift[ifile] << std::endl;
+                outtxt_badcables << setw(10) << skcable[ifile][p] << setw(4) << " SK2" << setw(10) << skhv[ifile][p] << setw(10) << hvshift[ifile] << std::endl;
                 continue;
             }*/
 
 	    if (!ghv_sk[p]) continue;
-	    if (skcable[ifile][p] <= 0) continue;
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
 	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
@@ -384,8 +386,9 @@ int main(int argc, char *argv[]) {
     int minpoint = 4;
 
     for (Int_t p = 0; p < MAXPM; p++){
+
         if (!ghv_sk[p]) continue;
-	if (skcable[0][p] <= 0) continue;
+
 	//ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
 
         int npoints = ghv_sk[p]->GetN();
@@ -396,9 +399,9 @@ int main(int argc, char *argv[]) {
         }
 
         int ipmttype = -1;
-	if (PMTinfo[p][0]==6) ipmttype = hk;
-	else if (PMTinfo[p][0]==3) ipmttype = sk2;
-	else if (PMTinfo[p][0]==4) ipmttype = sk3;
+	if (PMTinfo[p][0]==6) ipmttype = hkpmt;
+	else if (PMTinfo[p][0]==3) ipmttype = sk2pmt;
+	else if (PMTinfo[p][0]==4) ipmttype = sk3pmt;
 
         std::cout << endl << Form("Fitting %s cable %06d", PMTtypeNames[ipmttype].Data(), p) << std::endl;
 
@@ -425,8 +428,11 @@ int main(int argc, char *argv[]) {
 	vector<int> speakpoints(2);
 	speakpoints[1] = distance(slopes.begin(), max_element(slopes.begin(), slopes.end()));
 	speakpoints[0] = distance(slopes.begin(), min_element(slopes.begin(), slopes.end()));
-      
-	if (status == 4 || chisquare > 20) {
+
+	int error = 4;
+	float chi2_max = 20;
+	
+	if (status == error || chisquare > chi2_max) {
 	  for (int ifile = 0; ifile < ghv_sk[p]->GetN(); ifile++){
 	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]*1.5);
 	  }
@@ -437,11 +443,11 @@ int main(int argc, char *argv[]) {
           
 	  cout << "  status = " << status << endl;
 	  
-	  if (status == 4 || chisquare > 20) {
+	  if (status == error || chisquare > chi2_max) {
 
-	    if (status == 4) gfitter->SetPrecision((pointsrm+1)*10);
+	    if (status == error) gfitter->SetPrecision((pointsrm+1)*10);
 
-	    if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+	    if (ipmttype == hk) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
 	    else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
 	    
 	    fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
@@ -449,11 +455,11 @@ int main(int argc, char *argv[]) {
 	  status = int(fitr);	  
 	  chisquare = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
 	  
-	  if (status != 4 && chisquare <= 20) break;
+	  if (status != error && chisquare <= chi2_max) break;
         }
 	
-	if ((status == 4 || chisquare > 20) && ghv_sk[p]->GetN()>minpoint){
-	  if (status == 4) gfitter->SetPrecision(30);
+	if ((status == error || chisquare > chi2_max) && ghv_sk[p]->GetN()>minpoint){
+	  if (status == error) gfitter->SetPrecision(30);
 
 	  ghv_sk[p]->RemovePoint(0);
 	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
@@ -489,26 +495,22 @@ int main(int argc, char *argv[]) {
         resolution[ipmttype] = sksigma[2][p]/skpeak[2][p];
 	tr[ipmttype]->Fill();
             
-	if (status == 4){
+	if (status == error){
 	  fHVsk[p]->SetLineColor(2);
-	  outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
+	  outtxt_badfit << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";
 
-	  if (!AnalyzeHK) {
-	    if (rchi2[ipmttype] < 10 && rchi2[ipmttype] > 0 && prob[ipmttype] > 0.0001){
-	      outtxt3 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << "\n";
-	    }
+	  if (rchi2[ipmttype] < chi2_max && rchi2[ipmttype] > 0 && prob[ipmttype] > 0.0001){
+	    outtxt_badokfit << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << "\n";
 	  }
 	}
 
-	else if (!AnalyzeHK) {
-	  if (rchi2[ipmttype] > 10 && prob[ipmttype] < 0.0001){
+	if (rchi2[ipmttype] > chi2_max && prob[ipmttype] < 0.0001){
 	    fHVsk[p]->SetLineColor(6);
-	    outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
-	  }
-	  else if (rchi2[ipmttype] == 0 && prob[ipmttype] == 1){
-	    fHVsk[p]->SetLineColor(3);
-	    outtxt2 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
-	  }
+	    outtxt_badfit << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                Chi2_>>_1" << "\n";
+	}
+	else if (rchi2[ipmttype] == 0 && prob[ipmttype] == 1){
+	  fHVsk[p]->SetLineColor(3);
+	  outtxt_badfit << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "                 Chi2_=_0" << "\n";
 	}
        
         //mghv_sk->Add(ghv_sk[p]);
@@ -516,12 +518,11 @@ int main(int argc, char *argv[]) {
         //mgthr_sk->Add(gthr_sk[id]);
         //fHV->Clear();
     }
-
   
     for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
       if (tr[ipmttype])
 	tr[ipmttype]->Write();
-  
+
     fout->Close();
 
     bool isDrawn = 0;
@@ -529,18 +530,21 @@ int main(int argc, char *argv[]) {
 
       if (!fHVsk[p]) continue;
 
-      if (!isDrawn)
+      if (!isDrawn) {
 	fHVsk[p]->Draw();
-      
-      else {
-	fHVsk[p]->Draw("same");
-	isDrawn = 1;
+      	isDrawn = 1;
       }
+      
+      else 
+	fHVsk[p]->Draw("same");
+      
     }
     
-    TString CanvasName = "_SPE_HV.pdf";
-    if (AnalyzeHK) CanvasName = outdir+"HK"+CanvasName;
-    else CanvasName = outdir+"SK"+CanvasName;
+    TString CanvasName = outdir+"SPE_HV";
+    if (AnalyzeWhat==hk) CanvasName += "_HK";
+    else if (AnalyzeWhat==sk) CanvasName += "_SK";
+    if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);
+    CanvasName += ".pdf";
 
     c1->Update();
     c1->Modified();
@@ -555,24 +559,23 @@ int main(int argc, char *argv[]) {
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
     
-    CanvasName = "_HV_Curves.pdf";
-    if (AnalyzeHK) CanvasName = outdir+"HK"+CanvasName;
-    else CanvasName = outdir+"SK"+CanvasName;
+    CanvasName = outdir+"HV_Curves";
+    if (AnalyzeWhat==hk) CanvasName += "_HK";
+    else if (AnalyzeWhat==sk) CanvasName += "_SK";
+    if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);
+    CanvasName += ".pdf";
+
     c1->Print(CanvasName+"[");
     
-    //mghv_sk->Draw();
     for (Int_t p = 0; p < MAXPM; p++){
       
         if (!ghv_sk[p]) continue;
         if (ghv_sk[p]->GetN() < minpoint) continue;
-        if (skcable[0][p] <= 0) continue;
 
         ghv_sk[p]->Draw("AP");
 	
         cout << "Drawing cable " << skcable[0][p] << endl;
-        
 
-        //std::cout << skcable[0][p] << std::endl;
         t->Clear();
 
         if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
@@ -606,9 +609,9 @@ int main(int argc, char *argv[]) {
     }
     c1->Print(CanvasName+"]");
     
-    outtxt1.close();
-    outtxt2.close();
-    outtxt3.close();
+    outtxt_badcables.close();
+    outtxt_badfit.close();
+    outtxt_badokfit.close();
 
 }
  
@@ -626,6 +629,15 @@ int main(int argc, char *argv[]) {
 		    
 	        case 'i':
                     InputDir = argv[2];
+                    ++argv; --argc;
+                    break;
+
+	        case 'l':
+	   	    PlotRange[0] = atoi(argv[2]);
+                    ++argv; --argc;
+                    break;		    
+	        case 'u':
+	  	    PlotRange[1] = atoi(argv[2]);
                     ++argv; --argc;
                     break;
             }

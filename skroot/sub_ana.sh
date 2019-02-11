@@ -2,9 +2,10 @@
 ################################################
 #
 # Usage:
-#         ./sub_ana.sh      # For SK PMTs only
+#         ./sub_ana.sh      
 #
 #         ./sub_ana.sh _hk  # For HK PMTs only
+#         ./sub_ana.sh _sk  # For SK PMTs only
 #
 ################################################
 
@@ -53,7 +54,7 @@ hostname
 
 cd ${WORKDIR}
 
-./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]} -t ${PMT_TYPE}
+./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]}
 
 EOF
 

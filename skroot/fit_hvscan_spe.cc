@@ -136,12 +136,17 @@ TF1* FitHK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
     }
     
     TF1 *func;
-    if (hv >= -100) func = func2peak_bs;
-    else func = func1pe_new;
+    if (hv >= -100) {
+      func = func2peak_bs;
+      func1pe_new->Delete();
+    }
+    else {
+      func = func1pe_new;
+      func2peak_bs->Delete();
+    }
     
     gPad->cd();
     func1pe->Delete();
-    func1pe_new->Delete();
     
     h->Draw();
     gPad->Update();
@@ -550,23 +555,29 @@ int main(int argc, char *argv[]) {// process the arguments
       PMTRange[1] = SelectPMT+1;
     }
 
-    bool AnalyzeHK = PMTtype.Contains("hk");
+    enum AnalyzeEnum {all, sk, hk};
+    int AnalyzeWhat = all;
+    if (PMTtype.Contains("sk")) AnalyzeWhat = sk;
+    if (PMTtype.Contains("hk")) AnalyzeWhat = hk;
     
     for (Int_t iPMT = PMTRange[0]; iPMT < PMTRange[1]; iPMT++){
 
-        // Select only HK or SK PMTs 
-        if (AnalyzeHK) {
+        int iPMTtype = -1;
 
-	  // Flag 6: HK PMT
-	  if (PMTinfo[iPMT][0] != 6) continue;
-	}
-       
+	// Flag 6: HK PMT
+	if (PMTinfo[iPMT][0] == 6) iPMTtype = hk;
+
+	// Flag 3: SK-2 PMT, Flag 4: SK-3 PMT, 
+	else if (PMTinfo[iPMT][0] == 3 || PMTinfo[iPMT][0] == 4) iPMTtype = sk;
+
 	else {
-
-	  // Flag 3: SK-2 PMT, Flag 4: SK-3 PMT, 
-	  if (!(PMTinfo[iPMT][0] == 3 || PMTinfo[iPMT][0] == 4))
-	    continue;
-        }
+	  //cout << "Unknown PMT type: " << PMTinfo[iPMT][0] << " for id " << iPMT <<  endl;
+	  continue;
+	}
+	
+        // Select only HK or SK PMTs if specified above
+        if (AnalyzeWhat == hk && iPMTtype != hk) continue;
+	else if (AnalyzeWhat == sk && iPMTtype != sk) continue;
 	
         h_on[iPMT] = (TH1D*)f->Get(Form("h_spe_on_%d",iPMT+1));
         h_off[iPMT] = (TH1D*)f->Get(Form("h_spe_off_%d",iPMT+1));
@@ -592,18 +603,23 @@ int main(int argc, char *argv[]) {// process the arguments
         
 	highv = PMTinfo[iPMT][2];
                
-	TF1 *fge;
-	if (AnalyzeHK) fge = FitHK((TH1D*)h_on[iPMT], 2, hv_shift, PMTinfo[iPMT][0]);
-	else fge = FitSK((TH1D*)h_on[iPMT], 4, hv_shift, PMTinfo[iPMT][0]);
-            
+	TF1 *fge = 0;
+	if (iPMTtype==hk) fge = FitHK((TH1D*)h_on[iPMT], 2, hv_shift, PMTinfo[iPMT][0]);
+	else if (iPMTtype==sk) fge = FitSK((TH1D*)h_on[iPMT], 4, hv_shift, PMTinfo[iPMT][0]);
+
+	if (!fge) {
+	  cout << "Error: fge function didn't get set" << endl;
+	  exit (-2);
+	}
+	
 	c1->Update();
-  fout->cd();
+	fout->cd();
 	h_on[iPMT]->Write();
                 
 	// Manual peak shifting in to fix strange cases
 
 	// For HK
-	if (AnalyzeHK && (fge->GetParameter(1) < 0 || fge->GetParameter(1) > 10)) {
+	if (iPMTtype==hk && (fge->GetParameter(1) < 0 || fge->GetParameter(1) > 10)) {
 	  peak = fge->GetMaximumX(0,6);
 	  Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
 	  Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
@@ -612,7 +628,7 @@ int main(int argc, char *argv[]) {// process the arguments
 	}
 
 	// For SK
-	else if (!AnalyzeHK && (fge->GetParameter(1) < 0 || fge->GetParameter(1) < fge->GetMaximumX() - 1)) {
+	else if (iPMTtype==sk && (fge->GetParameter(1) < 0 || fge->GetParameter(1) < fge->GetMaximumX() - 1)) {
 	  peak = fge->GetMaximumX(0, 8);
 	  //Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
 	  Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
