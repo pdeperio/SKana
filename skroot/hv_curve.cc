@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     //Double_t threshold[] = {-0.69, -0.69, -0.69, -0.69, -0.69, -0.69, -0.69};
 
     Int_t PMTinfo[MAXPM][2] = {0};//flags
-    std::vector<Double_t> SKPMThv(MAXPM,0);
+    Double_t SKPMThv[MAXPM] = {0};
     
     int pmtid;
     
@@ -142,13 +142,13 @@ int main(int argc, char *argv[]) {
     outtxt4.open(outdir+"deadchannels.txt");
     
     TFile *f[nfile];
-    std::vector<std::vector<Double_t> > skpeak(nfile, std::vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t> > skpeakerr(nfile, std::vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t> > skhv(nfile, std::vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Int_t> > skcable(nfile, std::vector<Int_t>(MAXPM,0));
-    std::vector<std::vector<Int_t> > sknhit(nfile, std::vector<Int_t>(MAXPM,0));
-    std::vector<std::vector<Double_t> > sksigma(nfile, std::vector<Double_t>(MAXPM,0));
-    std::vector<std::vector<Double_t> > goodchannel(nfile, std::vector<Double_t>(MAXPM,0));
+    Double_t skpeak[nfile][MAXPM] = {0};
+    Double_t skpeakerr[nfile][MAXPM] = {0};
+    Double_t skhv[nfile][MAXPM] = {0};
+    Int_t skcable[nfile][MAXPM] = {0};
+    Int_t sknhit[nfile][MAXPM] = {0};
+    Double_t sksigma[nfile][MAXPM] = {0};
+    Double_t goodchannel[nfile][MAXPM] = {0};
 
     for (Int_t ifile = 0; ifile < nfile; ifile++){
 
@@ -214,8 +214,8 @@ int main(int argc, char *argv[]) {
 	    sknhit[ifile][chid-1] = nhits;
 	    goodchannel[ifile][chid-1] = 1;
             
-	    cout << "Add " << PMTtypeName.Data() << " element " << nfile << " " << chid-1 << " Peak err is " << peakerr << endl;
-	    cout << skpeak[ifile][chid-1] << " " << skhv[ifile][chid-1] << " " << sksigma[ifile][chid-1] << endl << endl;            
+	    //cout << "Add " << PMTtypeName.Data() << " element " << nfile << " " << chid-1 << " Peak err is " << peakerr << endl;
+	    //cout << skpeak[ifile][chid-1] << " " << skhv[ifile][chid-1] << " " << sksigma[ifile][chid-1] << endl << endl;            
         }
 	
 	f[ifile]->Close();
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
     for (Int_t p = 0; p < MAXPM; p++){
 
-        if (p%1000==0) cout << "Making graph for channel: " << p << endl;
+        if (p%1000==0) cout << "Making graph and functions for channel: " << p << endl;
       
         int ipmttype = -1;
         if (AnalyzeHK) {
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
 
 	ghv_sk[p]->SetName(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", skcable[0][p]));
 	ghv_sk[p]->SetTitle(PMTtypeNames[ipmttype]+Form(" PMT HV scan (Cable %06d)", skcable[0][p]));
-        
+
         //fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*pow(x-[2],[1])", 1500, 2500);
         //fHVinvsk[p] = new TF1(Form("fHVinvsk%d", p), "pow(x/[0],1./[1])+[2]", 1500, 2500);
         fHVsk[p] = new TF1(Form("fHVsk%d", p), "[0]*1e-20*pow(x,[1])", 1500, 2500);
