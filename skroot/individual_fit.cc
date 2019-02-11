@@ -29,6 +29,7 @@ void individual_fit(TString PMTtype = "", TString InputDir = "hv_ana"){
 #else
 TString PMTtype = "";
 TString InputDir = outdir;
+int PlotRange[2] = {0, 99999999};
 
 int getArgs(int argc, char* argv[]);
 
@@ -83,12 +84,16 @@ int main(int argc, char *argv[]) {
     enum PMTtypeEnum {hk, sk2, sk3};
     TString PMTtypeNames[nPMTtypes] = {"HK", "SK2", "SK3"};
 
-    TFile *fin1 = new TFile(InputDir+"hvscan_parameter"+PMTtype+".root", "Read");
+    TString HVScanFile = InputDir+"/hvscan_parameter"+PMTtype+".root";
+    TFile *fin1 = new TFile(HVScanFile, "Read");
+    cout << "Opening HV scan file: " << HVScanFile << endl;
     //TFile *fin2 = new TFile("hvscan_parameter_offset.root", "Read");
     
     TFile *fitfin[nfile];
     for (Int_t i = 0; i < nfile; i++){
-        fitfin[i] = new TFile(InputDir+Form("fit_result_%d"+PMTtype+".root", runno[i]), "Read");
+      TString TreeFile = InputDir+Form("/fit_result_%d"+PMTtype+".root", runno[i]);
+      fitfin[i] = new TFile(TreeFile, "Read");
+      cout << "Opening fit file: " << TreeFile.Data() << endl;
     }
 
     const int MAXPM = 11146;
@@ -170,11 +175,11 @@ int main(int argc, char *argv[]) {
     
 
     ofstream outxt;
-    outxt.open("strangenumbers.txt");
+    outxt.open(outdir+"strangenumbers.txt");
     outxt << setw(8) << " Channel" << setw(6) << "   PMT" << setw(5) << "  lhv" << setw(5) << "  hhv" << setw(8) << "    norm" << setw(8) << "   index" << setw(8) << "    chi2" << setw(8) << "    prob" << "\n";
       
     ifstream intxt1;
-    intxt1.open(InputDir+"badfitting.txt");
+    intxt1.open(InputDir+"/badfitting.txt");
 
     if (intxt1.fail()){
         std::cerr << "Error opening file intxt1" << std::endl;
@@ -207,15 +212,15 @@ int main(int argc, char *argv[]) {
 	    
             if (comment == "Failed_to_find_minimum"){
                 badchsk.push_back(channel);
-                std::cout << "Add 1 badch for SK PMT" << std::endl;
+                //std::cout << "Add 1 badch for SK PMT" << std::endl;
             }
             else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
-                std::cout << "Add 1 badch for SK PMT" << std::endl;
+                //std::cout << "Add 1 badch for SK PMT" << std::endl;
             }
             else if (comment == "Chi2_=_0"){
                 zerochsk.push_back(channel);
-		std::cout << "Add 1 badch for SK PMT" << std::endl;
+		//std::cout << "Add 1 badch for SK PMT" << std::endl;
 	    }
         }
         intxt1.close();
@@ -235,18 +240,20 @@ int main(int argc, char *argv[]) {
     TString PMTtypeName = "SK";
     if (AnalyzeHK) PMTtypeName = "HK";
 
-    TString CanvasName = outdir+"Failed_HV_Fit_"+PMTtypeName+".pdf";
-    
-    c1->Print(CanvasName+"[");
+    TString CanvasName = outdir+"Failed_HV_Fit_"+PMTtypeName+Form("_%05d", PlotRange[0])+".pdf";
 
-    for (Int_t isk =0; isk < badchsksize; isk++){
+
+    if (PlotRange[0] < badchsksize)
+      c1->Print(CanvasName+"[");
+
+    for (Int_t isk =PlotRange[0]; isk < min(badchsksize, PlotRange[1]); isk++){
 
         Int_t c1divide = isk * (nfile+1) % (8) + 1;
         Int_t c2divide = 0;
 	
         //std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
 
-        std:: cout << " isk: " << isk << " bad cable " << badchsk[isk] << " total bad cable# " << badchsksize <<  std::endl;
+        //std:: cout << " isk: " << isk << " bad cable " << badchsk[isk] << " total bad cable# " << badchsksize <<  std::endl;
       
       int ipmttype = -1;
       if (PMTinfo[badchsk[isk]-1]==3) ipmttype = sk2;
@@ -266,7 +273,7 @@ int main(int argc, char *argv[]) {
 	    c2divide = c1divide + i + 1;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",badchsk[isk]));
 
-	    std:: cout << "c2divide: " << c2divide << std::endl;
+	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
@@ -284,15 +291,18 @@ int main(int argc, char *argv[]) {
         //c1count++;
     }
     c1->Modified();
-    c1->Print(CanvasName+"]");
+    if (PlotRange[0] < badchsksize)
+      c1->Print(CanvasName+"]");
     
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
-    CanvasName = outdir+"Large_HV_Chi2_"+PMTtypeName+".pdf";
-    c1->Print(CanvasName+"[");
+    CanvasName = outdir+"Large_HV_Chi2_"+PMTtypeName+Form("_%05d", PlotRange[0])+".pdf";
 
-    for (Int_t isk =0; isk < largechsksize; isk++){
+    if (PlotRange[0] < largechsksize)
+      c1->Print(CanvasName+"[");
+
+    for (Int_t isk =PlotRange[0]; isk < min(largechsksize, PlotRange[1]); isk++){
 
       if (!AnalyzeHK)
         if (largechsk[isk] == 1326 || largechsk[isk] == 2370 || largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
@@ -300,7 +310,7 @@ int main(int argc, char *argv[]) {
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
 
-         std:: cout << " isk: " << isk << " lchi2 cable " << largechsk[isk] << " total lchi2 cable# " << largechsksize <<  std::endl;
+	//std:: cout << " isk: " << isk << " lchi2 cable " << largechsk[isk] << " total lchi2 cable# " << largechsksize <<  std::endl;
         //std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
 
       int ipmttype = -1;
@@ -340,7 +350,8 @@ int main(int argc, char *argv[]) {
         //c1count++;
     }
     c1->Modified();
-    c1->Print(CanvasName+"]");
+    if (PlotRange[0] < largechsksize)
+      c1->Print(CanvasName+"]");
     
     /*c1->Clear();
     c1->Divide((nfile+1)/2,2);
@@ -397,13 +408,15 @@ int main(int argc, char *argv[]) {
     c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
-    CanvasName = outdir+"Okay_fit_"+PMTtypeName+".pdf";
-    c1->Print(CanvasName+"[");
+    CanvasName = outdir+"Okay_fit_"+PMTtypeName+Form("_%05d", PlotRange[0])+".pdf";
 
+    if (PlotRange[0] < okaychsize)
+      c1->Print(CanvasName+"[");
 
-    for (Int_t iok =0; iok < okaychsize; iok++){
+    
+    for (Int_t iok =PlotRange[0]; iok < min(okaychsize, PlotRange[1]); iok++){
 
-        if (iok%100 == 0) cout << "Plotting #" << iok << endl;
+      //if (iok%100 == 0) cout << "Plotting #" << iok << endl;
       
         Int_t c1divide = iok * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
@@ -411,7 +424,7 @@ int main(int argc, char *argv[]) {
 	//std:: cout << "c1divide: " << c1divide << " iok: " << iok+1 << "okchannel: " << okaych[iok] << std::endl;
 
 	TGraphErrors * gr1ok;
-       std:: cout  << " iok: " << iok+1 << "okchannel: " << okaych[iok] << " in total okay# " << okaychsize << std::endl;
+	//std:: cout  << " iok: " << iok+1 << "okchannel: " << okaych[iok] << " in total okay# " << okaychsize << std::endl;
        Int_t okchannel = okaych[iok];
 
       int ipmttype = -1;
@@ -434,7 +447,7 @@ int main(int argc, char *argv[]) {
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
-            hsk1[i]->Draw();
+            if (hsk1[i]) hsk1[i]->Draw();
             c1->Update();
 
 	    if (c2divide == nfile+1) {
@@ -450,7 +463,8 @@ int main(int argc, char *argv[]) {
         //c1count++;
     }
     c1->Modified();
-    c1->Print(CanvasName+"]");
+    if (PlotRange[0] < okaychsize)
+      c1->Print(CanvasName+"]");
     
     fin1->Close();
 
@@ -467,12 +481,21 @@ int main(int argc, char *argv[]) {
 	      
 	        case 't':
                     PMTtype = argv[2];
-		    InputDir += PMTtype + "/";
+		    InputDir += PMTtype;
                    ++argv; --argc;
                     break;
 		    
 	        case 'i':
                     InputDir = argv[2];
+                    ++argv; --argc;
+                    break;
+
+	        case 'l':
+	   	    PlotRange[0] = atoi(argv[2]);
+                    ++argv; --argc;
+                    break;		    
+	        case 'u':
+	  	    PlotRange[1] = atoi(argv[2]);
                     ++argv; --argc;
                     break;
             }
