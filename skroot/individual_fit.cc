@@ -295,7 +295,7 @@ int main(int argc, char *argv[]) {
     for (Int_t isk =0; isk < largechsksize; isk++){
 
       if (!AnalyzeHK)
-        if (largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
+        if (largechsk[isk] == 1326 || largechsk[isk] == 2370 || largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
   
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
