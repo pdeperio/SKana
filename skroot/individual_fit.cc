@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
             }
             else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
-		//std::cout << "Add 1 badch for SK PMT" << std::endl;
+                //std::cout << "Add 1 badch for SK PMT" << std::endl;
             }
             else if (comment == "Chi2_=_0"){
                 zerochsk.push_back(channel);
@@ -303,7 +303,8 @@ int main(int argc, char *argv[]) {
 
     for (Int_t isk =PlotRange[0]; isk < min(largechsksize, PlotRange[1]); isk++){
 
-        if (largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
+        if (largechsk[isk] == 1326 || largechsk[isk] == 2370 || largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
+
   
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;

@@ -145,8 +145,10 @@ int main(int argc, char *argv[]) {
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badokfit;
     outtxt_badokfit.open(filename+".txt");
-
     outtxt_badokfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
+
+    ofstream outtxt_dead;
+    outtxt_dead.open(outdir+"deadchannels.txt");
     
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
@@ -313,7 +315,12 @@ int main(int argc, char *argv[]) {
 	  //cout << "Unknown PMT type: " << PMTinfo[iPMT][0] << endl;
 	  continue;
 	}
-	    
+
+	if (skcable[0][p] <= 0) {
+	  outtxt_dead << p+1 << endl;
+	  continue;
+	}
+
 	if (!goodchannel[0][p]) continue;
 	if (skcable[0][p] <= 0) continue;
 	
@@ -342,10 +349,19 @@ int main(int argc, char *argv[]) {
         fHVsk[p]->SetParName(0, "Factor");
         fHVsk[p]->SetParName(1, "Index #beta");
         //fHVsk[p]->SetParName(2, "Voltage Offset");
-        fHVsk[p]->SetParameter(0, 5);
-        fHVsk[p]->SetParameter(1, 6);
-        //fHVsk[p]->SetParLimits(0, 0, 2e-17);
-        if (AnalyzeWhat == sk) fHVsk[p]->SetParLimits(1, 0, 15);
+
+        if (ipmttype == hkpmt){
+	          fHVsk[p]->SetParameter(0, 0.5);
+	          fHVsk[p]->SetParameter(1, 6);
+	      }
+	
+     	  else {
+	          fHVsk[p]->SetParameter(0, 5);
+	          fHVsk[p]->SetParameter(1, 6);
+	          //fHVsk[p]->SetParLimits(0, 0, 2e-17);
+	          //fHVsk[p]->SetParLimits(1, 0, 15);
+	      }
+	      fHVsk[p]->SetParLimits(1, 0, 15);
 
         //fHVsk[p]->SetParameter(2, -500);
         //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
@@ -445,10 +461,10 @@ int main(int argc, char *argv[]) {
 	  
 	  if (status == error || chisquare > chi2_max) {
 
-	    if (status == error) gfitter->SetPrecision((pointsrm+1)*10);
+	    if (status == error) gfitter->SetPrecision((pointsrm+1)*15);
 
-	    if (ipmttype == hk) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
-	    else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
+	    //if (ipmttype == hk) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+	    ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
 	    
 	    fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
 	  }
@@ -459,7 +475,7 @@ int main(int argc, char *argv[]) {
         }
 	
 	if ((status == error || chisquare > chi2_max) && ghv_sk[p]->GetN()>minpoint){
-	  if (status == error) gfitter->SetPrecision(30);
+	  if (status == error) gfitter->SetPrecision(100);
 
 	  ghv_sk[p]->RemovePoint(0);
 	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
@@ -578,7 +594,7 @@ int main(int argc, char *argv[]) {
 
         t->Clear();
 
-        if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
+        //if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
 
 	  t->AddText(Form("HV at 1.4e7 gain : %4.2f [V]", fHVinvsk[p]->Eval(targetQHPK)));
           //t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
@@ -589,7 +605,7 @@ int main(int argc, char *argv[]) {
           t->Draw("same");
           trun->Draw("same");
           c1->Update();
-	}
+       //}
         
 	TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
 
@@ -612,7 +628,7 @@ int main(int argc, char *argv[]) {
     outtxt_badcables.close();
     outtxt_badfit.close();
     outtxt_badokfit.close();
-
+    outtxt_dead.close();
 }
  
 #ifndef __CINT__
