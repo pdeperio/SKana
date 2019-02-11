@@ -2,7 +2,7 @@
 ################################################
 #
 # Usage:
-#         ./sub_plot.sh      # For SK PMTs only
+#         ./sub_plot.sh _sk  # For SK PMTs only
 #
 #         ./sub_plot.sh _hk  # For HK PMTs only
 #
@@ -17,7 +17,7 @@ fi
 WORKDIR=${PWD}
 
 PLOTS_PER_JOB=100
-MAX_PLOTS=8000
+MAX_PLOTS=11000
 NJOBS=$(($MAX_PLOTS / $PLOTS_PER_JOB))
 
 BASEDIR=${WORKDIR}/hv_ana${PMT_TYPE}

@@ -471,6 +471,7 @@ int main(int argc, char *argv[]) {
         }
 	
 	if ((status == 4 || chisquare > 20) && ghv_sk[p]->GetN()>minpoint){
+	  //if (AnalyzeHK) continue;
 	  if (status == 4) {
 	    gfitter->SetPrecision(100);
 	  }

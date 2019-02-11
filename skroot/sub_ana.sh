@@ -53,7 +53,7 @@ hostname
 
 cd ${WORKDIR}
 
-./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]} -t ${PMT_TYPE}
+./fit_hvscan_spe -r ${run} -c "${CONNECTION_SET[$irun]}" -h ${HV_SET[$irun]} -t ${PMT_TYPE} -i /disk02/usr6/seanxia/skroot/
 
 EOF
 

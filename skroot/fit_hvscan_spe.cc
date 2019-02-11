@@ -220,10 +220,10 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
     
     TF1 *func1pe = new TF1("fgaus","gaus", fit_range[0], fit_range[1]);
     TF1 *func1pe_new = new TF1("fgaus_new", "gaus", fit_range[0], fit_range[1]);
-    TF1 *func2peak = new TF1("func2peak", "[3]*gaus(0)*(1+[4]*(TMath::Erf(((x-[1])/[2]))))+0.5*[5]*expo(8)*[0]*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)", fit_range[0], fit_range[1]);
+    TF1 *func2peak = new TF1("func2peak", "gaus(0)+0.5*[5]*expo(8)*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)", fit_range[0], fit_range[1]);
     TF1 *func1peak = new TF1("fgaus1","gaus", fit_range[0], fit_range[1]);
-    TF1 *funcexbs = new TF1("fexbs","0.5*[5]*expo(8)*[0]*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)", fit_range[0], fit_range[1]);
-    TF1 *funcskgaus = new TF1("funcskgaus","[3]*gaus(0)*(1+[4]*(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);
+    TF1 *funcexbs = new TF1("fexbs","0.5*[5]*expo(8)*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)", fit_range[0], fit_range[1]);
+    TF1 *funcskgaus = new TF1("funcskgaus","[3]*gaus(0)*(1./[3]+(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);
     
     
     func1pe->SetLineColor(2);
@@ -262,7 +262,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
         func1pe_new->SetParLimits(1, func1pe->GetParameter(1) - 0.5*func1pe->GetParameter(2), func1pe->GetParameter(1) + 0.5*func1pe->GetParameter(2));
         func1pe->SetParLimits(2, 1, 5);
     }
-    h->Fit(func1pe_new, (func1pe_new->GetParameter(2)<0.3&&func1pe_new->GetParameter(1)<1&&func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>0.01)?"BQ+":"BNQ0", "", func1pe_low, func1pe_high);
+    h->Fit(func1pe_new, (func1pe_new->GetParameter(2)<0.3&&func1pe_new->GetParameter(1)<1&&func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>0.1)?"BQ+":"BNQ0", "", func1pe_low, func1pe_high);
     //h->Fit(func1pe_new, (hv < -70)?"BQ":"BNQ0", "", func1pe_low, func1pe_high);
     func = func1pe_new;
     
@@ -277,14 +277,14 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
             //func1peak->FixParameter(iSet, func1pe_new->GetParameter(iSet));
         }
         
-        func2peak->SetParameter(3, 1);
-        func2peak->SetParameter(4, 5);
-        func2peak->SetParameter(5, 0.5);
+        func2peak->SetParameter(3, 5);
+        //func2peak->SetParameter(4, 5);
+        func2peak->SetParameter(5, 0.5*func1pe_new->GetParameter(0));
         func2peak->SetParameter(6, 0.5);
-        func2peak->SetParLimits(3, 0.5, 2);
-        func2peak->SetParLimits(4, 0, 10);
+        func2peak->SetParLimits(3, 0.5, 20);
+        //func2peak->SetParLimits(4, 0, 10);
         //func2peak->SetParLimits(5, 0, func1pe_new->GetParameter(2));
-        func2peak->SetParLimits(5, 0, 1);
+        func2peak->SetParLimits(5, 0, 0.5*func1pe_new->GetParameter(0));
         //func2peak->SetParLimits(6, func1pe_new->GetParameter(1)-1.5*func1pe_new->GetParameter(2), func1pe_new->GetParameter(1));
 	func2peak->SetParameter(6, 0.3);
 	func2peak->SetParLimits(6, -1, 1);
@@ -323,17 +323,17 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
 	func1pe_new->Delete();
     }
     
-    else if (func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1) < 0.01){//fit assym gaus
+    else if (func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1) < 0.1){//fit assym gaus
         funcskgaus->SetParameter(0, h->GetMaximum());
         funcskgaus->SetParameter(1, 1);
         funcskgaus->SetParameter(2, 1);
-        funcskgaus->SetParameter(3, 1);
-        funcskgaus->SetParameter(4, 5);
+        funcskgaus->SetParameter(3, 5);
+        //funcskgaus->SetParameter(4, 5);
         funcskgaus->SetParLimits(0, 0.5*h->GetMaximum(), 1.5*h->GetMaximum());
         funcskgaus->SetParLimits(1, 0, 2);
         funcskgaus->SetParLimits(2, 0.5, 4);
-        funcskgaus->SetParLimits(3, 0.5, 2);
-        funcskgaus->SetParLimits(4, 0, 10);
+        funcskgaus->SetParLimits(3, 0.5, 20);
+        //funcskgaus->SetParLimits(4, 0, 10);
         
         h->Fit(funcskgaus, "BV+","", 0, 12+hv*hv_scale);
         func = funcskgaus;
