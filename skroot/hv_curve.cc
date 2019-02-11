@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 	      continue;
 	    }
 	    
-      double ErrScaling = 2;
+	    double ErrScaling = 2;
 	    skpeak[ifile][chid-1] = peak;
 	    skhv[ifile][chid-1] = highv;
 	    skcable[ifile][chid-1] = chid;
@@ -211,10 +211,10 @@ int main(int argc, char *argv[]) {
 	    sknhit[ifile][chid-1] = nhits;
 	    goodchannel[ifile][chid-1] = 1;
             
-		cout << "Add " << PMTtypeName.Data() << " element " << nfile << " " << chid-1 << " Peak err is " << peakerr << endl;
-		cout << skpeak[ifile][chid-1] << " " << skhv[ifile][chid-1] << " " << sksigma[ifile][chid-1] << endl << endl;            
+	    cout << "Add " << PMTtypeName.Data() << " element " << nfile << " " << chid-1 << " Peak err is " << peakerr << endl;
+	    cout << skpeak[ifile][chid-1] << " " << skhv[ifile][chid-1] << " " << sksigma[ifile][chid-1] << endl << endl;            
         }
-
+	
 	f[ifile]->Close();
         std::cout << "Closed fit result file" << std::endl;
     }
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!goodchannel[0][p]) continue;
-
+	//if (skcable[3][p] <= 0) continue;
 	ghv_sk[p] = new TGraphErrors();
 
         ghv_sk[p]->SetMarkerStyle(8);
@@ -365,8 +365,8 @@ int main(int argc, char *argv[]) {
 	    if (skcable[ifile][p] <= 0) continue;
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
-
 	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
+	    
 	    if (sksigma[ifile][p] < 0.1 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0){
 	      ghv_sk[p]->RemovePoint(ifile);
 	      cout << Form("Removing %dth point from PMT %d", ifile+1, skcable[ifile][p]) << endl << endl;
@@ -381,16 +381,17 @@ int main(int argc, char *argv[]) {
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
     TString fitOpts = "SMBE";
-    int minpoint = 3;
+    int minpoint = 4;
 
     for (Int_t p = 0; p < MAXPM; p++){
         if (!ghv_sk[p]) continue;
+	if (skcable[0][p] <= 0) continue;
 	//ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
 
         int npoints = ghv_sk[p]->GetN();
 
         if (npoints < minpoint) {
-            cout << "PMT " << p+1 << " has fewer than " << minpoint << " points." << endl;
+            cout << "PMT " <<  skcable[0][p] << " has fewer than " << minpoint << " points." << endl;
             continue;
         }
 
@@ -408,8 +409,11 @@ int main(int argc, char *argv[]) {
 
         TFitResultPtr fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
         int status = (int)fitr;
- 
+
+ 	Double_t chisquare = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
+
 	vector<Double_t> slopes(npoints-1);
+
 	Double_t x[npoints];
 	Double_t y[npoints];
 	for (Int_t point = 0; point < npoints; point++){
@@ -422,24 +426,39 @@ int main(int argc, char *argv[]) {
 	speakpoints[1] = distance(slopes.begin(), max_element(slopes.begin(), slopes.end()));
 	speakpoints[0] = distance(slopes.begin(), min_element(slopes.begin(), slopes.end()));
       
+	if (status == 4 || chisquare > 20) {
+	  for (int ifile = 0; ifile < ghv_sk[p]->GetN(); ifile++){
+	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]*1.5);
+	  }
+	}
+
         for (Int_t pointsrm = 0; pointsrm < 2; pointsrm++){
 	  if (pointsrm > npoints - minpoint) break;
           
 	  cout << "  status = " << status << endl;
-	    if (status == 4) {
-                if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
-                else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
+	  
+	  if (status == 4 || chisquare > 20) {
 
-                fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
-            }
+	    if (status == 4) gfitter->SetPrecision((pointsrm+1)*10);
+
+	    if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+	    else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
+	    
+	    fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
+	  }
 	  status = int(fitr);	  
-	  if (status != 4) break;
+	  chisquare = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
+	  
+	  if (status != 4 && chisquare <= 20) break;
         }
 	
-	if (status == 4 && ghv_sk[p]->GetN()>4){
+	if ((status == 4 || chisquare > 20) && ghv_sk[p]->GetN()>minpoint){
+	  if (status == 4) gfitter->SetPrecision(30);
+
 	  ghv_sk[p]->RemovePoint(0);
 	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
 	  status = (int)fitr;
+	  chisquare = fHVsk[p]->GetChisquare()/fHVsk[p]->GetNDF();
 	}
         //std::cout << Form("Fitting SK%d cable %06d", PMTinfo[p][0] - 1, p) << std::endl;
         
@@ -476,7 +495,7 @@ int main(int argc, char *argv[]) {
 
 	  if (!AnalyzeHK) {
 	    if (rchi2[ipmttype] < 10 && rchi2[ipmttype] > 0 && prob[ipmttype] > 0.0001){
-	      outtxt3 << setw(10) << skcable[0][p] << setw(4) << " SK2" << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << "\n";
+	      outtxt3 << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << "\n";
 	    }
 	  }
 	}
@@ -552,14 +571,17 @@ int main(int argc, char *argv[]) {
 	
         cout << "Drawing cable " << skcable[0][p] << endl;
         
+
         //std::cout << skcable[0][p] << std::endl;
         t->Clear();
 
         if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
 
-          t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
+	  t->AddText(Form("HV at 1.4e7 gain : %4.2f [V]", fHVinvsk[p]->Eval(targetQHPK)));
+          //t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
 	  ((TText*)t->GetListOfLines()->Last())->SetTextColor(kBlue);
-          t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
+	  t->AddText(Form("HV at 1.8e7 gain : %4.2f [V]", fHVinvsk[p]->Eval(targetQ)));      
+          //t->AddText(Form("HV at 1.8e7 gain   : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQ),fHVinvskerr[p]->Eval(targetQ) - fHVinvsk[p]->Eval(targetQ)));
 	  ((TText*)t->GetListOfLines()->Last())->SetTextColor(kMagenta);
           t->Draw("same");
           trun->Draw("same");
@@ -567,6 +589,7 @@ int main(int argc, char *argv[]) {
 	}
         
 	TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
+
 	if (ps != (TPaveStats*)0){
 	  //ps = (TPaveStats*)fHVsk[p]->FindObject("stats");
 	  ps->SetX1NDC(0.1);
@@ -586,6 +609,7 @@ int main(int argc, char *argv[]) {
     outtxt1.close();
     outtxt2.close();
     outtxt3.close();
+
 }
  
 #ifndef __CINT__
