@@ -137,6 +137,9 @@ int main(int argc, char *argv[]) {
     outtxt3.open(outdir+"badokfitting.txt");
 
     outtxt3 << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
+
+    ofstream outtxt4;
+    outtxt4.open(outdir+"deadchannels.txt");
     
     TFile *f[nfile];
     std::vector<std::vector<Double_t> > skpeak(nfile, std::vector<Double_t>(MAXPM,0));
@@ -362,7 +365,10 @@ int main(int argc, char *argv[]) {
             }*/
 
 	    if (!ghv_sk[p]) continue;
-	    if (skcable[ifile][p] <= 0) continue;
+	    if (skcable[ifile][p] <= 0) {
+	      outtxt4 << p+1 << endl;
+	      continue;
+	    }
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
 	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
@@ -609,7 +615,7 @@ int main(int argc, char *argv[]) {
     outtxt1.close();
     outtxt2.close();
     outtxt3.close();
-
+    outtxt4.close();
 }
  
 #ifndef __CINT__
