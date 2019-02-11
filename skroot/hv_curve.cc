@@ -147,8 +147,10 @@ int main(int argc, char *argv[]) {
     outtxt_badokfit.open(filename+".txt");
     outtxt_badokfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
 
+    filename = outdir+"deadchannels";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_dead;
-    outtxt_dead.open(outdir+"deadchannels.txt");
+    outtxt_dead.open(filename+".txt");
     
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
@@ -322,7 +324,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!goodchannel[0][p]) continue;
-	if (skcable[0][p] <= 0) continue;
 	
 	ghv_sk[p] = new TGraphErrors();
 

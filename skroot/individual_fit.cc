@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
     outxt << setw(8) << " Channel" << setw(6) << "   PMT" << setw(5) << "  lhv" << setw(5) << "  hhv" << setw(8) << "    norm" << setw(8) << "   index" << setw(8) << "    chi2" << setw(8) << "    prob" << "\n";
       
     ifstream intxt1;
-    intxt1.open(InputDir+"/badfitting.txt");
+    intxt1.open(InputDir+"/badfittings.txt");
 
     if (intxt1.fail()){
         std::cerr << "Error opening file intxt1" << std::endl;
