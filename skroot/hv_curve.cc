@@ -315,6 +315,11 @@ int main(int argc, char *argv[]) {
 	  else continue;
 	}
 
+	if (skcable[0][p] <= 0) {
+	  outtxt4 << p+1 << endl;
+	  continue;
+	}
+
 	if (!goodchannel[0][p]) continue;
 	//if (skcable[3][p] <= 0) continue;
 	ghv_sk[p] = new TGraphErrors();
@@ -342,11 +347,18 @@ int main(int argc, char *argv[]) {
         fHVsk[p]->SetParName(0, "Factor");
         fHVsk[p]->SetParName(1, "Index #beta");
         //fHVsk[p]->SetParName(2, "Voltage Offset");
-        fHVsk[p]->SetParameter(0, 5);
-        fHVsk[p]->SetParameter(1, 6);
-        //fHVsk[p]->SetParLimits(0, 0, 2e-17);
-        if (!AnalyzeHK) fHVsk[p]->SetParLimits(1, 0, 15);
-
+	if (AnalyzeHK){
+	  fHVsk[p]->SetParameter(0, 0.5);
+	  fHVsk[p]->SetParameter(1, 6);
+	}
+	
+	else {
+	  fHVsk[p]->SetParameter(0, 5);
+	  fHVsk[p]->SetParameter(1, 6);
+	  //fHVsk[p]->SetParLimits(0, 0, 2e-17);
+	  //fHVsk[p]->SetParLimits(1, 0, 15);
+	}
+	fHVsk[p]->SetParLimits(1, 0, 15);
         //fHVsk[p]->SetParameter(2, -500);
         //ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], hkpeak[ifile][p]);
         //gthr_[p] = new TGraphErrors();
@@ -365,10 +377,10 @@ int main(int argc, char *argv[]) {
             }*/
 
 	    if (!ghv_sk[p]) continue;
-	    if (skcable[ifile][p] <= 0) {
-	      outtxt4 << p+1 << endl;
-	      continue;
-	    }
+	    //if (skcable[ifile][p] <= 0) {
+	      //outtxt4 << p+1 << endl;
+	      //continue;
+	      // }
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
 	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
@@ -445,10 +457,10 @@ int main(int argc, char *argv[]) {
 	  
 	  if (status == 4 || chisquare > 20) {
 
-	    if (status == 4) gfitter->SetPrecision((pointsrm+1)*10);
+	    if (status == 4) gfitter->SetPrecision((pointsrm+1)*15);
 
-	    if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
-	    else ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
+	    //if (AnalyzeHK) ghv_sk[p]->RemovePoint(pointsrm==0?pointsrm:(nfile-pointsrm-1));
+	    ghv_sk[p]->RemovePoint(speakpoints[pointsrm]);
 	    
 	    fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
 	  }
@@ -459,8 +471,9 @@ int main(int argc, char *argv[]) {
         }
 	
 	if ((status == 4 || chisquare > 20) && ghv_sk[p]->GetN()>minpoint){
-	  if (status == 4) gfitter->SetPrecision(30);
-
+	  if (status == 4) {
+	    gfitter->SetPrecision(100);
+	  }
 	  ghv_sk[p]->RemovePoint(0);
 	  fitr = ghv_sk[p]->Fit(fHVsk[p], fitOpts);
 	  status = (int)fitr;
@@ -581,7 +594,7 @@ int main(int argc, char *argv[]) {
         //std::cout << skcable[0][p] << std::endl;
         t->Clear();
 
-        if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
+        //if (fHVinvsk[p]->Eval(targetQ) < 2500 && fHVinvskerr[p]->Eval(targetQ) < 2500){
 
 	  t->AddText(Form("HV at 1.4e7 gain : %4.2f [V]", fHVinvsk[p]->Eval(targetQHPK)));
           //t->AddText(Form("HV at 1.4e7 gain : %4.2f#pm%4.2f [V]", fHVinvsk[p]->Eval(targetQHPK), fHVinvskerr[p]->Eval(targetQHPK) - fHVinvsk[p]->Eval(targetQHPK)));
@@ -592,7 +605,7 @@ int main(int argc, char *argv[]) {
           t->Draw("same");
           trun->Draw("same");
           c1->Update();
-	}
+       //}
         
 	TPaveStats *ps = (TPaveStats*)ghv_sk[p]->GetListOfFunctions()->FindObject("stats");
 
