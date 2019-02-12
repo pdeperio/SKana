@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (Int_t ifile = 0; ifile < nfile; ifile++){
-        for (Int_t p = 0; p < MAXPM; p++){
+      for (Int_t p = PlotRange[0]; p < min(MAXPM, PlotRange[1]); p++){
             /*if (sk2peak[ifile][p] <=0 || skhv[ifile][p] <= 0){
                 outtxt_badcables << setw(10) << skcable[ifile][p] << setw(4) << " SK2" << setw(10) << skhv[ifile][p] << setw(10) << hvshift[ifile] << std::endl;
                 continue;
@@ -433,10 +433,13 @@ int main(int argc, char *argv[]) {
     TString fitOpts = "SMBE";
     int minpoint = 3;
 
-    for (Int_t p = 0; p < MAXPM; p++){
+    for (Int_t p = PlotRange[0]; p < min(MAXPM, PlotRange[1]); p++){
 
         if (!ghv_sk[p]) {
+	  
 	  if (skcable[0][p]>0) outtxt_target <<  skcable[0][p] << setw(6) << " -1" << endl;
+	  else if (skhv[3][p]>=0) outtxt_target << p+1 << setw(6) << " " << skhv[3][p] << endl;
+	  
 	  continue;
 	}
 
@@ -450,7 +453,10 @@ int main(int argc, char *argv[]) {
 			     
         if (npoints < minpoint) {
             cout << "PMT " <<  skcable[0][p] << " has fewer than " << minpoint << " points." << endl;
-	    if (skcable[0][p]>0) outtxt_target <<  skcable[0][p] << setw(6) << " -2" << endl;
+	    
+	    if (skcable[0][p]>0) outtxt_target <<  skcable[0][p] << setw(6) << " -1" << endl;
+	    else if (skhv[3][p]>=0) outtxt_target << p+1 << setw(6) << " " << skhv[3][p] << endl;
+	    
             continue;
         }
 
@@ -652,7 +658,7 @@ int main(int argc, char *argv[]) {
 
     c1->Print(CanvasName+"[");
     
-    for (Int_t p = 0; p < MAXPM; p++){
+    for (Int_t p = PlotRange[0]; p < min(MAXPM, PlotRange[1]); p++){
       
         if (!ghv_sk[p]) continue;
         if (ghv_sk[p]->GetN() < minpoint) continue;
