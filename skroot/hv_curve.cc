@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     gStyle->SetFrameFillColor(0);
     gStyle->SetFrameFillStyle(0);
     gStyle->SetPadColor(0);
-  
+
     gROOT->SetBatch(kTRUE);
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(kTRUE);
@@ -151,7 +151,14 @@ int main(int argc, char *argv[]) {
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_dead;
     outtxt_dead.open(filename+".txt");
-    
+    outtxt_dead << " PMT" << "\n";
+
+    filename = outdir+"targethv";
+    if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
+    ofstream outtxt_target;
+    outtxt_target.open(filename+".txt");
+    outtxt_target << "    Cable#" << setw(4) << " PMT" << "\n";
+
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
     Double_t skpeakerr[nfile][MAXPM] = {0};
@@ -300,12 +307,13 @@ int main(int argc, char *argv[]) {
     }
     
     TGraphErrors *ghv_sk[MAXPM] = {0};
-   
+    TGraphErrors *ghv_orig[MAXPM] = {0};
+
     TF1 *fHVsk[MAXPM] = {0};
     TF1 *fHVinvsk[MAXPM] = {0};
     TF1 *fHVinvskerr[MAXPM] = {0};
 
-    for (Int_t p = 0; p < MAXPM; p++){
+    for (Int_t p = PlotRange[0]; p < min(MAXPM, PlotRange[1]); p++){
 
         if (p%1000==0) cout << "Making graph and functions for channel: " << p << endl;
       
@@ -384,7 +392,7 @@ int main(int argc, char *argv[]) {
 	    if (!ghv_sk[p]) continue;
 	    
 	    ghv_sk[p]->SetPoint(ifile, skhv[ifile][p], skpeak[ifile][p]);
-	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);
+	    ghv_sk[p]->SetPointError(ifile, 0.5, skpeakerr[ifile][p]);	    
 	    
 	    if (sksigma[ifile][p] < 0.1 || skhv[ifile][p] <= 0 || skpeak[ifile][p]<=0){
 	      ghv_sk[p]->RemovePoint(ifile);
@@ -404,14 +412,22 @@ int main(int argc, char *argv[]) {
 
     for (Int_t p = 0; p < MAXPM; p++){
 
-        if (!ghv_sk[p]) continue;
+        if (!ghv_sk[p]) {
+	  if (skcable[0][p]>0) outtxt_target <<  skcable[0][p] << setw(6) << " -1" << endl;
+	  continue;
+	}
 
 	//ghv_sk[p]->GetXaxis()->SetLimits(1500,2500);
 
         int npoints = ghv_sk[p]->GetN();
 
+	ghv_orig[p] = (TGraphErrors*)ghv_sk[p]->Clone();
+  	ghv_orig[p]->SetMarkerColor(kGreen);
+	ghv_orig[p]->SetName(Form("%s_orig", ghv_sk[p]->GetName()));
+			     
         if (npoints < minpoint) {
             cout << "PMT " <<  skcable[0][p] << " has fewer than " << minpoint << " points." << endl;
+	    if (skcable[0][p]>0) outtxt_target <<  skcable[0][p] << setw(6) << " -2" << endl;
             continue;
         }
 
@@ -485,11 +501,13 @@ int main(int argc, char *argv[]) {
 	}
         //std::cout << Form("Fitting SK%d cable %06d", PMTinfo[p][0] - 1, p) << std::endl;
         
-        ghv_sk[p]->Draw("AP");
+	ghv_orig[p]->Draw("AP");
+	ghv_sk[p]->Draw("sameP");
         //c1->Update();
 	fout->cd();
         ghv_sk[p]->Write();
-        
+        ghv_orig[p]->Write();
+	
 	channelid[ipmttype] = skcable[0][p];
 	norm[ipmttype] = fHVsk[p]->GetParameter(0);
 	beta[ipmttype] = fHVsk[p]->GetParameter(1);
@@ -504,14 +522,20 @@ int main(int argc, char *argv[]) {
 	fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
 	fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
 	//fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
+
 	geighthv[ipmttype] = fHVinvsk[p]->Eval(targetQ);
+	if (isinf(geighthv[ipmttype])) geighthv[ipmttype] = -3;
+	else if (isnan(geighthv[ipmttype])) geighthv[ipmttype] = -4;
+	
 	gfourhv[ipmttype] = fHVinvsk[p]->Eval(targetQHPK);
 	geighthverr[ipmttype] = fHVinvskerr[p]->Eval(targetQ) - geighthv[ipmttype];
 	gfourhverr[ipmttype] = fHVinvskerr[p]->Eval(targetQHPK) - gfourhv[ipmttype];
 	gshifthv[ipmttype] = geighthv[ipmttype] - SKPMThv[p];
         resolution[ipmttype] = sksigma[2][p]/skpeak[2][p];
 	tr[ipmttype]->Fill();
-            
+
+	outtxt_target <<  skcable[0][p] << setw(6) << " " << geighthv[ipmttype] << endl;
+           
 	if (status == error){
 	  fHVsk[p]->SetLineColor(2);
 	  outtxt_badfit << setw(10) << skcable[0][p] << setw(4) << " " << PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(25) << "   Failed_to_find_minimum" << "\n";

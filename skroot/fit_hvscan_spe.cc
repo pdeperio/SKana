@@ -436,6 +436,7 @@ int main(int argc, char *argv[]) {// process the arguments
     gStyle->SetOptFit(0);
     gStyle->SetPalette(109);
 
+    gStyle->SetFuncWidth(1);
 
     //TMinuitMinimizer * minimizer = (TMinuitMinimizer*) ROOT::Math::Factory::CreateMinimizer("","");
     //minimizer->SuppressMinuitWarning(true);

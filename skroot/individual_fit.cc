@@ -18,7 +18,7 @@
 #include <TList.h>
 #include <TPaveText.h>
 #include <TPaveStats.h>
-//#include <TRandom3.h>
+#include <TROOT.h>
 
 using namespace std;
 
@@ -52,14 +52,6 @@ int main(int argc, char *argv[]) {
 
     gErrorIgnoreLevel = kWarning; // For removing TCanvas::Print msgs
     
-
-    gStyle->SetFrameBorderMode(0);
-    gStyle->SetTitleBorderSize(0);
-    gStyle->SetTitleFillColor(0);
-    gStyle->SetFrameFillColor(0);
-    gStyle->SetFrameFillStyle(0);
-    gStyle->SetPadColor(0);
-
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat("e");
     gStyle->SetOptFit(1111);
@@ -260,9 +252,11 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[badchsk[isk]-1]==6) ipmttype = hkpmt;
       
 	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", badchsk[isk]));
-	
+        TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", badchsk[isk]));
+
         c1->cd(c1divide);
-        gr1sk->Draw("AP");
+        gr1sk_orig->Draw("AP");
+        gr1sk->Draw("sameP");
         c1->Update();
 
 	TH1D * hsk1[nfile];
@@ -319,10 +313,12 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[largechsk[isk]-1]==6) ipmttype = hkpmt;
       
 	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", largechsk[isk]));
-	
+	TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", largechsk[isk]));
+
 
         c1->cd(c1divide);
-        gr1sk->Draw("AP");
+        gr1sk_orig->Draw("AP");
+        gr1sk->Draw("sameP");
         c1->Update();
 	
         TH1D * hsk1[nfile];
@@ -423,7 +419,6 @@ int main(int argc, char *argv[]) {
 
 	//std:: cout << "c1divide: " << c1divide << " iok: " << iok+1 << "okchannel: " << okaych[iok] << std::endl;
 
-	TGraphErrors * gr1ok;
 	//std:: cout  << " iok: " << iok+1 << "okchannel: " << okaych[iok] << " in total okay# " << okaychsize << std::endl;
        Int_t okchannel = okaych[iok];
 
@@ -432,10 +427,12 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[okchannel-1]==4) ipmttype = sk3pmt;
       else if (PMTinfo[okchannel-1]==6) ipmttype = hkpmt;
       
-      gr1ok = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", okchannel));
+      TGraphErrors *gr1ok = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", okchannel));
+      TGraphErrors *gr1ok_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", okchannel));
 
 	c1->cd(c1divide);
-        gr1ok->Draw("AP");
+        gr1ok_orig->Draw("AP");
+        gr1ok->Draw("sameP");
         c1->Update();
 
 	TH1D * hsk1[nfile];
