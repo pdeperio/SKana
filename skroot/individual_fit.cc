@@ -51,6 +51,13 @@ int main(int argc, char *argv[]) {
     if (PMTtype.Contains("hk")) AnalyzeWhat = hk;
 
     gErrorIgnoreLevel = kWarning; // For removing TCanvas::Print msgs
+
+    gStyle->SetFrameBorderMode(0);
+    gStyle->SetTitleBorderSize(0);
+    gStyle->SetTitleFillColor(0);
+    gStyle->SetFrameFillColor(0);
+    gStyle->SetFrameFillStyle(0);
+    gStyle->SetPadColor(0);
     
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat("e");
