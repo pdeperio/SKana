@@ -47,10 +47,11 @@ TF1* FitHK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
     
     TF1 *func1pe = new TF1("fgaus","gaus",0, 12);
     TF1 *func1pe_new = new TF1("fgaus_new", "gaus",0, 12);
-    TF1 *func2peak_bs = new TF1("f2peakbs","gaus(0)+0.5*[3]*[0]*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)+0.25*[5]*[0]*((TMath::Erf((x-[1]-0.5*[2])/[2])+(1-TMath::Erf((x-[4]*[1])/[2])))-1)",0,12);
-    //TF1 *func0peak = new TF1("fgaus0","gaus",-1, 12);
+    //TF1 *func2peak_bs = new TF1("f2peakbs","gaus(0)+0.5*[3]*[0]*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)+0.25*[5]*[0]*((TMath::Erf((x-[1]-0.5*[2])/[2])+(1-TMath::Erf((x-[4]*[1])/[2])))-1)",0,12);
+    //TF1 *func0peak = new TF1("fgaus0","gaus",-1, 12);0.5*[3]*[0]*((TMath::Erf(((x-[4])/[5])))
+    TF1 *func2peak_bs = new TF1("f2peakbs","gaus(0)+0.5*[3]*[0]*((TMath::Erf(((x-[4])/[5]))+(1-TMath::Erf((x-[1])/[2]))-1))",0,12);
     TF1 *func1peak = new TF1("fgaus1","gaus",0, 12);
-    TF1 *funcbs = new TF1("fbs","0.5*[3]*[0]*((TMath::Erf(((x-[6])/[7])))+(1-TMath::Erf((x-[1]+0.5*[2])/[2]))-1)+0.25*[5]*[0]*((TMath::Erf((x-[1]-0.5*[2])/[2])+(1-TMath::Erf((x-[4]*[1])/[2])))-1)",0, 12);
+    TF1 *funcbs = new TF1("fbs","0.5*[3]*[0]*((TMath::Erf(((x-[4])/[5])))+(1-TMath::Erf((x-[1])/[2]))-1",0, 12);
     
     
     func1pe->SetLineColor(2);
@@ -110,18 +111,18 @@ TF1* FitHK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
         //func2peak_bs->SetParLimits(4, 0, func1pe_new->GetParameter(1)-func1pe_new->GetParameter(2));
         //func2peak_bs->SetParLimits(5, 0.3*func1pe_new->GetParameter(2), func1pe_new->GetParameter(2));
         func2peak_bs->SetParName(3, "1pe BG ratio");
-        func2peak_bs->SetParName(5, "2pe BG ratio");
-        func2peak_bs->SetParName(4, "2pe peak region");
+        func2peak_bs->SetParName(4, "left cut-off");
+        func2peak_bs->SetParName(5, "err func resolution");
         func2peak_bs->SetParameter(3, 0.5);
         func2peak_bs->SetParLimits(3, 0, 1);
-        func2peak_bs->SetParameter(4, 2);
-        func2peak_bs->SetParLimits(4, 1, 3);
-        func2peak_bs->SetParameter(5, 0.2);
-        func2peak_bs->SetParLimits(5, 0, func2peak_bs->GetParameter(3));
-        func2peak_bs->SetParameter(6, 0.3);
-	func2peak_bs->SetParLimits(6, -1, 1);
-	func2peak_bs->SetParameter(7, 0.3);
-	func2peak_bs->SetParLimits(7, 0, func2peak_bs->GetParameter(2));
+        //func2peak_bs->SetParameter(4, 2);
+        //func2peak_bs->SetParLimits(4, 1, 3);
+        //func2peak_bs->SetParameter(5, 0.2);
+        //func2peak_bs->SetParLimits(5, 0, func2peak_bs->GetParameter(3));
+        func2peak_bs->SetParameter(4, 0.3);
+	func2peak_bs->SetParLimits(4, -1, 1);
+	func2peak_bs->SetParameter(5, 0.3);
+	func2peak_bs->SetParLimits(5, 0, func2peak_bs->GetParameter(2));
        
         h->Fit(func2peak_bs,"BQ+","",0, 12);
         
@@ -130,8 +131,8 @@ TF1* FitHK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
             funcbs->FixParameter(iSet, func2peak_bs->GetParameter(iSet));
             funcbs->FixParameter(iSet+3, func2peak_bs->GetParameter(iSet+3));
         }
-        funcbs->FixParameter(6, func2peak_bs->GetParameter(6));
-	funcbs->FixParameter(7, func2peak_bs->GetParameter(7));
+        //funcbs->FixParameter(6, func2peak_bs->GetParameter(6));
+	//funcbs->FixParameter(7, func2peak_bs->GetParameter(7));
 	
         //h->Fit(func0peak,"BQ+","", -1, 10);
         h->Fit(func1peak,"BQ+","", 0, 10);
