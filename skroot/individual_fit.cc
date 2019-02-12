@@ -270,6 +270,7 @@ int main(int argc, char *argv[]) {
         for (Int_t i = 0; i < nfile; i++){
 
 	    c2divide = c1divide + i + 1;
+	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",badchsk[isk]))) continue;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",badchsk[isk]));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;

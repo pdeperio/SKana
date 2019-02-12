@@ -429,7 +429,8 @@ int main(int argc, char *argv[]) {// process the arguments
     gStyle->SetFrameFillColor(0);
     gStyle->SetFrameFillStyle(0);
     gStyle->SetPadColor(0);
-
+    gStyle->SetFuncWidth(1);
+    
     gStyle->SetOptTitle(kTRUE);
     gStyle->SetOptStat(1);
     gStyle->SetOptFit(0);
