@@ -215,7 +215,7 @@ TF1* FitHK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 6){
     return func;
 }
 
-TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Float_t PMTflag = 3){
+TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Float_t PMTflag = 3){
     Int_t npx = 1000;
     Int_t entry = h->GetEntries();
     Int_t nbin = h->GetNbinsX();
@@ -229,10 +229,10 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
     
     TF1 *func1pe = new TF1("fgaus","gaus", fit_range[0], fit_range[1]);
     TF1 *func1pe_new = new TF1("fgaus_new", "gaus", fit_range[0], fit_range[1]);
-    TF1 *func2peak = new TF1("func2peak", "gaus(0)+0.5*[4]*[0]*expo(7)*((TMath::Erf(((x-[5])/[6])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
+    TF1 *func2peak = new TF1("func2peak", "gaus(0)+0.5*expo(5)*((TMath::Erf(((x-[3])/[4])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
     TF1 *func1peak = new TF1("fgaus1","gaus", fit_range[0], fit_range[1]);
-    TF1 *funcexbs = new TF1("fexbs","0.5*[4]*[0]*expo(7)*((TMath::Erf(((x-[5])/[6])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
-    TF1 *funcskgaus = new TF1("funcskgaus","[3]*gaus(0)*(1./[3]+(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);
+    TF1 *funcexbs = new TF1("fexbs","0.5*expo(5)*((TMath::Erf(((x-[3])/[4])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
+    TF1 *funcskgaus = new TF1("funcskgaus","gaus(0)*(1+[3]*(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);
     
     
     func1pe->SetLineColor(2);
@@ -288,21 +288,21 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
         
         //func2peak->SetParameter(3, 5);
         //func2peak->SetParameter(4, 5);
-        func2peak->SetParameter(4, 0.5);
-        func2peak->SetParameter(5, 0.3);
+        func2peak->SetParameter(3, 0.3);
+        func2peak->SetParameter(4, 0.3);
         //func2peak->SetParLimits(3, 0.5, 10);
-        func2peak->SetParLimits(4, 0, 1);
+        func2peak->SetParLimits(3, 0, 1);
         //func2peak->SetParLimits(5, 0, func1pe_new->GetParameter(2));
-        func2peak->SetParLimits(5, -1, 1);
+        func2peak->SetParLimits(4, -1, 1);
         //func2peak->SetParLimits(6, func1pe_new->GetParameter(1)-1.5*func1pe_new->GetParameter(2), func1pe_new->GetParameter(1));
 	//func2peak->SetParameter(6, 0.3);
 	//func2peak->SetParLimits(6, -1, 1);
-	func2peak->SetParameter(6, 0.3);
-	func2peak->SetParLimits(6, 0, func2peak->GetParameter(2));
-	func2peak->SetParameter(7, 1);
-	func2peak->SetParameter(8, -3);
-	func2peak->SetParLimits(7, 0.1, 3);
-	func2peak->SetParLimits(8, -5, 0);
+	//func2peak->SetParameter(6, 0.3);
+	//func2peak->SetParLimits(6, 0, func2peak->GetParameter(2));
+	func2peak->SetParameter(5, 1);
+	func2peak->SetParameter(6, -3);
+	func2peak->SetParLimits(5, 0.1, 8);
+	func2peak->SetParLimits(6, -5, 0);
 	func2peak->SetRange(0, 10);
         h->Fit(func2peak,"BQ+","",0, 10);
         //h->Fit(func2peak_bs,"BQ","",func1pe_new->GetParameter(1) - func1pe_new->GetParameter(2), func1pe_new->GetParameter(1) + 2 * func1pe_new->GetParameter(2));
@@ -319,7 +319,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 4, Float_t hv = 0, Fl
             func1peak->FixParameter(iSet, func2peak->GetParameter(iSet));
             funcexbs->FixParameter(iSet, func2peak->GetParameter(iSet));
         }
-	for (int iSet = 4; iSet < 9; iSet++){
+	for (int iSet = 3; iSet < 7; iSet++){
 	  funcexbs->FixParameter(iSet, func2peak->GetParameter(iSet));
 	}
         
