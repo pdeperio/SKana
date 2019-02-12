@@ -54,6 +54,8 @@ int main(int argc, char *argv[]) {
     if (PMTtype.Contains("sk")) AnalyzeWhat = sk;
     if (PMTtype.Contains("hk")) AnalyzeWhat = hk;
 
+    gErrorIgnoreLevel = kWarning; // For removing TCanvas::Print msgs
+
     gStyle->SetFrameBorderMode(0);
     gStyle->SetTitleBorderSize(0);
     gStyle->SetTitleFillColor(0);
@@ -700,9 +702,10 @@ int main(int argc, char *argv[]) {
         if (!ghv_sk[p]) continue;
         if (ghv_sk[p]->GetN() < minpoint) continue;
 
-        ghv_sk[p]->Draw("AP");
+        ghv_orig[p]->Draw("AP");
+        ghv_sk[p]->Draw("sameP");
 	
-        cout << "Drawing cable " << skcable[0][p] << endl;
+        if (p%1000==0) cout << "Drawing cable " << skcable[0][p] << endl;
 
         t->Clear();
 
