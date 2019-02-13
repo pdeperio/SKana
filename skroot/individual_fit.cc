@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
             if (comment == "Flat_Curve"|| comment == "Steep_Curve"){
                 badchsk.push_back(channel);
                 //std::cout << "Add 1 badch for PMT" << std::endl;
-            }
+           }
 	    /*            else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
                 //std::cout << "Add 1 badch for SK PMT" << std::endl;
@@ -438,7 +438,7 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[okchannel-1]==6) ipmttype = hkpmt;
       
       TGraphErrors *gr1ok = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", okchannel));
-      TGraphErrors *gr1ok_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", okchannel));
+      //TGraphErrors *gr1ok_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", okchannel));
 
 	c1->cd(c1divide);
         //gr1ok_orig->Draw("AP");
@@ -450,7 +450,7 @@ int main(int argc, char *argv[]) {
 	for (Int_t i = 0; i < nfile; i++){
 	  
             c2divide = c1divide + i + 1;
-	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",badchsk[iok]))) continue;
+	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",okaych[iok]))) continue;
 	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
