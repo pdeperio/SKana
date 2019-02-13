@@ -148,8 +148,8 @@ int main(int argc, char *argv[]) {
     
     
     std::vector<Int_t> badchsk;
-    std::vector<Int_t> largechsk;
-    std::vector<Int_t> overchsk;
+    //std::vector<Int_t> largechsk;
+    //std::vector<Int_t> overchsk;
     std::vector<Int_t> okaych;
     
     TTree *tr[nPMTtypes] = {0};
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
             intxt1 >> channel >> pmt >> lhv >> hhv >> norm >> beta >> chi2 >> prob >> comment;
             
-            //std::cout << channel << " " << pmt << std::endl;
+            std::cout << channel << " " << pmt << std::endl;
             okaych.erase(std::remove(okaych.begin(), okaych.end(), channel), okaych.end());
 	    
 	    int ipmttype;
@@ -211,22 +211,25 @@ int main(int argc, char *argv[]) {
 	    
 	    if ((lhv == "-nan") || (hhv == "-nan") || (chi2 == "inf"))
 	      outxt << setw(8) << channel << setw(6) << pmt.c_str() << setw(5) << lhv.c_str() << setw(5) << hhv.c_str() << setw(8) << norm.c_str() << setw(8) << beta.c_str() << setw(8) << chi2.c_str() << setw(8) << prob.c_str() << "\n";
-	    
-            if (comment == "Flat_Curve" || comment == "Steep_Curve"){
+
+	    //if (channel == 9983) continue;
+            if (comment == "Flat_Curve"|| comment == "Steep_Curve"){
                 badchsk.push_back(channel);
-                //std::cout << "Add 1 badch for SK PMT" << std::endl;
+                std::cout << "Add 1 badch for PMT" << std::endl;
             }
 	    /*            else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
                 //std::cout << "Add 1 badch for SK PMT" << std::endl;
-            }
-            else if (comment == "Chi2_<<_1"){
-                overchsk.push_back(channel);
-		//std::cout << "Add 1 badch for SK PMT" << std::endl;
 		}*/
+            //else if (comment == "Steep_Curve"){
+	    //overchsk.push_back(channel);
+		//std::cout << "Add 1 badch for SK PMT" << std::endl;
+	    //}
         }
         intxt1.close();
     }
+
+    
     outxt.close();
     
     //intxt1.close();
@@ -234,7 +237,7 @@ int main(int argc, char *argv[]) {
     //Int_t largechsksize = largechsk.size();
     //Int_t overchsksize = overchsk.size();
     Int_t okaychsize = okaych.size();
-    cout << "In total bad channel: " << badchsksize << " okay channel: " << okaychsize << endl << endl;
+    cout << "In total small channel: " << badchsksize << " okay channel: " << okaychsize << endl << endl;
     
     TCanvas * c1 = new TCanvas("c1","c1",250*((nfile+1)/2),500);
     c1->Divide((nfile+1)/2,2);
@@ -354,12 +357,12 @@ int main(int argc, char *argv[]) {
     }
     c1->Modified();
     if (PlotRange[0] < largechsksize)
-      c1->Print(CanvasName+"]");
+    c1->Print(CanvasName+"]");
     
-    /*c1->Clear();
+    c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
-    CanvasName = outdir+"Overfit_HV_Chi2_"+PMTtypeName+".pdf";
+    CanvasName = outdir+"Over_fit_HV_Chi2"+Form("_%05d", PlotRange[0])+".pdf";   
     c1->Print(CanvasName+"[");
 
     for (Int_t isk =0; isk < overchsksize; isk++){
@@ -386,7 +389,7 @@ int main(int argc, char *argv[]) {
 	  
             c2divide = c1divide + i + 1;
 
-	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",overchsk[isk]));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
@@ -447,7 +450,8 @@ int main(int argc, char *argv[]) {
 	for (Int_t i = 0; i < nfile; i++){
 	  
             c2divide = c1divide + i + 1;
-            hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
+	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",badchsk[iok]))) continue;
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
