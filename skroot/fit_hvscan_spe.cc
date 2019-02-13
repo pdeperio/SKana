@@ -271,11 +271,15 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
         func1pe_new->SetParLimits(1, func1pe->GetParameter(1) - 0.5*func1pe->GetParameter(2), func1pe->GetParameter(1) + 0.5*func1pe->GetParameter(2));
         func1pe->SetParLimits(2, 1, 5);
     }
-    h->Fit(func1pe_new, (func1pe_new->GetParameter(2)<0.3&&func1pe_new->GetParameter(1)>=1&&func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>0.1)?"BQ+":"BNQ0", "", func1pe_low, func1pe_high);
-    //h->Fit(func1pe_new, (hv < -70)?"BQ":"BNQ0", "", func1pe_low, func1pe_high);
+
+    //bool fit1gaug1 = func1pe_new->GetParameter(1) >= 1 && func1pe_new->GetParameter(2) < 0.3 && func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)<0.1;
+    //bool fit1gaug2 = func1pe_new->GetParameter(1) < 1 && func1pe_new->GetParameter(2) >= 0.3 && func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)<0.1;
+    //    bool fit1gaug3 = func1pe_new->GetParameter(1) < 1 && func1pe_new->GetParameter(2) < 1 && func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>=0.1;
+    //h->Fit(func1pe_new, (fit1gaug1||fit1gaug2||fit1gaug3)?"BQ+":"BNQ0", "", func1pe_low, func1pe_high);
+    h->Fit(func1pe_new,"BNQ0", "", func1pe_low, func1pe_high);
     func = func1pe_new;
     
-    if (func1pe_new->GetParameter(2)>=0.3&&func1pe_new->GetParameter(1)>=1&&func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>0.1){//fit gaus + expo
+    if (func1pe_new->GetParameter(2)>=1&&func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1)>=0.2){//fit gaus + expo
         func2peak->SetParName(0,"Scale");
         func2peak->SetParName(1,"Peak");
         func2peak->SetParName(2,"#sigma");
@@ -304,7 +308,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
 	func2peak->SetParLimits(5, 0.1, 8);
 	func2peak->SetParLimits(6, -5, 0);
 	func2peak->SetRange(0, 10);
-        h->Fit(func2peak,"BQ+","",0, 10);
+        h->Fit(func2peak,"BQ+","",0, func1pe_new->GetParameter(1)+3*func1pe_new->GetParameter(2));
         //h->Fit(func2peak_bs,"BQ","",func1pe_new->GetParameter(1) - func1pe_new->GetParameter(2), func1pe_new->GetParameter(1) + 2 * func1pe_new->GetParameter(2));
         /*for(int iSet = 3; iSet < 5; iSet++){
          funcexpo->FixParameter(iSet, func2peak->GetParameter(iSet));
@@ -324,28 +328,29 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
 	}
         
         //h->Fit(funcexpo, "BQ+","", 0+hv*0.008, 10+hv*0.008);
-        h->Fit(func1peak,"BQ+","", 0, 10);
-        h->Fit(funcexbs,"BQ+","", 0, 10);
+        h->Fit(func1peak,"BQ+","", 0, func1pe_new->GetParameter(1)+3*func1pe_new->GetParameter(2));
+        h->Fit(funcexbs,"BQ+","", 0, func1pe_new->GetParameter(1)+3*func1pe_new->GetParameter(2));
         //h->Fit(funcpos,"BQ+","", 0+hv*0.008, 10+hv*0.008);
 
         funcskgaus->Delete();
 	func1pe_new->Delete();
     }
     
-    else if (func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1) <= 0.1 && func1pe_new->GetParameter(1) < 1){//fit assym gaus
+    else if (func1pe_new->GetParameter(2)/func1pe_new->GetParameter(1) < 0.2 || func1pe_new->GetParameter(2) < 1){//fit assym gaus
         funcskgaus->SetParameter(0, h->GetMaximum());
-        funcskgaus->SetParameter(1, 1);
+        funcskgaus->SetParameter(1, 1.5);
         funcskgaus->SetParameter(2, 1);
         funcskgaus->SetParameter(3, 5);
         //funcskgaus->SetParameter(4, 5);
         funcskgaus->SetParLimits(0, 0.5*h->GetMaximum(), 1.5*h->GetMaximum());
-        funcskgaus->SetParLimits(1, 0, 2);
+        funcskgaus->SetParLimits(1, 0, 6);
         funcskgaus->SetParLimits(2, 0.5, 4);
         funcskgaus->SetParLimits(3, 0.5, 10);
         //funcskgaus->SetParLimits(4, 0, 10);
         
         h->Fit(funcskgaus, "BV+","", 0, 10);
-        func = funcskgaus;
+	funcskgaus->SetParameter(1, funcskgaus->GetMaximumX(0,10)); 
+	func = funcskgaus;
 
 	func2peak->Delete();
 	func1pe_new->Delete();
@@ -383,7 +388,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
         TLatex *myt[6];
         myt[0] = new TLatex(0,0,Form("Single PE RESULT"));
         //myt[1] = new TLatex(0,0,Form("# of Hits = %d", h->GetEntries()));
-        myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)>func->GetMaximumX()-1?func->GetParameter(1):func->GetMaximumX()));
+        myt[1] = new TLatex(0,0,Form("SPE Peak  = %1.2e [pC]",func->GetParameter(1)>func->GetMaximumX()-0.5?func->GetParameter(1):func->GetMaximumX()));
         myt[2] = new TLatex(0,0,Form("SPE Peak #sigma = %1.2e [pC]",func->GetParameter(2)));
         myt[3] = new TLatex(0,0,Form("Func Max = %1.2e [pC]",func->GetMaximumX(0,10)));
         myt[4] = new TLatex(0,0,Form("Chi2ndf  = %1.2e",func->GetChisquare()/func->GetNDF()));
@@ -392,7 +397,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
             //myt[5] = new TLatex(0,0,Form("Poisson Peak 2 = %1.2e [pC]",func->GetParameter(6)));
         //}
         if (func->GetNpar()>5){
-            myt[5] = new TLatex(0,0,Form("Edge = %1.2e",func->GetParameter(5)));
+            myt[5] = new TLatex(0,0,Form("Decay = %1.2e",func->GetParameter(6)));
         }
         else myt[5] = new TLatex(0,0,Form("Skew = %1.2e",func->GetParameter(3)));
         //myt[6] = new TLatex(0,0,Form("FWHM = %3.1f [%%]", (result.peakx!=0?result.FWHM/result.peakx*100.:-1)));
