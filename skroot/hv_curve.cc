@@ -285,8 +285,9 @@ int main(int argc, char *argv[]) {
 	    //}
 	    //skpeakerr[ifile][chid-1] = ErrScaling*peakerr;
 	    skpeak[ifile][chid-1] = peak;
-	    if (iPMTtype == hk)	ErrScaling = 6./peak;
-	    else if (iPMTtype == sk) ErrScaling = 8./peak;
+	    ErrScaling = 1./peak; 
+	    //if (iPMTtype == hk)	ErrScaling = 1./peak;
+	    //else if (iPMTtype == sk) ErrScaling = 1./peak;
 	    //skpeakerr[ifile][chid-1] = ErrScaling*peakerr;       
 	    skhv[ifile][chid-1] = highv;
 	    skcable[ifile][chid-1] = chid;
@@ -641,7 +642,7 @@ int main(int argc, char *argv[]) {
 
 	else if (beta[ipmttype] >= indexmax){
 	  fHVsk[p]->SetLineColor(46);
-	  outtxt_badokfit << setw(10) << skcable[0][p] << setw(4) << " "+PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(15) << "    Steep_Curve" << "\n";
+	  outtxt_badfit << setw(10) << skcable[0][p] << setw(4) << " "+PMTtypeNames[ipmttype] << setw(8) << Form("%1.2f", gfourhv[ipmttype]) << setw(8) << Form("%1.2f", geighthv[ipmttype]) << setw(25) << Form("%1.2e(%1.2e)", norm[ipmttype], normerr[ipmttype]) << setw(20) << Form("%1.2f(%1.2f)", beta[ipmttype], betaerr[ipmttype]) << setw(15) << Form("%1.3f", rchi2[ipmttype] ) << setw(15) << Form("%1.2e", fHVsk[p]->GetProb()) << setw(15) << "    Steep_Curve" << "\n";
 	  
 	}
 

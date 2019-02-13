@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
 	    //if (channel == 9983) continue;
             if (comment == "Flat_Curve"|| comment == "Steep_Curve"){
                 badchsk.push_back(channel);
-                std::cout << "Add 1 badch for PMT" << std::endl;
+                //std::cout << "Add 1 badch for PMT" << std::endl;
             }
 	    /*            else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
