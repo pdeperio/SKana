@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
     outtxt_target.open(filename+".txt");
     outtxt_target << "    Cable#" << setw(8) << "     HV1" << setw(8) << "     HV2"  << "\n";
 
-    //TFile *fsyscheck = new TFile(Form("%s/fit_result_80249%s.root",InputDir.Data(),PMTtype.Data()));
+    //TFile *fsyscheck = new TFile(Form("%s/fit_result_off_80249%s.root",InputDir.Data(),PMTtype.Data()));
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
     Double_t skpeakerr[nfile][MAXPM] = {0};
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
     for (Int_t ifile = 0; ifile < nfile; ifile++){
 
-        TString InputFile = Form("%s/fit_result_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
+        TString InputFile = Form("%s/fit_result_off_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
         std::cout << "Reading fit result file: " << InputFile.Data() << endl;
         f[ifile] = new TFile(InputFile,"read");
 	//TTree *systree = (TTree*)(fsyscheck->Get("spe"));
@@ -325,7 +325,7 @@ int main(int argc, char *argv[]) {
     //}
     //fsyscheck->Close();
     //std::cout << "Closed Systematic Err Reference File" << std::endl;
-    filename = outdir+"hvscan_parameter";
+    filename = outdir+"hvscan_parameter_off";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     TFile *fout = new TFile(filename+".root", "recreate");
 	    

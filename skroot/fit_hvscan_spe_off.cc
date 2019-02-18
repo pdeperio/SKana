@@ -577,7 +577,7 @@ int main(int argc, char *argv[]) {// process the arguments
     
     TString infile = Form("%s/spe_individual_%d_C.root", InputDir.Data(), runno);
     f = new TFile(infile,"read");
-    fout = new TFile(outdir+Form("fit_result_%d%s.root",runno, PMTtype.Data()),"recreate");
+    fout = new TFile(outdir+Form("fit_result_off_%d%s.root",runno, PMTtype.Data()),"recreate");
     //fout->cd();
     
     cout << "Opening: " << infile.Data() << endl;
@@ -619,20 +619,20 @@ int main(int argc, char *argv[]) {// process the arguments
         if (AnalyzeWhat == hk && iPMTtype != hk) continue;
 	else if (AnalyzeWhat == sk && iPMTtype != sk) continue;
 	
-        h_on[iPMT] = (TH1D*)f->Get(Form("h_spe_on_%d",iPMT+1));
+        //h_on[iPMT] = (TH1D*)f->Get(Form("h_spe_on_%d",iPMT+1));
         h_off[iPMT] = (TH1D*)f->Get(Form("h_spe_off_%d",iPMT+1));
         
-        h_on[iPMT]->Sumw2();
+        //h_on[iPMT]->Sumw2();
         h_off[iPMT]->Sumw2();
         
-        h_on[iPMT]->Add(h_off[iPMT],-1);
+        //h_on[iPMT]->Add(h_off[iPMT],-1);
         
-        h_on[iPMT]->SetTitle(Form("PMT_%d",iPMT+1));
-        h_on[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
-        h_on[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
+        h_off[iPMT]->SetTitle(Form("PMT_%d",iPMT+1));
+        h_off[iPMT]->SetName(Form("h_spe_onoff_%d", iPMT+1));
+        h_off[iPMT]->GetXaxis()->SetTitle("Charge [pC]");
         
-        h_on[iPMT]->GetXaxis()->SetRangeUser(-3,15);
-        h_on[iPMT]->Draw();
+        h_off[iPMT]->GetXaxis()->SetRangeUser(-3,15);
+        h_off[iPMT]->Draw();
 	
         // Check for dead PMTs
         if (h_on[iPMT]->Integral() < 20){
@@ -654,8 +654,8 @@ int main(int argc, char *argv[]) {// process the arguments
 	
 	c1->Update();
 	fout->cd();
-	h_on[iPMT]->Write();
-        //h_off[iPMT]->Write();        
+	//h_on[iPMT]->Write();
+        h_off[iPMT]->Write();        
 	// Manual peak shifting in to fix strange cases
 
 	// For HK
