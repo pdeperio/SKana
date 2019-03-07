@@ -664,7 +664,7 @@ int main(int argc, char *argv[]) {// process the arguments
 	  Double_t FWHMlow  = peak- fge->GetX(fge->Eval(peak)*0.5, 0, peak);
 	  Double_t FWHMhigh = fge->GetX(fge->Eval(peak)*0.5, peak, 12) - peak;
 	  sigma = (FWHMlow+FWHMhigh)/(2.*TMath::Sqrt(TMath::Log(2)*2));
-	  peakerr = sigma * 1e-4;
+	  peakerr = sigma * 1e-4<0.055?sigma * 1e-4 : 0.055;
 	}
 
 	// For SK

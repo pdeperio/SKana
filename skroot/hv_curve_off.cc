@@ -168,31 +168,31 @@ int main(int argc, char *argv[]) {
     TString filename = outdir+"badcables";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badcables;
-    outtxt_badcables.open(filename+".txt");
+    outtxt_badcables.open(filename+"_off.txt");
     outtxt_badcables << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
 
     filename = outdir+"badfittings";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badfit;
-    outtxt_badfit.open(filename+".txt");
+    outtxt_badfit.open(filename+"_off.txt");
     outtxt_badfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(12) << " LHV [V]" << setw(12) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
     
     filename = outdir+"badokfitting";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badokfit;
-    outtxt_badokfit.open(filename+".txt");
+    outtxt_badokfit.open(filename+"_off.txt");
     outtxt_badokfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
 
     filename = outdir+"deadchannels";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_dead;
-    outtxt_dead.open(filename+".txt");
+    outtxt_dead.open(filename+"_off.txt");
     outtxt_dead << setw(10) << "   Channel" << setw(6) << "   PMT"<< "\n";
 
     filename = outdir+"targethv";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_target;
-    outtxt_target.open(filename+".txt");
+    outtxt_target.open(filename+"_off.txt");
     outtxt_target << "    Cable#" << setw(8) << "     HV1" << setw(8) << "     HV2"  << "\n";
 
     //TFile *fsyscheck = new TFile(Form("%s/fit_result_off_80249%s.root",InputDir.Data(),PMTtype.Data()));
@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
       tr[ipmttype]->Branch("NormErr", &normerr[ipmttype], "normerr/D");
       tr[ipmttype]->Branch("IndexErr", &betaerr[ipmttype], "betaerr/D");
       //trsk->Branch("OffsetErr", &offseterr[ipmttype], "offseterr/D");
-      tr[ipmttype]->Branch("Distance", &dist[ipmttype], "dist/I");
+      tr[ipmttype]->Branch("Distance", &dist[ipmttype], "dist/D");
     }
     
     TGraphErrors *ghv_sk[MAXPM] = {0};
@@ -475,13 +475,13 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    //Double_t targetQ = TMath::Log(2.6436); // 1.65e7 gain
-    Double_t targetQ = TMath::Log(5.2872); // 3.3e7 gain
+    Double_t targetQ = TMath::Log(2.6436); // 1.65e7 gain
+    //Double_t targetQ = TMath::Log(5.2872); // 3.3e7 gain
     // 1.8e7/(1e-12/1.60217657e-19) = 2.884
     //Double_t targetQ = TMath::Log(4.8065); // 3e7 gain
-    Double_t targetQHPK = TMath::Log(4.4861); // 2.8e7 gain
+    //Double_t targetQHPK = TMath::Log(4.4861); // 2.8e7 gain
     //Double_t targetQHPK = TMath::Log(4.0054); // 2.5e7 gain
-    //Double_t targetQHPK = TMath::Log(2.243); // 1.4e7 gain
+    Double_t targetQHPK = TMath::Log(2.243); // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
     TString fitOpts = "CSMRE";
@@ -627,7 +627,7 @@ int main(int argc, char *argv[]) {
 	fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
 	fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
 	//fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-	dist[ipmttype] = sqrt(pow((PMTinfo[p][2]-100*xball),2)+pow((PMTinfo[p][3]-100*yball),2)+pow((PMTinfo[p][4]-100*zball),2));
+	dist[ipmttype] = sqrt(pow(((double)PMTinfo[p][2]-xball),2.)+pow(((double)PMTinfo[p][3]-yball),2.)+pow(((double)PMTinfo[p][4]-10*zball),2.));
 	
 	geighthv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQ));
 	gfourhv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQHPK));
@@ -713,7 +713,7 @@ int main(int argc, char *argv[]) {
       
     }
     
-    TString CanvasName = outdir+"SPE_HV";
+    TString CanvasName = outdir+"SPE_HV_off";
     if (AnalyzeWhat==hk) CanvasName += "_HK";
     else if (AnalyzeWhat==sk) CanvasName += "_SK";
     if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);
@@ -732,7 +732,7 @@ int main(int argc, char *argv[]) {
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
     
-    CanvasName = outdir+"HV_Curves";
+    CanvasName = outdir+"HV_Curves_off";
     if (AnalyzeWhat==hk) CanvasName += "_HK";
     else if (AnalyzeWhat==sk) CanvasName += "_SK";
     if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);

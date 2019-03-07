@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
       tr[ipmttype]->Branch("NormErr", &normerr[ipmttype], "normerr/D");
       tr[ipmttype]->Branch("IndexErr", &betaerr[ipmttype], "betaerr/D");
       //trsk->Branch("OffsetErr", &offseterr[ipmttype], "offseterr/D");
-      tr[ipmttype]->Branch("Distance", &dist[ipmttype], "dist/I");
+      tr[ipmttype]->Branch("Distance", &dist[ipmttype], "dist/D");
     }
     
     TGraphErrors *ghv_sk[MAXPM] = {0};
@@ -475,13 +475,13 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    //Double_t targetQ = TMath::Log(2.6436); // 1.65e7 gain
-    Double_t targetQ = TMath::Log(5.2872); // 3.3e7 gain
+    Double_t targetQ = TMath::Log(2.6436); // 1.65e7 gain
+    //Double_t targetQ = TMath::Log(5.2872); // 3.3e7 gain
     // 1.8e7/(1e-12/1.60217657e-19) = 2.884
     //Double_t targetQ = TMath::Log(4.8065); // 3e7 gain
-    Double_t targetQHPK = TMath::Log(4.4861); // 2.8e7 gain
+    //Double_t targetQHPK = TMath::Log(4.4861); // 2.8e7 gain
     //Double_t targetQHPK = TMath::Log(4.0054); // 2.5e7 gain
-    //Double_t targetQHPK = TMath::Log(2.243); // 1.4e7 gain
+    Double_t targetQHPK = TMath::Log(2.243); // 1.4e7 gain
     //1.4e7/(1e-12/1.60217657e-19) = 2.243
     
     TString fitOpts = "CSMRE";
@@ -627,7 +627,7 @@ int main(int argc, char *argv[]) {
 	fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
 	fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
 	//fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-	dist[ipmttype] = sqrt(pow((PMTinfo[p][2]-100*xball),2)+pow((PMTinfo[p][3]-100*yball),2)+pow((PMTinfo[p][4]-100*zball),2));
+	dist[ipmttype] = sqrt(pow(((double)PMTinfo[p][2]-xball),2.)+pow(((double)PMTinfo[p][3]-yball),2.)+pow(((double)PMTinfo[p][4]-zball),2.));
 	
 	geighthv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQ));
 	gfourhv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQHPK));
