@@ -168,34 +168,34 @@ int main(int argc, char *argv[]) {
     TString filename = outdir+"badcables";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badcables;
-    outtxt_badcables.open(filename+".txt");
+    outtxt_badcables.open(filename+"_off.txt");
     outtxt_badcables << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(10) << "    HV [V]" << setw(10) << "  Shift[V]" << setw(10) << " Peak [pC]" << setw(10) << "      Qisk" << "\n";
 
     filename = outdir+"badfittings";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badfit;
-    outtxt_badfit.open(filename+".txt");
+    outtxt_badfit.open(filename+"_off.txt");
     outtxt_badfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(12) << " LHV [V]" << setw(12) << " HHV [V]" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << setw(15) << "      Chi2" << setw(15) << "    Prob" << setw(25) << "                  Comment" << "\n";
     
     filename = outdir+"badokfitting";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_badokfit;
-    outtxt_badokfit.open(filename+".txt");
+    outtxt_badokfit.open(filename+"_off.txt");
     outtxt_badokfit << setw(10) << "    Cable#" << setw(4) << " PMT" << setw(15) << "    Chi2"  << setw(15) << "    Prob" << setw(25) << "    Norm Factor" << setw(20) << "     Index" << "\n";
 
     filename = outdir+"deadchannels";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_dead;
-    outtxt_dead.open(filename+".txt");
+    outtxt_dead.open(filename+"_off.txt");
     outtxt_dead << setw(10) << "   Channel" << setw(6) << "   PMT"<< "\n";
 
     filename = outdir+"targethv";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     ofstream outtxt_target;
-    outtxt_target.open(filename+".txt");
+    outtxt_target.open(filename+"_off.txt");
     outtxt_target << "    Cable#" << setw(8) << "     HV1" << setw(8) << "     HV2"  << "\n";
 
-    //TFile *fsyscheck = new TFile(Form("%s/fit_result_80249%s.root",InputDir.Data(),PMTtype.Data()));
+    //TFile *fsyscheck = new TFile(Form("%s/fit_result_off_80249%s.root",InputDir.Data(),PMTtype.Data()));
     TFile *f[nfile];
     Double_t skpeak[nfile][MAXPM] = {0};
     Double_t skpeakerr[nfile][MAXPM] = {0};
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
     for (Int_t ifile = 0; ifile < nfile; ifile++){
 
-        TString InputFile = Form("%s/fit_result_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
+        TString InputFile = Form("%s/fit_result_off_%d%s.root",InputDir.Data(),runno[ifile],PMTtype.Data());
         std::cout << "Reading fit result file: " << InputFile.Data() << endl;
         f[ifile] = new TFile(InputFile,"read");
 	//TTree *systree = (TTree*)(fsyscheck->Get("spe"));
@@ -325,7 +325,7 @@ int main(int argc, char *argv[]) {
     //}
     //fsyscheck->Close();
     //std::cout << "Closed Systematic Err Reference File" << std::endl;
-    filename = outdir+"hvscan_parameter";
+    filename = outdir+"hvscan_parameter_off";
     if (PlotRange[1] != MAXRANGE) filename += Form("_%05d", PlotRange[0]);
     TFile *fout = new TFile(filename+".root", "recreate");
 	    
@@ -627,7 +627,7 @@ int main(int argc, char *argv[]) {
 	fHVinvskerr[p]->SetParameter(0, fHVsk[p]->GetParameter(0)-fHVsk[p]->GetParError(0));
 	fHVinvskerr[p]->SetParameter(1, fHVsk[p]->GetParameter(1)-fHVsk[p]->GetParError(1));
 	//fHVinvsk[p]->SetParameter(2, fHVsk[p]->GetParameter(2));
-	dist[ipmttype] = sqrt(pow(((double)PMTinfo[p][2]-xball),2.)+pow(((double)PMTinfo[p][3]-yball),2.)+pow(((double)PMTinfo[p][4]-zball),2.));
+	dist[ipmttype] = sqrt(pow(((double)PMTinfo[p][2]-xball),2.)+pow(((double)PMTinfo[p][3]-yball),2.)+pow(((double)PMTinfo[p][4]-10*zball),2.));
 	
 	geighthv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQ));
 	gfourhv[ipmttype] = TMath::Exp(fHVinvsk[p]->Eval(targetQHPK));
@@ -713,7 +713,7 @@ int main(int argc, char *argv[]) {
       
     }
     
-    TString CanvasName = outdir+"SPE_HV";
+    TString CanvasName = outdir+"SPE_HV_off";
     if (AnalyzeWhat==hk) CanvasName += "_HK";
     else if (AnalyzeWhat==sk) CanvasName += "_SK";
     if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);
@@ -732,7 +732,7 @@ int main(int argc, char *argv[]) {
     trun->SetBorderSize(0);
     trun->SetTextColor(kRed);
     
-    CanvasName = outdir+"HV_Curves";
+    CanvasName = outdir+"HV_Curves_off";
     if (AnalyzeWhat==hk) CanvasName += "_HK";
     else if (AnalyzeWhat==sk) CanvasName += "_SK";
     if (PlotRange[1] != MAXRANGE) CanvasName += Form("_%05d", PlotRange[0]);

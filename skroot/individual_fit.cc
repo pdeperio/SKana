@@ -148,8 +148,8 @@ int main(int argc, char *argv[]) {
     
     
     std::vector<Int_t> badchsk;
-    std::vector<Int_t> largechsk;
-    std::vector<Int_t> zerochsk;
+    //std::vector<Int_t> largechsk;
+    //std::vector<Int_t> overchsk;
     std::vector<Int_t> okaych;
     
     TTree *tr[nPMTtypes] = {0};
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
             intxt1 >> channel >> pmt >> lhv >> hhv >> norm >> beta >> chi2 >> prob >> comment;
             
-            //std::cout << channel << " " << pmt << std::endl;
+            std::cout << channel << " " << pmt << std::endl;
             okaych.erase(std::remove(okaych.begin(), okaych.end(), channel), okaych.end());
 	    
 	    int ipmttype;
@@ -211,30 +211,33 @@ int main(int argc, char *argv[]) {
 	    
 	    if ((lhv == "-nan") || (hhv == "-nan") || (chi2 == "inf"))
 	      outxt << setw(8) << channel << setw(6) << pmt.c_str() << setw(5) << lhv.c_str() << setw(5) << hhv.c_str() << setw(8) << norm.c_str() << setw(8) << beta.c_str() << setw(8) << chi2.c_str() << setw(8) << prob.c_str() << "\n";
-	    
-            if (comment == "Failed_to_find_minimum"){
+
+	    //if (channel == 9983) continue;
+            if (comment == "Flat_Curve"|| comment == "Steep_Curve"){
                 badchsk.push_back(channel);
-                //std::cout << "Add 1 badch for SK PMT" << std::endl;
-            }
-            else if (comment == "Chi2_>>_1"){
+                //std::cout << "Add 1 badch for PMT" << std::endl;
+           }
+	    /*            else if (comment == "Chi2_>>_1"){
                 largechsk.push_back(channel);
                 //std::cout << "Add 1 badch for SK PMT" << std::endl;
-            }
-            else if (comment == "Chi2_=_0"){
-                zerochsk.push_back(channel);
+		}*/
+            //else if (comment == "Steep_Curve"){
+	    //overchsk.push_back(channel);
 		//std::cout << "Add 1 badch for SK PMT" << std::endl;
-	    }
+	    //}
         }
         intxt1.close();
     }
+
+    
     outxt.close();
     
     //intxt1.close();
     Int_t badchsksize = badchsk.size();
-    Int_t largechsksize = largechsk.size();
-    Int_t zerochsksize = zerochsk.size();
+    //Int_t largechsksize = largechsk.size();
+    //Int_t overchsksize = overchsk.size();
     Int_t okaychsize = okaych.size();
-    cout << "In total bad channel: " << badchsksize << " okay channel: " << okaychsize << " largechi2 channel: " << largechsksize << endl << endl;
+    cout << "In total small channel: " << badchsksize << " okay channel: " << okaychsize << endl << endl;
     
     TCanvas * c1 = new TCanvas("c1","c1",250*((nfile+1)/2),500);
     c1->Divide((nfile+1)/2,2);
@@ -259,11 +262,11 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[badchsk[isk]-1]==6) ipmttype = hkpmt;
       
 	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", badchsk[isk]));
-        TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", badchsk[isk]));
+        //TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", badchsk[isk]));
 
         c1->cd(c1divide);
-        gr1sk_orig->Draw("AP");
-        gr1sk->Draw("sameP");
+        //gr1sk_orig->Draw("AP");
+        gr1sk->Draw("AP");
         c1->Update();
 
 	TH1D * hsk1[nfile];
@@ -295,7 +298,7 @@ int main(int argc, char *argv[]) {
     if (PlotRange[0] < badchsksize)
       c1->Print(CanvasName+"]");
     
-    c1->Clear();
+    /*c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
     CanvasName = outdir+"Large_HV_Chi2"+Form("_%05d", PlotRange[0])+".pdf";
@@ -305,7 +308,7 @@ int main(int argc, char *argv[]) {
 
     for (Int_t isk =PlotRange[0]; isk < min(largechsksize, PlotRange[1]); isk++){
 
-        if (largechsk[isk] == 1326 || largechsk[isk] == 2370 || largechsk[isk] == 2740 || largechsk[isk] == 5543 || largechsk[isk] == 6066) continue;
+        if (largechsk[isk] == 739 || largechsk[isk] == 5543) continue;
 
   
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
@@ -320,12 +323,12 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[largechsk[isk]-1]==6) ipmttype = hkpmt;
       
 	TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", largechsk[isk]));
-	TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", largechsk[isk]));
+	//TGraphErrors * gr1sk_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", largechsk[isk]));
 
 
         c1->cd(c1divide);
-        gr1sk_orig->Draw("AP");
-        gr1sk->Draw("sameP");
+        //gr1sk_orig->Draw("AP");
+        gr1sk->Draw("AP");
         c1->Update();
 	
         TH1D * hsk1[nfile];
@@ -333,7 +336,7 @@ int main(int argc, char *argv[]) {
         for (Int_t i = 0; i < nfile; i++){
 	  
             c2divide = c1divide + i + 1;
-
+	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",largechsk[isk]))) continue;
 	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
@@ -354,15 +357,15 @@ int main(int argc, char *argv[]) {
     }
     c1->Modified();
     if (PlotRange[0] < largechsksize)
-      c1->Print(CanvasName+"]");
+    c1->Print(CanvasName+"]");
     
-    /*c1->Clear();
+    c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
-    CanvasName = outdir+"Zero_HV_Chi2_"+PMTtypeName+".pdf";
+    CanvasName = outdir+"Over_fit_HV_Chi2"+Form("_%05d", PlotRange[0])+".pdf";   
     c1->Print(CanvasName+"[");
 
-    for (Int_t isk =0; isk < zerochsksize; isk++){
+    for (Int_t isk =0; isk < overchsksize; isk++){
 
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
@@ -370,11 +373,11 @@ int main(int argc, char *argv[]) {
 	//std:: cout << "c1divide: " << c1divide << " isk: " << isk+1 << std::endl;
 
       int ipmttype = -1;
-      if (PMTinfo[zerochsk[isk]-1]==3) ipmttype = sk2pmt;
-      else if (PMTinfo[zerochsk[isk]-1]==4) ipmttype = sk3pmt;
-      else if (PMTinfo[zerochsk[isk]-1]==6) ipmttype = hkpmt;
+      if (PMTinfo[overchsk[isk]-1]==3) ipmttype = sk2pmt;
+      else if (PMTinfo[overchsk[isk]-1]==4) ipmttype = sk3pmt;
+      else if (PMTinfo[overchsk[isk]-1]==6) ipmttype = hkpmt;
       
-      TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", zerochsk[isk]));
+      TGraphErrors * gr1sk = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", overchsk[isk]));
 	
         c1->cd(c1divide);
         gr1sk->Draw("AP");
@@ -386,7 +389,7 @@ int main(int argc, char *argv[]) {
 	  
             c2divide = c1divide + i + 1;
 
-	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",largechsk[isk]));
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",overchsk[isk]));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);
@@ -400,7 +403,7 @@ int main(int argc, char *argv[]) {
                 
             }
         }
-        //if (isk == zerochsksize - 1 && c2divide != 0){
+        //if (isk == overchsksize - 1 && c2divide != 0){
             //c1->Print(CanvasName);
         //}
         //c1count++;
@@ -435,11 +438,11 @@ int main(int argc, char *argv[]) {
       else if (PMTinfo[okchannel-1]==6) ipmttype = hkpmt;
       
       TGraphErrors *gr1ok = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d", okchannel));
-      TGraphErrors *gr1ok_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", okchannel));
+      //TGraphErrors *gr1ok_orig = (TGraphErrors*)fin1->Get(PMTtypeNames[ipmttype]+Form("_PMT_HVscan_Cable_%06d_orig", okchannel));
 
 	c1->cd(c1divide);
-        gr1ok_orig->Draw("AP");
-        gr1ok->Draw("sameP");
+        //gr1ok_orig->Draw("AP");
+        gr1ok->Draw("AP");
         c1->Update();
 
 	TH1D * hsk1[nfile];
@@ -447,7 +450,8 @@ int main(int argc, char *argv[]) {
 	for (Int_t i = 0; i < nfile; i++){
 	  
             c2divide = c1divide + i + 1;
-            hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
+	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",okaych[iok]))) continue;
+	    hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",okchannel));
 
 	    //std:: cout << "c2divide: " << c2divide << std::endl;
             c1->cd(c2divide);

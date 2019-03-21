@@ -13,20 +13,28 @@ PMT_TYPE=$1
 
 WORKDIR=${PWD}
 
-RUNS=(80249 80254 80263 80265 80269 80275 80278 80282)
-HV_SET=(0    +75   +50   +25    0    -25   -50   -75 )
+#RUNS=(80249 80254 80263 80265 80269 80275 80278 80282)
+#HV_SET=(0    +75   +50   +25    0    -25   -50   -75 )
 
-CONNECTION_DIR=/disk02/usr6/pdeperio/precalib_2018
+RUNS=(80461 80463 80465 80467 80469 80471 80474 80476 80478 80480)
+HV_SET=(0     0     0     1     1     1     1     1     1     1  )
+
+#RUNS=(80329)
+#HV_SET=(0)
+#CONNECTION_DIR=/disk02/usr6/pdeperio/precalib_2018
+CONNECTION_DIR=/disk02/usr6/seanxia/SKana/skroot
+
 
 ihv=0
 for hv in ${HV_SET[@]}; do
 
     if [ $hv == 0 ]; then
 	CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5.dat
-        ln -sf ${CONNECTION_SET}
+       	#CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5-new.dat
+	ln -sf ${CONNECTION_SET}
 
     else
-	CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5${hv}.dat
+	CONNECTION_SET[$ihv]=${CONNECTION_DIR}/connection.super.sk-5-new.dat
     fi
 
     ihv=$(($ihv+1))
