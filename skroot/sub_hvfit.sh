@@ -2,10 +2,10 @@
 ################################################
 #
 # Usage:
-#         ./sub_plot.sh      # For all PMTs
+#         ./sub_hvfit.sh      # For all PMTs
 #
-#         ./sub_plot.sh _sk  # For SK PMTs only
-#         ./sub_plot.sh _hk  # For HK PMTs only
+#         ./sub_hvfit.sh _sk  # For sK PMTs only
+#         ./sub_hvfit.sh _hk  # For HK PMTs only
 #
 ################################################
 
@@ -17,17 +17,17 @@ fi
 
 WORKDIR=${PWD}
 
-PLOTS_PER_JOB=100
-MAX_PLOTS=11200
+PLOTS_PER_JOB=1000
+MAX_PLOTS=12000
 NJOBS=$(($MAX_PLOTS / $PLOTS_PER_JOB))
 
 BASEDIR=${WORKDIR}/hv_ana${PMT_TYPE}
 mkdir -p ${BASEDIR}
 
-SCRIPT_DIR=${BASEDIR}/script_plot
+SCRIPT_DIR=${BASEDIR}/script_hvfit
 mkdir -p ${SCRIPT_DIR}
 
-LOG_DIR=${BASEDIR}/log_plot
+LOG_DIR=${BASEDIR}/log_hvfit
 mkdir -p ${LOG_DIR}
 
 for (( ijob=0; ijob<$NJOBS; ijob++ )); do
@@ -41,7 +41,7 @@ hostname
 
 cd ${WORKDIR}
 
-./individual_fit $PMT_TYPE_ARG -l $(($ijob * ${PLOTS_PER_JOB})) -u $(($(($ijob+1)) * ${PLOTS_PER_JOB}))
+./hv_curve $PMT_TYPE_ARG -l $(($ijob * ${PLOTS_PER_JOB})) -u $(($(($ijob+1)) * ${PLOTS_PER_JOB}))
 
 EOF
 
