@@ -236,8 +236,7 @@ TF1*/*std::vector<Double_t>*/ FitSK(TH1D* h, Int_t rebin = 2, Float_t hv = 0, Fl
     TF1 *func2peak = new TF1("func2peak", "gaus(0)+0.5*expo(5)*((TMath::Erf(((x-[3])/[4])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
     TF1 *func1peak = new TF1("fgaus1","gaus", fit_range[0], fit_range[1]);
     TF1 *funcexbs = new TF1("fexbs","0.5*expo(5)*((TMath::Erf(((x-[3])/[4])))+(1-TMath::Erf((x-[1])/[2]))-1)", fit_range[0], fit_range[1]);
-    TF1 *funcskgaus = new TF1("funcskgaus","gaus(0)*(1+[3]*(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);
-    
+    TF1 *funcskgaus = new TF1("funcskgaus","gaus(0)*(1+[3]*(TMath::Erf(((x-[1])/[2]))))", fit_range[0], fit_range[1]);    
     
     func1pe->SetLineColor(2);
     func1pe_new->SetLineColor(46);

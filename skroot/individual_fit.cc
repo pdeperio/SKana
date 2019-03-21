@@ -67,6 +67,8 @@ int main(int argc, char *argv[]) {
     gStyle->SetStatY(0.9);
     gStyle->SetStatW(0.18);
     gStyle->SetStatH(0.1);
+    gStyle->SetLineWidth(1);
+    gStyle->SetMarkerSize(0.5);
     //TCanvas * c1 = new TCanvas("c1","c1",1250,1250);
     //TCanvas * c2 = new TCanvas("c2","c2",1000,1250);
     //c1->Divide(5,5);
@@ -276,8 +278,7 @@ int main(int argc, char *argv[]) {
 	    c2divide = c1divide + i + 1;
 	    if (!fitfin[i]->GetListOfKeys()->Contains(Form("h_spe_onoff_%d",badchsk[isk]))) continue;
             hsk1[i] = (TH1D*)fitfin[i]->Get(Form("h_spe_onoff_%d",badchsk[isk]));
-
-	    //std:: cout << "c2divide: " << c2divide << std::endl;
+	    std:: cout << "Bad Channel: " << badchsk[isk] << std::endl;
             c1->cd(c2divide);
             hsk1[i]->Draw();
             c1->Update();
@@ -310,7 +311,6 @@ int main(int argc, char *argv[]) {
 
         if (largechsk[isk] == 739 || largechsk[isk] == 5543) continue;
 
-  
         Int_t c1divide = isk * (nfile+1) % 8 + 1;
         Int_t c2divide = 0;
 
@@ -411,7 +411,7 @@ int main(int argc, char *argv[]) {
     c1->Modified();
     c1->Print(CanvasName+"]");*/
     
-    c1->Clear();
+    /*c1->Clear();
     c1->Divide((nfile+1)/2,2);
 
     CanvasName = outdir+"Okay_fit"+Form("_%05d", PlotRange[0])+".pdf";
@@ -472,8 +472,8 @@ int main(int argc, char *argv[]) {
     }
     c1->Modified();
     if (PlotRange[0] < okaychsize)
-      c1->Print(CanvasName+"]");
-    
+    c1->Print(CanvasName+"]");
+    */    
     fin1->Close();
 
     for (Int_t i = 0; i < nfile; i++){
