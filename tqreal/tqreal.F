@@ -20,6 +20,8 @@
       character*200 in_branches_to_skip(nintoskip)
       character*200 out_branches_to_skip(nouttoskip)
 
+      character SK_GEOMETRY_TMP
+
       data in_branches_to_skip /'SPACERS','QBEESTATUS','DBSTATUS','MISMATCHEDHITS',
      $     'ATMPD','UPMU'/
       data out_branches_to_skip /'TQLIST','ODTQLIST','SOFTWARETRG','EVENTTRAILER',
@@ -27,13 +29,20 @@
 
 c*** check arguments
       narg = iargc()
-      if (narg .lt. 2) then
-         print *, 'Usage: tqreal output_root input_root'
+      if (narg .lt. 3) then
+         print *, 'Usage: tqreal output_root input_root SK_GEOMETRY'
          call exit(1)
       endif
 
+c*** set SK_GEOMETRY
+      call getarg(3,SK_GEOMETRY_TMP)
+      read(SK_GEOMETRY_TMP, *) SK_GEOMETRY
+      print *, 'SK_GEOMETRY=', SK_GEOMETRY, SK_GEOMETRY_TMP
+
 c***  set table version
-      call skcaltabfile('./table_version.99.00')
+      if (SK_GEOMETRY.eq.5) then
+         call skcaltabfile('./table_version.99.00')
+      endif
 
 c*** input file (SKROOT)
 c      fname_in='rfm_run062267.000001.root'
@@ -60,9 +69,6 @@ c*** skip any unneeded branches; this must be called before skroot_init
 c*** initilalize skroot files
       call skroot_init(lun)
 
-c*** set SK_GEOMETRY
-      SK_GEOMETRY = 5
-      
 c*** set options
       call skoptn('31')
 
