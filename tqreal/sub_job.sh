@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# pc2pe SK3+4 datasets
+# pc2pe SK4 datasets
 # https://docs.google.com/spreadsheets/d/1k3jO6WDPLnsYxZszKDaTvJiOfG688_lleVT4MxfVDJc/edit?usp=sharing
-RUNS=(34202 34204 61889 61892 61893 61894 61895)
+RUNS=(61889 61892 61893 61894 61895)
+SK_GEOMETRY=4
 
 WORKDIR=${PWD}
 
@@ -43,7 +44,7 @@ hostname
 
 cd ${WORKDIR}
 
-./tqreal ${OUTDIR}/$ofile ${filepath} 
+./tqreal ${OUTDIR}/$ofile ${filepath} ${SK_GEOMETRY}
 
 EOF
 

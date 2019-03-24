@@ -13,7 +13,7 @@ include $(SKOFL_ROOT)/config.gmk
 
 LOCAL_INC	=
 
-LOCAL_LIBS	= sktqconv_qb.o
+LOCAL_LIBS	= sktqconv_qb.o SKRootRead.o
 
 FCFLAGS += -fno-range-check
 
@@ -21,7 +21,7 @@ FCFLAGS += -fno-range-check
 #  Objects
 #
 
-OBJS   = sktqconv_qb.o llaser_qb #slaser_qb llaser_led tcheck
+OBJS   = SKRootRead.o llaser_qb_c sktqconv_qb.o llaser_qb #slaser_qb llaser_led tcheck
 
 all: $(OBJS) 
 
