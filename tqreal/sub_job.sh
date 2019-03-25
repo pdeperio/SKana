@@ -5,9 +5,13 @@
 RUNS=(61889 61892 61893 61894 61895)
 SK_GEOMETRY=4
 
+# SK5 datasets
+RUNS=(80871)
+SK_GEOMETRY=4  # Setting to 5 seems to just translate all the times negative, so would need to modify downstream analysis code
+
 WORKDIR=${PWD}
 
-datadir="/disk01/data?/sk?/tst"
+datadir="/disk0?/data?/sk?/tst"
 
 BASEDIR=output
 

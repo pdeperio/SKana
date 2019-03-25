@@ -176,12 +176,13 @@ int main(int argc, char *argv[])
   TH1D *hhitmap = new TH1D ("hhitmap","HITMAP",11146, 0.5, 11146.5);
   TH1D *htisk = new TH1D ("htisk","TISK",3000, 0, 3000);
   TH1D *hqisk = new TH1D("hqisk", "QISK", 500, -5, 20);
+  TH1D *hnqisk = new TH1D("hnqisk", "Nqisk;Nqisk", 1200, 0, 12000);
   
   TH1D *ttof = new TH1D ("ttof","Hit Times;T-ToF [ns]",3000, 0., 3000.);
   TH1D *nhitsub = new TH1D ("nhitsub"," ",100, 0., 25000.);
   TH1D *htdiff = new TH1D ("htdiff", "TIMEDiff", 200, 0, 2);
 
-  TH1D *hnHitsOnTime = new TH1D ("hnHitsOnTime", "Number of On-time Hits;nHits", 500, 0, 12000);
+  TH1D *hnHitsOnTime = new TH1D ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
   TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 0, 1000000);
 
 
@@ -276,6 +277,7 @@ int main(int argc, char *argv[])
       }
     }
 
+    hnqisk->Fill(rootread->nqisk);
     hnHitsOnTime->Fill(nHitsOnTime);
     hQOnTime->Fill(QOnTime);
     if (nHitsOnTime) nOnTime++;

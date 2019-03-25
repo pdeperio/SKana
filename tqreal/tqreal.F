@@ -37,7 +37,7 @@ c*** check arguments
 c*** set SK_GEOMETRY
       call getarg(3,SK_GEOMETRY_TMP)
       read(SK_GEOMETRY_TMP, *) SK_GEOMETRY
-      print *, 'SK_GEOMETRY=', SK_GEOMETRY, SK_GEOMETRY_TMP
+      print *, 'SK_GEOMETRY=', SK_GEOMETRY
 
 c***  set table version
       if (SK_GEOMETRY.eq.5) then
