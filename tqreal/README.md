@@ -1,6 +1,6 @@
 # TQREAL: Conversion from RFM to ROOT
 
-## Compilation
+## Usage
 
 1. Checkout repository:
 ```
