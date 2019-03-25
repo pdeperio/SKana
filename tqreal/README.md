@@ -1,4 +1,4 @@
-# TQREAL: Conversion from 
+# TQREAL: Conversion from RFM to ROOT
 
 ## Compilation
 
