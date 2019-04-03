@@ -1,1 +1,0 @@
-/usr/local/sklib_gcc4.8.5/skofl-trunk/env.sh
