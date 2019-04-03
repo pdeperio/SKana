@@ -30,9 +30,6 @@ float zball = 0.;
 //#define CWATER 22.305986  // From sample_snld.cc
 #define CWATER 21.6438  // From llaser_qb.F
 
-
-float ontimemin = 1130, ontimemax = 1250, offtimemin = 850., offtimemax = 1100;
-
 int BasicReduction(Header *HEAD){
 
   //
@@ -115,8 +112,8 @@ int BasicReduction(Header *HEAD){
 
 int main(int argc, char *argv[])
 {
-  if(argc < 3) {
-    printf("Usage: sample input.root output.root\n");
+  if(argc < 4) {
+    printf("Usage: sample input.root output.root SK_GEOMETRY\n");
     exit(0);
   }
 
@@ -136,6 +133,23 @@ int main(int argc, char *argv[])
   
   TString OutputFile = argv[2];
 
+  int SK_GEOMETRY = atoi(argv[3]);
+
+  float ontimemin, ontimemax, offtimemin, offtimemax;
+  if (SK_GEOMETRY==4) {
+    ontimemin = 1180;
+    ontimemax = 1400;
+    offtimemin = 400;
+    offtimemax = 800;
+  } else if (SK_GEOMETRY==5) {
+    ontimemin = 1000;
+    ontimemax = 1300;
+    offtimemin = 410;
+    offtimemax = 900;
+  } else {
+    cerr << "SK_GEOMETRY=" << SK_GEOMETRY << " not implemented" <<endl;
+    exit (-1);
+  }
 
   // Root initialize
   mgr->Initialize();
@@ -172,22 +186,23 @@ int main(int argc, char *argv[])
 
   TFile *fout = new TFile(OutputFile,"RECREATE");
   
+  const int nCables = 11147;
+
   // histogram
   TH1D *hhitmap = new TH1D ("hhitmap","HITMAP",11146, 0.5, 11146.5);
   TH1D *htisk = new TH1D ("htisk","TISK",3000, 0, 3000);
   TH1D *hqisk = new TH1D("hqisk", "QISK", 500, -5, 20);
   TH1D *hnqisk = new TH1D("hnqisk", "Nqisk;Nqisk", 1200, 0, 12000);
   
-  TH1D *ttof = new TH1D ("ttof","Hit Times;T-ToF [ns]",3000, 0., 3000.);
-  TH1D *nhitsub = new TH1D ("nhitsub"," ",100, 0., 25000.);
-  TH1D *htdiff = new TH1D ("htdiff", "TIMEDiff", 200, 0, 2);
+  TH1D *ttof = new TH1D ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
 
   TH1D *hnHitsOnTime = new TH1D ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
-  TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 0, 1000000);
+  TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 0, 1100000);
 
-
-  // initialize of the previous event clock
-  int prev_nt48sk[3] = {0,0,0};
+  TH1D *h_nhit_ton = new TH1D("h_nhit_ton", "Per Channel Event Rate (On-time);Channel;Events", nCables, 0, nCables);
+  TH1D *h_nhit_toff = new TH1D("h_nhit_toff", "Per Channel Event Rate (Off-time);Channel;Events", nCables, 0, nCables);
+  TH1D *h_qisk_ton = new TH1D("h_qisk_ton", "Per Channel Charge (On-time);Channel;Total Charge (pe)", nCables, 0, nCables);
+  TH1D *h_qisk_toff = new TH1D("h_qisk_toff", "Per Channel Charge (Off-time);Channel;Total Charge (pe)", nCables, 0, nCables);
 
   // total number of events
   int ntotal = tree->GetEntries();
@@ -195,13 +210,6 @@ int main(int argc, char *argv[])
   // after selection
   int nsel = 0;
   int nOnTime = 0;
-
-  float nHitsAvg = 0;
-  float Qavg = 0;
-
-  // number of hit
-  int nhiton[11147] = {0};
-  int nhitoff[11147] = {0};
 
   int nrunsk;
 
@@ -216,17 +224,6 @@ int main(int argc, char *argv[])
     int ireduc = BasicReduction(HEAD);
     if(ireduc != 0) continue;
 
-    double curclk = (double(HEAD->nt48sk[2]) + double(HEAD->nt48sk[1])*6.5536e4 + double(HEAD->nt48sk[0])*4.294967296e9)*2.0e1;
-    double tdiff = 0.;
-    if(i > 0) {
-      float preclk = (double(prev_nt48sk[2]) + double(prev_nt48sk[1])*6.5536e4 + double(prev_nt48sk[0])*4.294967296e9)*2.0e1;
-      tdiff = (curclk - preclk)/1e6;
-    }
-    htdiff->Fill(tdiff);
-    prev_nt48sk[0] = HEAD->nt48sk[0];
-    prev_nt48sk[1] = HEAD->nt48sk[1];
-    prev_nt48sk[2] = HEAD->nt48sk[2];
-
     int icabbit=0xffff;
     bool hit15012=0;
     for (int j = 0; j < TQREAL->nhits; j++) {
@@ -238,8 +235,6 @@ int main(int argc, char *argv[])
     
     rootread->skread(); // fill hit information
     
-    //if (rootread->nqisk < 200 || rootread->nqisk > 400) continue;  // From sample_snld
-
     //cout << "NEVSK: " << HEAD->nevsk << " NQISK: " << rootread->nqisk << endl;
     nsel++;
 
@@ -249,7 +244,10 @@ int main(int argc, char *argv[])
     for(int j=0; j<rootread->nqisk; j++){
 
       int icab=rootread->ihcab[j]; // cable number
-      if(icab > 11146) cout << " icab: " << icab << endl;
+      if(!icab || icab >= nCables) {
+        cout << "Error: icab = " << icab << endl;
+        exit (-1);
+      }
 
       float xpmt = rootread->xidsk[j]; // PMT position
       float ypmt = rootread->yidsk[j];
@@ -263,21 +261,27 @@ int main(int argc, char *argv[])
       hqisk -> Fill(qisk);
       //cout << "Q: " << qisk << endl;    
       
+      // This shows up in high intensity analysis but not low. Needed?
+      //if (qisk<0) continue;
+
       float distan=sqrt((xball-xpmt)*(xball-xpmt) + (yball-ypmt)*(yball-ypmt) + (zball-zpmt)*(zball-zpmt));
       float tof=rootread->tidsk[j]-distan/CWATER;
       ttof->Fill(tof);
       
       if(tof > ontimemin && tof < ontimemax) {
-	nhiton[icab]++;
+        h_nhit_ton->Fill(icab);
+        h_qisk_ton->Fill(icab, qisk);
+
         nHitsOnTime++;
         QOnTime += qisk;
       }
       if(tof > offtimemin && tof < offtimemax) {
-	nhitoff[icab]++;
+        h_nhit_toff->Fill(icab);
+        h_qisk_toff->Fill(icab, qisk);
       }
     }
 
-    hnqisk->Fill(rootread->nqisk);
+    hnqisk->Fill(rootread->nqisk);  // Integral of this gives "nlaser" in llaser_qb.F
     hnHitsOnTime->Fill(nHitsOnTime);
     hQOnTime->Fill(QOnTime);
     if (nHitsOnTime) nOnTime++;
@@ -285,12 +289,7 @@ int main(int argc, char *argv[])
   }
   
   cout << "Total number of events: " << ntotal << " Selected: " << nsel;
-  cout << "On-time: " << nOnTime << endl;
-  
-  for(int i=1; i<11147;i++){
-    int n = nhiton[i] - nhitoff[i];
-    nhitsub->Fill(n);
-  }
+  cout << ", On-time: " << nOnTime << endl;
   
   fout->Write();
   fout->Close();

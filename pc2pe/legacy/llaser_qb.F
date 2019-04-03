@@ -13,6 +13,9 @@
 *
 *     (Creation Date and Author)
 *       2006.08.11  by T Iida
+*
+*       Copied from: /home/iida/calib/pc2pe/pc2pe_08oct/llaser_qb.F
+*
 ****************************************************************
 
       IMPLICIT NONE

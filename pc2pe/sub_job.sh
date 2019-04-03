@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# pc2pe SK4 datasets
+# pc2pe SK4+5 datasets
 # https://docs.google.com/spreadsheets/d/1k3jO6WDPLnsYxZszKDaTvJiOfG688_lleVT4MxfVDJc/edit?usp=sharing
-RUNS=(61889 61892 61893 61894 61895)
+RUNS=(61889 61892 61893 61894 61895 80871 80873 80875 80877 80884 80885 80886)
 
-RUNS=(80871)
+# SK5
+#RUNS=(80871 80873 80875 80877 80884 80885 80886)
 
 WORKDIR=${PWD}
 
@@ -27,6 +28,13 @@ for run in ${RUNS[@]}; do
     mkdir -p ${OUTDIR}
 
     rundir=$datadir/$run
+    SK_GEOMETRY=4
+
+    if [ $run -ge 80000 ]; then
+        SK_GEOMETRY=5
+        #datadir=/disk01/calib/sk5/
+        #rundir=$datadir/0$run
+    fi
 
     for infile in `ls $rundir`; do
 
@@ -44,7 +52,7 @@ hostname
 
 cd ${WORKDIR}
 
-./llaser_qb_c ${filepath} ${OUTDIR}/$ofile
+./llaser_qb_c ${filepath} ${OUTDIR}/$ofile ${SK_GEOMETRY}
 
 EOF
 
