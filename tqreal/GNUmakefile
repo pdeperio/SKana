@@ -11,7 +11,7 @@ LOCAL_INC	=
 
 LOCAL_LIBS      =
 
-LOCAL_LIBS	= #sktqconv_qb.o
+LOCAL_LIBS	= sktqconv_qb.o
 
 OBJS   = ${LOCAL_LIBS} tqreal tqreal_ls_sk5
 #OBJS = tqreal

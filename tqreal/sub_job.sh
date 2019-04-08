@@ -53,11 +53,11 @@ cd ${WORKDIR}
 
 EOF
 
-        if [ ${SK_GEOMETRY} -eq 4 ]; then
-            echo "./tqreal ${OUTDIR}/$ofile ${filepath} ${SK_GEOMETRY}" >> ${SUBFILE}
-        else
-            echo "./tqreal_ls_sk5 ${OUTDIR}/$ofile ${filepath}" >> ${SUBFILE}
-        fi
+        #if [ ${SK_GEOMETRY} -eq 4 ]; then
+        #    echo "./tqreal ${OUTDIR}/$ofile ${filepath} ${SK_GEOMETRY}" >> ${SUBFILE}
+        #else
+            echo "./tqreal_ls_sk5 ${OUTDIR}/$ofile ${filepath} ${SK_GEOMETRY}" >> ${SUBFILE}
+        #fi
 
 	qsub -q calib -o ${LOGDIR}/$run.$nsub -e ${ERRDIR}/$run.$nsub ${SUBFILE}
 

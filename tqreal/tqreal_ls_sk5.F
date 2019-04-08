@@ -1,4 +1,3 @@
-C     2019/Apr/02: Copied from /home/koshio/sk5/tqreal_ls/tqreal.F
 
       program sample
 
@@ -21,6 +20,8 @@ C     2019/Apr/02: Copied from /home/koshio/sk5/tqreal_ls/tqreal.F
       character*200 in_branches_to_skip(nintoskip)
       character*200 out_branches_to_skip(nouttoskip)
 
+      character SK_GEOMETRY_TMP
+
       data in_branches_to_skip /'SPACERS','QBEESTATUS','DBSTATUS',
      $     'MISMATCHEDHITS','ATMPD','UPMU'/
       data out_branches_to_skip /'SOFTWARETRG','EVENTTRAILER',
@@ -31,13 +32,18 @@ C     2019/Apr/02: Copied from /home/koshio/sk5/tqreal_ls/tqreal.F
 
 c*** check arguments
       narg = iargc()
-      if (narg .lt. 2) then
-         print *, 'Usage: tqreal output_root input_root'
+      if (narg .lt. 3) then
+         print *, 'Usage: tqreal output_root input_root SK_GEOMETRY'
          call exit(1)
       endif
 
+c*** set SK_GEOMETRY
+      call getarg(3,SK_GEOMETRY_TMP)
+      read(SK_GEOMETRY_TMP, *) SK_GEOMETRY
+      print *, 'SK_GEOMETRY=', SK_GEOMETRY
+
 c***  set table version
-ckos      call skcaltabfile('./table_version.99.00')
+      call skcaltabfile('./table_version.99.00')
 
 c*** input file (SKROOT)
 c      fname_in='rfm_run062267.000001.root'
@@ -64,42 +70,44 @@ c*** skip any unneeded branches; this must be called before skroot_init
 c*** initilalize skroot files
       call skroot_init(lun)
 
-c*** set SK_GEOMETRY
-      SK_GEOMETRY = 5
-
 c*** set options
       call skoptn('31,30')
 
  1000 continue
       CALL SKRAWREAD(lun,*1002,*1001,*1000,*1000)
-      CALL SKREAD(-lun,*1002,*1001,*1000,*1000)
 
-      if(idtgsk.ne.16) goto 1000
+      if (SK_GEOMETRY.eq.5) then
 
-      i15001=0
-      i15012=0
-      do i=1,nqiskz
-c         print*,i,icabiz(i),tiskz(i),tbuf_raw(i)
-         if(icabiz(i).eq.15001) then
-c            print*,icabiz(i),itiskz(i),tiskz(i)
-            i15001 = i15001+1
-            it15001 = itiskz(i)
-            t15001 = tiskz(i)-1000.
-         endif
-         if(icabiz(i).eq.15012) i15012 = i15012+1
-      enddo
+         CALL SKREAD(-lun,*1002,*1001,*1000,*1000)
 
-      if(i15001.ne.2 .or. i15012.ne.1) goto 1000
-c      if(i15001.ne.2) goto 1000
+         if(idtgsk.ne.16) goto 1000
 
-      num=num+1
-c      call SET_TIMING_GATE(it15001)
-      call SET_TIMING_GATE_NSEC(t15001)
-c      print*,'NEVSK: ',num, nevsk, nqisk, ntimsk(2), ntimsk(3)
-      do i=1,nqiskz
-         if(icabiz(i).le.MAXPM) tbuf_raw(i) = tiskz(i)
-      enddo
-      
+         i15001=0
+         i15012=0
+         do i=1,nqiskz
+c            print*,i,icabiz(i),tiskz(i),tbuf_raw(i)
+            if(icabiz(i).eq.15001) then
+c               print*,icabiz(i),itiskz(i),tiskz(i)
+               i15001 = i15001+1
+               it15001 = itiskz(i)
+               t15001 = tiskz(i)-1000.
+            endif
+            if(icabiz(i).eq.15012) i15012 = i15012+1
+         enddo
+
+         if(i15001.ne.2 .or. i15012.ne.1) goto 1000
+c         if(i15001.ne.2) goto 1000
+
+         num=num+1
+c         call SET_TIMING_GATE(it15001)
+         call SET_TIMING_GATE_NSEC(t15001)
+c         print*,'NEVSK: ',num, nevsk, nqisk, ntimsk(2), ntimsk(3)
+         do i=1,nqiskz
+            if(icabiz(i).le.MAXPM) tbuf_raw(i) = tiskz(i)
+         enddo
+
+      endif
+
 c***  store header & TQ info.
       call skroot_set_tree(lun)
          

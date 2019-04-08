@@ -60,7 +60,7 @@ CKO      SUBROUTINE SKTQCONV_qb(ICAB, IT0, IT, IQRAW, T, Q)
       INTEGER ICAB, IT, IQRAW, IT0
       REAL T, Q, X
       INTEGER IFLAG
-      REAL Qshift, RQ, RPQ
+      REAL Qshift, RQ
 
       real c, dped
       integer IQ, irange, nev_error
@@ -69,7 +69,7 @@ CKO      SUBROUTINE SKTQCONV_qb(ICAB, IT0, IT, IQRAW, T, Q)
 
       REAL PC2PE_SK1, PC2PE_SK2, PC2PE_SK3, PC2PE_SK4, PC2PE_SK5, PC2PE
       PARAMETER (PC2PE_SK1 = 2.055, PC2PE_SK2 = 2.297, PC2PE_SK3 = 2.243,
-     &     PC2PE_SK4 = 2.645, PC2PE_SK5 = 1.)
+     &     PC2PE_SK4 = 1., PC2PE_SK5 = 1.)
       DATA PC2PE/0./
       SAVE PC2PE
 
@@ -269,7 +269,7 @@ c*** Q
 c*** separate range bit and ADC count
       call SKQDIV(IQRAW, IQ, IRANGE)
       RQ = float(IQ)+Qshift
-c      RQ = float(IQ)
+
 c*** apply temperature correction
 CKO      c = (qb_cal0mean(icab,irange,iqbcalmode) 
 CKO     $     - qb_ped0mean(icab,irange,iqbcalmode))
@@ -282,8 +282,6 @@ CKO     $     - IQBPDSTQ(icab,irange,iqbcalmode))/10.0)
      $     / (float(IQBCALQ(icab,irange,iqbcalmode) 
      $     - IQBPDSTQ(icab,irange,iqbcalmode))/10.0)
 
-c      c = RQ - float(IQBPDSTQ(icab,irange,iqbcalmode))/10.0
-      
 c*** tentative 13-JUL-2007 (y.t.)
 c      dped = float(IQBPDSTQ(icab,irange,iqbcalmode))/10.0 
 c     $     - qb_ped0mean(icab,irange,iqbcalmode)
@@ -304,24 +302,9 @@ cc            print *, 'sktqconv_qb: range error! count=', c
       endif
 
 c*** apply function
-c      Q = ((((qb_a5(icab,irange)*c + qb_a4(icab,irange))*c 
-c     $     + qb_a3(icab,irange))*c + qb_a2(icab,irange))*c
-c     $     + qb_a1(icab,irange))*c + qb_a0(icab,irange)
-
-c      Q = RQ - float(IQBPDSTQ(icab,irange,iqbcalmode))/10.0
-c      Q = (qb_cal0mean(icab,irange,iqbcalmode)
-c     $        - qb_ped0mean(icab,irange,iqbcalmode))
-c     $        / (float(IQBCALQ(icab,irange,iqbcalmode)
-c     $        - IQBPDSTQ(icab,irange,iqbcalmode))/10.0)
-
-c      Q = c
-      RPQ = (RQ - float(IQBPDSTQ(icab,irange,iqbcalmode))/10.0)
-      Q = ((((qb_a5(icab,irange)*RPQ + qb_a4(icab,irange))*RPQ
-     $     + qb_a3(icab,irange))*RPQ + qb_a2(icab,irange))*RPQ
-     $     + qb_a1(icab,irange))*RPQ + qb_a0(icab,irange)
-
-      
-      if(icab.eq.11146) print*, nevsk,IQRAW, IQ, RQ, Q
+      Q = ((((qb_a5(icab,irange)*c + qb_a4(icab,irange))*c 
+     $     + qb_a3(icab,irange))*c + qb_a2(icab,irange))*c
+     $     + qb_a1(icab,irange))*c + qb_a0(icab,irange)
 
 c      print *,nevsk,icab,irange,iqbcalmode,c,Q,dped,
 c     $     IQBPDSTQ(icab,irange,iqbcalmode),
