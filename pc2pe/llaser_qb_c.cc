@@ -113,7 +113,7 @@ int BasicReduction(Header *HEAD){
 int main(int argc, char *argv[])
 {
   if(argc < 4) {
-    printf("Usage: sample input.root output.root SK_GEOMETRY\n");
+    printf("Usage: sample input.root output.root RUN_NUMBER\n");
     exit(0);
   }
 
@@ -133,21 +133,61 @@ int main(int argc, char *argv[])
   
   TString OutputFile = argv[2];
 
-  int SK_GEOMETRY = atoi(argv[3]);
+  int RUN_NUMBER = atoi(argv[3]);
 
+  // Determined by eye with ttof plot from ana/plot.C
   float ontimemin, ontimemax, offtimemin, offtimemax;
-  if (SK_GEOMETRY==4) {
+
+  // SK4 Low intensity
+  if (61892<=RUN_NUMBER && RUN_NUMBER<=61895) {
     ontimemin = 1180;
     ontimemax = 1400;
-    offtimemin = 400;
-    offtimemax = 800;
-  } else if (SK_GEOMETRY==5) {
+    offtimemin = 480;//400;
+    offtimemax = 700;//800;
+  } 
+
+  // SK5 Low intensity
+  else if (80871<=RUN_NUMBER && RUN_NUMBER<=80875) {
     ontimemin = 1000;
     ontimemax = 1300;
-    offtimemin = 410;
-    offtimemax = 900;
-  } else {
-    cerr << "SK_GEOMETRY=" << SK_GEOMETRY << " not implemented" <<endl;
+    offtimemin = 450;//410;
+    offtimemax = 750;//900;
+  } 
+
+  // SK5 Low intensity (source inverted)
+  else if (RUN_NUMBER==80885) {
+    ontimemin = 1000;
+    ontimemax = 1300;
+    offtimemin = 450;//410;
+    offtimemax = 750;//900;
+  } 
+
+  // SK4 High intensity
+  else if (RUN_NUMBER==61889) {
+    ontimemin = 1140;
+    ontimemax = 1200;
+    offtimemin = 420;//400;
+    offtimemax = 480;//750;
+  }
+
+  // SK5 High intensity
+  else if (RUN_NUMBER==80877) {
+    ontimemin = 975;
+    ontimemax = 1038;
+    offtimemin = 420;//410;
+    offtimemax = 483;//600;
+  } 
+
+  // SK5 High intensity (source inverted)
+  else if (RUN_NUMBER==80884 || RUN_NUMBER==80886) {
+    ontimemin = 975;
+    ontimemax = 1038;
+    offtimemin = 420;//410;
+    offtimemax = 483;//600;
+  } 
+
+  else {
+    cerr << "Error: RUN_NUMBER=" << RUN_NUMBER << " not implemented" <<endl;
     exit (-1);
   }
 
