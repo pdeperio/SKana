@@ -248,6 +248,12 @@ int main(int argc, char *argv[])
   TH1D *h_qisk_ton = new TH1D("h_qisk_ton", "Per Channel Charge (On-time);Channel;Total Charge (pe)", nCables, 0, nCables);
   TH1D *h_qisk_toff = new TH1D("h_qisk_toff", "Per Channel Charge (Off-time);Channel;Total Charge (pe)", nCables, 0, nCables);
 
+  const int nGroups = 35;
+  TH1D *h_group_nhit_ton = new TH1D("h_group_nhit_ton", "Per Group Event Rate (On-time);Group;Events", nGroups, 0, nGroups);
+  TH1D *h_group_nhit_toff = new TH1D("h_group_nhit_toff", "Per Group Event Rate (Off-time);Group;Events", nGroups, 0, nGroups);
+  TH1D *h_group_qisk_ton = new TH1D("h_group_qisk_ton", "Per Group Charge (On-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
+  TH1D *h_group_qisk_toff = new TH1D("h_group_qisk_toff", "Per Group Charge (Off-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
+
   // total number of events
   int ntotal = tree->GetEntries();
 
@@ -295,6 +301,8 @@ int main(int argc, char *argv[])
         exit (-1);
       }
 
+      int group = PMTTable.group_arr[icab-1];
+
       float xpmt = rootread->xidsk[j]; // PMT position
       float ypmt = rootread->yidsk[j];
       float zpmt = rootread->zidsk[j];
@@ -317,6 +325,8 @@ int main(int argc, char *argv[])
       if(tof > ontimemin && tof < ontimemax) {
         h_nhit_ton->Fill(icab);
         h_qisk_ton->Fill(icab, qisk);
+        h_group_nhit_ton->Fill(group);
+        h_group_qisk_ton->Fill(group, qisk);
 
         nHitsOnTime++;
         QOnTime += qisk;
@@ -324,6 +334,8 @@ int main(int argc, char *argv[])
       if(tof > offtimemin && tof < offtimemax) {
         h_nhit_toff->Fill(icab);
         h_qisk_toff->Fill(icab, qisk);
+        h_group_nhit_toff->Fill(group);
+        h_group_qisk_toff->Fill(group, qisk);
       }
     }
 

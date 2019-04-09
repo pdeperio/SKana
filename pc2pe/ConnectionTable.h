@@ -32,6 +32,9 @@ class ConnectionTable
   Int_t pmtx, pmty, pmtz;
   Int_t odpadnum_hut, odpadnum_crate, odpadnum_mod, odpadnum_ch;
 
+  Int_t group;
+  Int_t group_arr[11146];
+
   int LoadPMT(int ipmt) {return tConnection->GetEntry(ipmt);};
   void WriteTree() {tConnection->Write();};
 

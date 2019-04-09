@@ -57,6 +57,9 @@ ConnectionTable::ConnectionTable(TString ConnectionFile) {
 
   SortTree();
   AddGroupings();
+
+  tConnection->SetBranchAddress("group", &group);
+  tConnection->SetBranchAddress("cableid", &cableid);
 }
 
 ConnectionTable::~ConnectionTable () {}
@@ -95,8 +98,6 @@ void ConnectionTable::AddGroupings() {
   }
   cout << "Opened: " << GroupingFile.Data() << endl;
 
-  int group;
-
   TBranch *bGroup = tConnection->Branch("group", &group, "group/I"); 
   tConnection->SetBranchAddress("group", &group); 
   tConnection->SetBranchAddress("cableid", &cableid);
@@ -119,6 +120,7 @@ void ConnectionTable::AddGroupings() {
       exit (-2);
     }
 
+    group_arr[ientry] = group;
     bGroup->Fill();
     ientry++;
   }
