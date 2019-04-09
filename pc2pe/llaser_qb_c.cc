@@ -20,6 +20,7 @@ using namespace std;
 
 #include "SuperManager.h"
 #include "SKRootRead.h"
+#include "ConnectionTable.h"
 
 float xball = 35.35;
 float yball = -70.7;
@@ -112,8 +113,8 @@ int BasicReduction(Header *HEAD){
 
 int main(int argc, char *argv[])
 {
-  if(argc < 4) {
-    printf("Usage: sample input.root output.root RUN_NUMBER\n");
+  if(argc < 5) {
+    printf("Usage: sample input.root output.root RUN_NUMBER ConnectionTableFile\n");
     exit(0);
   }
 
@@ -202,14 +203,14 @@ int main(int argc, char *argv[])
 
   // obtain all the TQ information 
   TQReal    *TQREAL  = mgr->GetTQREALINFO();
-  TQReal    *TQAREAL = mgr->GetTQAREALINFO();
+  //TQReal    *TQAREAL = mgr->GetTQAREALINFO();
 
   // obtain each analysis infomation
-  LoweInfo  *LOWE    = mgr->GetLOWE();
-  AtmpdInfo *ATMPD   = mgr->GetATMPD();
-  UpmuInfo  *UPMU    = mgr->GetUPMU();
-  MuInfo    *MU      = mgr->GetMU();
-  SLEInfo   *SLE     = mgr->GetSLE();
+  //LoweInfo  *LOWE    = mgr->GetLOWE();
+  //AtmpdInfo *ATMPD   = mgr->GetATMPD();
+  //UpmuInfo  *UPMU    = mgr->GetUPMU();
+  //MuInfo    *MU      = mgr->GetMU();
+  //SLEInfo   *SLE     = mgr->GetSLE();
 
   // obtain TQ information within 1.3u sec
   SKRootRead *rootread = new SKRootRead( mgr );
@@ -226,6 +227,9 @@ int main(int argc, char *argv[])
 
   TFile *fout = new TFile(OutputFile,"RECREATE");
   
+  ConnectionTable PMTTable(argv[4]);
+  PMTTable.WriteTree();
+
   const int nCables = 11147;
 
   // histogram
@@ -237,7 +241,7 @@ int main(int argc, char *argv[])
   TH1D *ttof = new TH1D ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
 
   TH1D *hnHitsOnTime = new TH1D ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
-  TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 0, 1100000);
+  TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2200000);
 
   TH1D *h_nhit_ton = new TH1D("h_nhit_ton", "Per Channel Event Rate (On-time);Channel;Events", nCables, 0, nCables);
   TH1D *h_nhit_toff = new TH1D("h_nhit_toff", "Per Channel Event Rate (Off-time);Channel;Events", nCables, 0, nCables);
@@ -260,6 +264,8 @@ int main(int argc, char *argv[])
     tree->GetEntry(i);
 
     if(i==0) nrunsk = HEAD->nrunsk;
+
+    
 
     int ireduc = BasicReduction(HEAD);
     if(ireduc != 0) continue;

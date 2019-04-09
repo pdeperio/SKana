@@ -5,7 +5,7 @@
 RUNS=(61889 61892 61893 61894 61895 80871 80873 80875 80877 80884 80885 80886)
 
 # SK5
-#RUNS=(80871 80873 80875 80877 80884 80885 80886)
+RUNS=(80871 80873 80875 80877 80884 80885 80886)
 
 WORKDIR=${PWD}
 
@@ -28,15 +28,16 @@ for run in ${RUNS[@]}; do
     mkdir -p ${OUTDIR}
 
     rundir=$datadir/$run
-    SK_GEOMETRY=4
+    ConnectionFile=${SKOFL_ROOT}/const/connection.super.sk-4.dat
 
+    # Koshio-san's SK5 files
     if [ $run -ge 80000 ]; then
-        SK_GEOMETRY=5
-        #datadir=/disk01/calib/sk5/
-        #rundir=$datadir/0$run
+        datadir=/disk01/calib/sk5/
+        rundir=$datadir/0$run
+        ConnectionFile=${SKOFL_ROOT}/const/connection.super.sk-5.dat
     fi
 
-    for infile in `ls $rundir`; do
+    for infile in `ls -p $rundir | grep -v '/$'`; do
 
 	basename=`echo $infile | cut -d'_' -f2`
         basename=${basename%.*}
@@ -52,7 +53,7 @@ hostname
 
 cd ${WORKDIR}
 
-./llaser_qb_c ${filepath} ${OUTDIR}/$ofile ${SK_GEOMETRY}
+./llaser_qb_c ${filepath} ${OUTDIR}/$ofile ${run} ${ConnectionFile}
 
 EOF
 

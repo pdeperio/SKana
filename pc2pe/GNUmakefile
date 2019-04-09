@@ -13,7 +13,7 @@ include $(SKOFL_ROOT)/config.gmk
 
 LOCAL_INC	=
 
-LOCAL_LIBS	= SKRootRead.o 
+LOCAL_LIBS	= SKRootRead.o ConnectionTable.o
 
 FCFLAGS += -fno-range-check
 
@@ -21,7 +21,7 @@ FCFLAGS += -fno-range-check
 #  Objects
 #
 
-OBJS   = ${LOCAL_LIBS} llaser_qb_c 
+OBJS   = ${LOCAL_LIBS} llaser_qb_c grp
 
 all: $(OBJS) 
 
