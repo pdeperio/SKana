@@ -11,7 +11,8 @@
 using namespace std;
 
 #include <math.h>
-#include "TH1D.h"
+#include "TH1F.h"
+#include "TH2F.h"
 #include "TFile.h"
 #include "TF1.h"
 #include "TTree.h"
@@ -113,8 +114,8 @@ int BasicReduction(Header *HEAD){
 
 int main(int argc, char *argv[])
 {
-  if(argc < 5) {
-    printf("Usage: sample input.root output.root RUN_NUMBER ConnectionTableFile\n");
+  if(argc < 7) {
+    printf("Usage: sample input.root output.root RUN_NUMBER ConnectionTableFile StartTime EndTime\n");
     exit(0);
   }
 
@@ -230,29 +231,35 @@ int main(int argc, char *argv[])
   ConnectionTable PMTTable(argv[4]);
   PMTTable.WriteTree();
 
+  float StartTime = atof(argv[5]);
+  float EndTime = atof(argv[6]);
+  float PadTime = 60;
+
   const int nCables = 11147;
 
   // histogram
-  TH1D *hhitmap = new TH1D ("hhitmap","HITMAP",11146, 0.5, 11146.5);
-  TH1D *htisk = new TH1D ("htisk","TISK",3000, 0, 3000);
-  TH1D *hqisk = new TH1D("hqisk", "QISK", 500, -5, 20);
-  TH1D *hnqisk = new TH1D("hnqisk", "Nqisk;Nqisk", 1200, 0, 12000);
+  TH1F *hhitmap = new TH1F ("hhitmap","HITMAP",11146, 0.5, 11146.5);
+  TH1F *htisk = new TH1F ("htisk","TISK",3000, 0, 3000);
+  TH1F *hqisk = new TH1F("hqisk", "QISK", 500, -5, 20);
+  TH1F *hnqisk = new TH1F("hnqisk", "Nqisk;Nqisk", 1200, 0, 12000);
+  TH2F *hnqisk_vs_time = new TH2F("hnqisk_vs_time", "Nqisk Time Dependence;Epoch Time (s);Nqisk", 500, StartTime-PadTime, EndTime+PadTime, 100, 0, 500);
   
-  TH1D *ttof = new TH1D ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
+  TH1F *ttof = new TH1F ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
 
-  TH1D *hnHitsOnTime = new TH1D ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
-  TH1D *hQOnTime = new TH1D ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2200000);
+  TH1F *hnHitsOnTime = new TH1F ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
+  TH1F *hQOnTime = new TH1F ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2200000);
+  TH2F *hQOnTime_vs_time = new TH2F ("hQOnTime_vs_time", "Total On-time Charge Time Dependence;Epoch Time (s);Charge [pC]", 500, StartTime-PadTime, EndTime+PadTime, 100, 400000, 2200000);
 
-  TH1D *h_nhit_ton = new TH1D("h_nhit_ton", "Per Channel Event Rate (On-time);Channel;Events", nCables, 0, nCables);
-  TH1D *h_nhit_toff = new TH1D("h_nhit_toff", "Per Channel Event Rate (Off-time);Channel;Events", nCables, 0, nCables);
-  TH1D *h_qisk_ton = new TH1D("h_qisk_ton", "Per Channel Charge (On-time);Channel;Total Charge (pe)", nCables, 0, nCables);
-  TH1D *h_qisk_toff = new TH1D("h_qisk_toff", "Per Channel Charge (Off-time);Channel;Total Charge (pe)", nCables, 0, nCables);
+  TH1F *h_nhit_ton = new TH1F("h_nhit_ton", "Per Channel Event Rate (On-time);Channel;Events", nCables, 0, nCables);
+  TH1F *h_nhit_toff = new TH1F("h_nhit_toff", "Per Channel Event Rate (Off-time);Channel;Events", nCables, 0, nCables);
+  TH1F *h_qisk_ton = new TH1F("h_qisk_ton", "Per Channel Charge (On-time);Channel;Total Charge (pe)", nCables, 0, nCables);
+  TH1F *h_qisk_toff = new TH1F("h_qisk_toff", "Per Channel Charge (Off-time);Channel;Total Charge (pe)", nCables, 0, nCables);
 
   const int nGroups = 35;
-  TH1D *h_group_nhit_ton = new TH1D("h_group_nhit_ton", "Per Group Event Rate (On-time);Group;Events", nGroups, 0, nGroups);
-  TH1D *h_group_nhit_toff = new TH1D("h_group_nhit_toff", "Per Group Event Rate (Off-time);Group;Events", nGroups, 0, nGroups);
-  TH1D *h_group_qisk_ton = new TH1D("h_group_qisk_ton", "Per Group Charge (On-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
-  TH1D *h_group_qisk_toff = new TH1D("h_group_qisk_toff", "Per Group Charge (Off-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
+  TH1F *h_group_nhit_ton = new TH1F("h_group_nhit_ton", "Per Group Event Rate (On-time);Group;Events", nGroups, 0, nGroups);
+  TH1F *h_group_nhit_toff = new TH1F("h_group_nhit_toff", "Per Group Event Rate (Off-time);Group;Events", nGroups, 0, nGroups);
+  TH1F *h_group_qisk_ton = new TH1F("h_group_qisk_ton", "Per Group Charge (On-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
+  TH1F *h_group_qisk_toff = new TH1F("h_group_qisk_toff", "Per Group Charge (Off-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
 
   // total number of events
   int ntotal = tree->GetEntries();
@@ -263,6 +270,9 @@ int main(int argc, char *argv[])
 
   int nrunsk;
 
+  struct tm t;
+  time_t t_of_day;
+
   // main loop
   for (int i = 0; i < ntotal; i++) {
 
@@ -271,7 +281,14 @@ int main(int argc, char *argv[])
 
     if(i==0) nrunsk = HEAD->nrunsk;
 
-    
+    t.tm_year = HEAD->ndaysk[0];
+    t.tm_mon = HEAD->ndaysk[1]-1;
+    t.tm_mday = HEAD->ndaysk[2];
+    t.tm_hour = HEAD->ntimsk[0];
+    t.tm_min = HEAD->ntimsk[1];
+    t.tm_sec = HEAD->ntimsk[2];
+    t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
+    t_of_day = mktime(&t);
 
     int ireduc = BasicReduction(HEAD);
     if(ireduc != 0) continue;
@@ -342,6 +359,10 @@ int main(int argc, char *argv[])
     hnqisk->Fill(rootread->nqisk);  // Integral of this gives "nlaser" in llaser_qb.F
     hnHitsOnTime->Fill(nHitsOnTime);
     hQOnTime->Fill(QOnTime);
+
+    hnqisk_vs_time->Fill(t_of_day, rootread->nqisk); 
+    hQOnTime_vs_time->Fill(t_of_day, QOnTime);
+
     if (nHitsOnTime) nOnTime++;
 
   }

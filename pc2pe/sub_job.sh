@@ -5,7 +5,7 @@
 RUNS=(61889 61892 61893 61894 61895 80871 80873 80875 80877 80884 80885 80886)
 
 # SK5
-RUNS=(80871 80873 80875 80877 80884 80885 80886)
+#RUNS=(80871 80873 80875 80877 80884 80885 80886)
 
 WORKDIR=${PWD}
 
@@ -30,11 +30,25 @@ for run in ${RUNS[@]}; do
     rundir=$datadir/$run
     ConnectionFile=${SKOFL_ROOT}/const/connection.super.sk-4.dat
 
+    # Get start and end times
+    itmp=0
+    for when in Start End; do
+      DATE_ARR=(`summary -run $run | grep "${when} time"`)
+      TIME[itmp]=`date +%s -d"${DATE_ARR[4]} ${DATE_ARR[5]}, ${DATE_ARR[7]} ${DATE_ARR[6]}"`
+      itmp=$(($itmp+1))
+    done
+    # But overwrite with global time across runs within an SK period as follows
+
+    TIME[0]=1224644086
+    TIME[1]=1224685688
+
     # Koshio-san's SK5 files
     if [ $run -ge 80000 ]; then
-        datadir=/disk01/calib/sk5/
-        rundir=$datadir/0$run
+        #datadir=/disk01/calib/sk5/
+        #rundir=$datadir/0$run
         ConnectionFile=${SKOFL_ROOT}/const/connection.super.sk-5.dat
+        TIME[0]=1553479750
+        TIME[1]=1553601921
     fi
 
     for infile in `ls -p $rundir | grep -v '/$'`; do
@@ -53,7 +67,7 @@ hostname
 
 cd ${WORKDIR}
 
-./llaser_qb_c ${filepath} ${OUTDIR}/$ofile ${run} ${ConnectionFile}
+./llaser_qb_c ${filepath} ${OUTDIR}/$ofile ${run} ${ConnectionFile} ${TIME[0]} ${TIME[1]}
 
 EOF
 
