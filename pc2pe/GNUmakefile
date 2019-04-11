@@ -21,7 +21,7 @@ FCFLAGS += -fno-range-check
 #  Objects
 #
 
-OBJS   = ${LOCAL_LIBS} llaser_qb_c grp
+OBJS   = ${LOCAL_LIBS} llaser_qb_c grp hadd
 
 all: $(OBJS) 
 

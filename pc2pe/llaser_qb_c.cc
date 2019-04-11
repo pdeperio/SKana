@@ -247,8 +247,8 @@ int main(int argc, char *argv[])
   TH1F *ttof = new TH1F ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
 
   TH1F *hnHitsOnTime = new TH1F ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
-  TH1F *hQOnTime = new TH1F ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2200000);
-  TH2F *hQOnTime_vs_time = new TH2F ("hQOnTime_vs_time", "Total On-time Charge Time Dependence;Epoch Time (s);Charge [pC]", 500, StartTime-PadTime, EndTime+PadTime, 100, 400000, 2200000);
+  TH1F *hQOnTime = new TH1F ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2400000);
+  TH2F *hQOnTime_vs_time = new TH2F ("hQOnTime_vs_time", "Total On-time Charge Time Dependence;Epoch Time (s);Charge [pC]", 500, StartTime-PadTime, EndTime+PadTime, 100, 400000, 2400000);
 
   TH1F *h_nhit_ton = new TH1F("h_nhit_ton", "Per Channel Event Rate (On-time);Channel;Events", nCables, 0, nCables);
   TH1F *h_nhit_toff = new TH1F("h_nhit_toff", "Per Channel Event Rate (Off-time);Channel;Events", nCables, 0, nCables);
@@ -289,6 +289,9 @@ int main(int argc, char *argv[])
     t.tm_sec = HEAD->ntimsk[2];
     t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
     t_of_day = mktime(&t);
+
+    // Laser stability cut
+    if (RUN_NUMBER==80885 && t_of_day < 1553583000) continue;
 
     int ireduc = BasicReduction(HEAD);
     if(ireduc != 0) continue;
