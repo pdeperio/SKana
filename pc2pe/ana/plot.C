@@ -1,4 +1,4 @@
-{
+{  
   gStyle->SetOptStat(0);
   
   TString datadir = "../output/";
@@ -197,7 +197,7 @@
       h_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Cable;Q_{mean} (pe)");
 
       h_qmean[ifile-3] = (TH1D*)h_qisk_ton->Clone();
-      
+
       //leg_qisk_ton->AddEntry(h_qisk_ton, FileTitles[ifile], "l");
     }
     
@@ -457,6 +457,19 @@
     l_rHitThresh->Draw();
 
     c_rhit_occu->Print("figures/rhit"+TreeVarNames[ifile]+".png");
+
+    double avgErr = 0;
+    int nBins = 0;
+    for (int ibin=1; ibin<=h_rhit_occu[ifile]->GetNbinsX(); ibin++) {
+      if (h_rhit_occu[ifile]->GetBinContent(ibin)) {
+	avgErr += h_rhit_occu[ifile]->GetBinError(ibin)/h_rhit_occu[ifile]->GetBinContent(ibin);
+	nBins++;
+      }
+    }
+    avgErr /= nBins;
+    cout << TreeVarNames[ifile] << " rhit avg. rel. err. = " << avgErr << endl;;
+
+    
     // Number of Hits
     //TCanvas *c_nhit_occu = new TCanvas(Form("c_nhit_occu_%d",ifile),Form("c_nhit_occu_%d",ifile), 500, 500, 600, 400);
     //  
@@ -488,6 +501,17 @@
 
     c_qmean->Print("figures/qmean"+TreeVarNames[ifile]+".png");
 
+    double avgErr = 0;
+    int nBins = 0;
+    for (int ibin=1; ibin<=h_qmean[ifile]->GetNbinsX(); ibin++) {
+      if (h_qmean[ifile]->GetBinContent(ibin)) {
+	avgErr += h_qmean[ifile]->GetBinError(ibin)/h_qmean[ifile]->GetBinContent(ibin);
+	nBins++;
+      }
+    }
+    avgErr /= nBins;
+    cout << TreeVarNames[ifile] << " Qmean avg. rel. err. = " << avgErr << endl;
+    
     //////////////////////////////////////////////////////////////////
     /////////////// Below same but for grouped PMTs //////////////////
     
@@ -528,6 +552,18 @@
 
     c_group_qmean->Print("figures/group_qmean"+TreeVarNames[ifile]+".png");    
   }
+
+
+  // Read official bad channel list
+  vector<int> badchannels;
+  ifstream fbadchannel;
+  fbadchannel.open("badchannels.txt");
+  while (!fbadchannel.eof()){
+    int badchannel;
+    fbadchannel >> badchannel;
+    badchannels.push_back(badchannel);
+  }
+
   
   TFile *outfile = new TFile("pc2pe_output.root", "RECREATE");
 
@@ -539,8 +575,11 @@
 
   int channel;
   float rhit[nFiles/2], qmean[nFiles/2], ratio[nFiles/2], ratio_norm[nFiles/2];
-
+  float rhit_err[nFiles/2], qmean_err[nFiles/2], ratio_err[nFiles/2], ratio_norm_err[nFiles/2];
+  int pc2pe_bad[nFiles/2]={0}, badchannel;
+    
   float rmean[nFiles/2] = {0};
+  float rmean_err[nFiles/2] = {0};
 
   for (int ifile=0; ifile<nFiles/2; ifile++) {
 
@@ -550,11 +589,18 @@
     if (!ifile) {
       t_pc2pe->Branch("channel", &channel, "channel/I");
       t_pc2pe->Branch("group", &group, "group/I");
+      t_pc2pe->Branch("badchannel", &badchannel, "badchannel/I");
     }
     t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("ratio"+TreeVarNames[ifile], &ratio[ifile], "ratio"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("rationorm"+TreeVarNames[ifile], &ratio_norm[ifile], "rationorm"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("pc2pe_bad"+TreeVarNames[ifile], &pc2pe_bad[ifile], "pc2pe_bad"+TreeVarNames[ifile]+"/I");
+
+    t_pc2pe->Branch("rhit_err"+TreeVarNames[ifile], &rhit_err[ifile], "rhit_err"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("qmean_err"+TreeVarNames[ifile], &qmean_err[ifile], "qmean_err"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("ratio_err"+TreeVarNames[ifile], &ratio_err[ifile], "ratio_err"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("rationorm_err"+TreeVarNames[ifile], &ratio_norm_err[ifile], "rationorm_err"+TreeVarNames[ifile]+"/F");
 
     t_pc2pe->Branch("pmtflag"+TreeVarNames[ifile], &pmtflag[ifile], "pmtflag"+TreeVarNames[ifile]+"/I");
 
@@ -563,24 +609,38 @@
 
     int nGoodChannels = 0;
 
-    for (channel=1; channel<h_rhit_occu[ifile]->GetNbinsX(); channel++) {
-      rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(channel);
-      qmean[ifile] = h_qmean[ifile]->GetBinContent(channel);
+    for (int ibin=2; ibin<=h_rhit_occu[ifile]->GetNbinsX(); ibin++) {
+      rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
+      qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
+
+      rhit_err[ifile] = h_rhit_occu[ifile]->GetBinError(ibin);
+      qmean_err[ifile] = h_qmean[ifile]->GetBinError(ibin);
 
       ratio[ifile] = 1;
       if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]) {	
 	ratio[ifile] = qmean[ifile]/rhit[ifile];
 	rmean[ifile] += ratio[ifile];
+
+	// Error propagation
+	float qmean_relerr = qmean_err[ifile] / qmean[ifile];
+	float rhit_relerr = rhit_err[ifile] / rhit[ifile];
+	
+	ratio_err[ifile] = ratio[ifile]*sqrt(qmean_relerr*qmean_relerr + rhit_relerr*rhit_relerr);
+	rmean_err[ifile] += ratio_err[ifile]*ratio_err[ifile];
+
 	nGoodChannels++;
       }
 
-      else cout << channel << endl;
+      else cout << ibin-1 << endl;
     }
     
     rmean[ifile] /= (float)nGoodChannels;
-
+    rmean_err[ifile] = sqrt(rmean_err[ifile]);
+    rmean_err[ifile] /= (float)nGoodChannels;
+    
     cout << "Total bad channels = " << nChannels - 1 - nGoodChannels << endl << endl;
 
+    cout << TreeVarNames[ifile] << " rmean = " << rmean[ifile] << " +/- " << rmean_err[ifile] << endl;
 
     ////////////////////////////////////////////////////////////
     /////////////// Below for grouped PMTs //////////////////
@@ -623,27 +683,56 @@
   //t_pc2pe[ifile] = new TTree("pc2pe", FileTitles[ifile].ReplaceAll(" Low", ""));
   
   // Then fill tree with normalized ratios
-  for (channel=1; channel<h_rhit_occu[0]->GetNbinsX(); channel++) {
-			      
+  for (int ibin=2; ibin<=h_rhit_occu[0]->GetNbinsX(); ibin++) {
+
+    channel = ibin-1;
+    
     for (int ifile=0; ifile<nFiles/2; ifile++) {
 
       ConnectionTable[ifile]->GetEntry(channel-1);
 
-      rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(channel);
-      qmean[ifile] = h_qmean[ifile]->GetBinContent(channel);
+      rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
+      qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
+
+      rhit_err[ifile] = h_rhit_occu[ifile]->GetBinError(ibin);
+      qmean_err[ifile] = h_qmean[ifile]->GetBinError(ibin);
 
       ratio_norm[ifile] = ratio[ifile] = 1;
       
       if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]) {
+	pc2pe_bad[ifile] = 0;
 
 	ratio[ifile] = qmean[ifile]/rhit[ifile];
 	ratio_norm[ifile] = ratio[ifile]/rmean[ifile];
 
+	// Error propagation
+	float qmean_relerr = qmean_err[ifile] / qmean[ifile];
+	float rhit_relerr = rhit_err[ifile] / rhit[ifile];
+	
+	ratio_err[ifile] = ratio[ifile]*sqrt(qmean_relerr*qmean_relerr + rhit_relerr*rhit_relerr);
+	ratio_norm_err[ifile] = ratio_err[ifile]/rmean[ifile];
+	  
 	if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
 	  cout << "WTF " << TreeVarNames[ifile].Data() << " " << channel << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+      }
 
+      else pc2pe_bad[ifile] = 1;
+
+    }
+
+    // Official bad channels
+    //if(std::find(badchannels.begin(), badchannels.end(), channel) != badchannels.end())
+    badchannel = 0;
+    for (int ib=0; ib<badchannels.size(); ib++) {
+      if (badchannels[ib] < channel) continue;
+      else if (channel == badchannels[ib]) {
+	badchannel = 1;
+	break;
+      } else {
+	break;
       }
     }
+
     t_pc2pe->Fill();
   }
 

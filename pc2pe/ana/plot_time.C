@@ -49,7 +49,6 @@
       xax->SetTimeFormat(TimeAxis);
       xax->SetTimeOffset(0, "gmt");
     }
-    //c_nqisk->Print(Form("figures/nqisk_vs_time_%d.png",ifile));
 
     // Timing cut on SK5 Low Inv. for laser stability
     if (ifile==2) {
@@ -61,6 +60,8 @@
       l_TimeCut->Draw();
 
     }
+    c_nqisk->Print(Form("figures/nqisk_vs_time_%d.png",ifile));
+
   }
 
   
@@ -82,6 +83,40 @@
       xax->SetTimeFormat(TimeAxis);
       xax->SetTimeOffset(0, "gmt");
     }
-    //c_QOnTime->Print(Form("figures/QOnTime_vs_time_%d.png",ifile));
+    c_QOnTime->Print(Form("figures/QOnTime_vs_time_%d.png",ifile));
   }
+
+  
+  for (int ifile=0; ifile<nFiles; ifile++) {
+    
+    TFile *infile = new TFile(datadir+FileNames[ifile]);
+
+    TCanvas *c_monitor_q = new TCanvas(Form("c_monitor_q_vs_time_%d",ifile),Form("c_monitor_q_vs_time_%d",ifile), 500, 500, 1000, 400);
+
+    h_monitor_q_vs_time->SetTitle(FileTitles[ifile]+";GMT;Charge [pC]");
+    h_monitor_q_vs_time->Draw("colz");
+    h_monitor_q_vs_time->ProfileX()->Draw("SAME");
+    
+    if (TimeAxis.CompareTo("")) {
+      TAxis *xax = h_monitor_q_vs_time->GetXaxis();
+      xax->SetTimeDisplay(1);
+      xax->SetLabelOffset(0.02);
+      xax->SetTimeFormat(TimeAxis);
+      xax->SetTimeOffset(0, "gmt");
+    }
+    c_monitor_q->Print(Form("figures/monitor_q_vs_time_%d.png",ifile));
+  }
+
+  for (int ifile=0; ifile<nFiles; ifile++) {
+    
+    TFile *infile = new TFile(datadir+FileNames[ifile]);
+
+    TCanvas *c_monitor_t = new TCanvas(Form("c_monitor_t_%d",ifile),Form("c_monitor_t_%d",ifile), 500, 500, 1000, 400);
+
+    h_monitor_t->SetTitle(FileTitles[ifile]);
+    h_monitor_t->Draw();
+    
+    c_monitor_t->Print(Form("figures/monitor_t_%d.png",ifile));
+  }
+  
 }
