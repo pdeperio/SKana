@@ -36,9 +36,17 @@
 
   float minY = 0.95;
   float maxY = 1.07;
-  
+
+  TCanvas *c_projections = new TCanvas("c_projections", "c_projections", 0, 0, 2000, 1600);
+  c_projections->Divide(6, 6);
+  TLegend *leg_projections = new TLegend(0, 0, 1, 1);
+  TLegend *leg_lines = new TLegend(0, 0, 1, 1);
+
+  TFile *outfile = new TFile("pc2pe_hists.root", "RECREATE");
+		
   for (int ifile=0; ifile<nFiles; ifile++) {
 
+    infile->cd();
     // Select good PMT flags
     //TString cut_pmttype = "(";
     //for (int jpmttype=0; jpmttype<nPMTtypes-1; jpmttype++) {
@@ -92,7 +100,7 @@
 
 
     // 2D
-    histname = "2d_"+histname;
+    histname = histname+"_2d";
     TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group; Relative Gain (pc2pe ratio)", 35, 0, 35, 50, 0.4, 1.6); 
     pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":group");
 
@@ -102,7 +110,11 @@
     leg_pc2pe_vs_group->SetNColumns(2);
     
     h_pc2pe_vs_group->Draw("COLZ");
-    h_pc2pe_vs_group->ProfileX()->Draw("SAME");
+    TH1D *h_pc2pe_vs_group_projx = h_pc2pe_vs_group->ProfileX();
+    h_pc2pe_vs_group_projx->Draw("SAME");
+    outfile->cd();
+    h_pc2pe_vs_group_projx->Write();
+    infile->cd();
     
     TH1F *h_pc2pe_copy = (TH1F*)h_pc2pe[ifile]->Clone();
     h_pc2pe_copy->Draw(DrawOpts+"same");
@@ -116,13 +128,43 @@
     TH1F *h_pc2pe_rms_plus_mean = (TH1F*)h_pc2pe_rms->Clone();
     
     for (int ibin=2; ibin<=h_pc2pe_vs_group->GetNbinsX()-1; ibin++) {
-      TH1F *h_proj = (TH1F*)h_pc2pe_vs_group->ProjectionY(Form("_px%d",ibin), ibin, ibin+1);
-      h_pc2pe_rms->SetBinContent(ibin, h_proj->GetRMS());
-      h_pc2pe_rms->SetBinError(ibin, h_proj->GetRMSError());
+      TH1F *h_proj = (TH1F*)h_pc2pe_vs_group->ProjectionY(histname+Form("_px%d",ibin), ibin, ibin+1);
 
-      h_pc2pe_rms_plus_mean->SetBinContent(ibin, h_proj->GetMean()+h_proj->GetRMS());
-      h_pc2pe_rms_plus_mean->SetBinError(ibin, h_proj->GetRMSError());
+      double RMS = h_proj->GetRMS();
+      double RMSError = h_proj->GetRMSError();
+      double Mean = h_proj->GetMean();
+      
+      h_pc2pe_rms->SetBinContent(ibin, RMS);
+      h_pc2pe_rms->SetBinError(ibin, RMSError);
+      
+
+      h_pc2pe_rms_plus_mean->SetBinContent(ibin, Mean+RMS);
+      h_pc2pe_rms_plus_mean->SetBinError(ibin, RMSError); // Wrong
+
+      // Draw all projections
+      c_projections->cd(ibin+2)->SetLogy(1);
+      h_proj->SetTitle(Form("Group %d; pc2pe Relative Gain; Number of Channels", ibin-1));
+      //h_proj->SetLineWidth(2);
+      h_proj->SetLineColor(Colors[ifile]);
+      if (!ifile) h_proj->Draw();
+      else h_proj->Draw("same");
+      if (ibin==2) leg_projections->AddEntry(h_proj, FileTitles[ifile], "l");
+
+      if (ifile==1) {
+	for (int iline=-2; iline<=2; iline++) {
+	  TLine *l_proj = new TLine(Mean+RMS*iline, 0, Mean+RMS*iline, h_proj->GetMaximum()*5);
+	  l_proj->SetLineStyle(abs(iline)+2);
+	  l_proj->SetLineColor(Colors[ifile]);
+	  l_proj->Draw();
+	  TString line_leg = "Mean";
+	  if (iline) line_leg += Form(" #pm %d*RMS", iline);
+	  if (ibin==2 && iline>=0) leg_lines->AddEntry(l_proj, line_leg, "l");
+	}
+      }       
     }
+
+    c_pc2pe_vs_group->cd();
+    
     h_pc2pe_rms_plus_mean->SetMarkerStyle(2);
     h_pc2pe_rms_plus_mean->SetMarkerColor(kRed);
     h_pc2pe_rms_plus_mean->Draw("same");
@@ -172,7 +214,9 @@
     l_unity->SetLineColor(kGray+1);
     l_unity->Draw();
 
-  }  
+    outfile->cd();
+    h_pc2pe_rms->Write();
+  }
 
   c_pc2pe->cd();
   leg->Draw();
@@ -181,4 +225,10 @@
   c_pc2pe_rms->cd();
   leg_rms->Draw();
   c_pc2pe_rms->Print("figures/pc2pe_rms.png");
+
+  c_projections->cd(2);
+  leg_projections->Draw();
+  c_projections->cd(3);
+  leg_lines->Draw();
+  c_projections->Print("figures/pc2pe_group_projections.png");
 }

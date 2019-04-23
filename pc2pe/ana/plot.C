@@ -27,6 +27,16 @@
     "SK5 High Inv." // (80884, 80886)"
   };
 
+  float TimeDuration[nFiles] = {
+    38201,
+    8050,
+    18229,
+    728,
+    1725,
+    692
+  };
+  
+
   TString TreeVarNames[nFiles/2] = {
     "_sk4", "_sk5", "_sk5i"
   };
@@ -69,6 +79,12 @@
   //c_nqisk->SetLogy(1);
   TLegend *leg_nqisk = new TLegend(0.2, 0.58, 0.75, 0.87);
   leg_nqisk->SetHeader("Dataset (# events, Mean, RMS)");
+
+  TCanvas *c_nHitsOnTime = new TCanvas("c_nHitsOnTime","c_nHitsOnTime", 20, 500, 600, 400);
+  //c_nHitsOnTime->SetLogy(1);
+  TLegend *leg_nHitsOnTime = new TLegend(0.2, 0.58, 0.75, 0.87);
+  leg_nHitsOnTime->SetHeader("Dataset (# events, Mean, RMS)");
+
   
   TCanvas *c_QOnTime = new TCanvas("c_QOnTime","c_QOnTime", 500, 500, 600, 400);
   TLegend *leg_QOnTime = new TLegend(0.2, 0.5, 0.75, 0.87);
@@ -87,6 +103,8 @@
   TH1D *h_group_pc2pe[nFiles/2];
 
   TTree *ConnectionTable[nFiles/2];
+
+  bool bNormByTime = 0;
 
   for (int ifile=0; ifile<nFiles; ifile++) {
     
@@ -108,9 +126,16 @@
 
     // Normalize to total number of laser trigger events
     int nevents = hnqisk->Integral();
+
+    double normalization = nevents;
+    TString axis_norm = "event";
+    if (bNormByTime) {
+      normalization = TimeDuration[ifile];
+      axis_norm = "second";
+    }
     
-    ttof->Scale(1./nevents);
-    ttof->GetYaxis()->SetTitle("Hits/event");
+    ttof->Scale(1./normalization);
+    ttof->GetYaxis()->SetTitle("Hits/"+axis_norm);
     ttof->SetTitle("Hit times and On/Off-time Windows");
     
     if (!ifile) ttof->Draw();
@@ -151,17 +176,40 @@
       hnqisk->SetLineWidth(2);
       if (ifile%3==2) hnqisk->SetLineStyle(2);
 
-      hnqisk->Scale(1./nevents);
-      hnqisk->SetTitle("Total Number of Hits;Nqisk;Area Normalized");
+      hnqisk->Scale(1./normalization);
+      hnqisk->SetTitle("Total Number of Hits;Nqisk;/"+axis_norm);
 
       if (!ifile) hnqisk->Draw();
       else hnqisk->Draw("sames");
 
       hnqisk->GetXaxis()->SetRangeUser(0, 500);
-      hnqisk->GetYaxis()->SetRangeUser(0, 0.30);
+      hnqisk->GetYaxis()->SetRangeUser(0, 0.3);
       
       leg_nqisk->AddEntry(hnqisk, FileTitles[ifile]+Form(" (%d, %.0f, %.0f)", nevents, hnqisk->GetMean(), hnqisk->GetRMS()), "l");
     }
+
+    
+    ////////////////////////////////////////////
+    // Plot total on-time "nqisk" for low intensity only
+    if (ifile<nFiles/2) {
+      c_nHitsOnTime->cd();
+      //hnHitsOnTime->Sumw2();
+      hnHitsOnTime->SetLineColor(Colors[ifile]);
+      hnHitsOnTime->SetLineWidth(2);
+      if (ifile%3==2) hnHitsOnTime->SetLineStyle(2);
+
+      hnHitsOnTime->Scale(1./normalization);
+      hnHitsOnTime->SetTitle("Total Number of On-Time Hits;On-time Hits;/"+axis_norm);
+
+      if (!ifile) hnHitsOnTime->Draw();
+      else hnHitsOnTime->Draw("sames");
+
+      hnHitsOnTime->GetXaxis()->SetRangeUser(0, 450);
+      hnHitsOnTime->GetYaxis()->SetRangeUser(0, 0.39);
+      
+      leg_nHitsOnTime->AddEntry(hnHitsOnTime, FileTitles[ifile]+Form(" (%d, %.0f, %.0f)", nevents, hnHitsOnTime->GetMean(), hnHitsOnTime->GetRMS()), "l");
+    }
+
 
 
     ////////////////////////////////////////////
@@ -174,8 +222,8 @@
       hQOnTime->SetLineWidth(2);
       if (ifile%3==2) hQOnTime->SetLineStyle(2);
 
-      hQOnTime->Scale(1./nevents);
-      hQOnTime->SetTitle("On-time Charge;Charge (pe);Area Normalized");
+      hQOnTime->Scale(1./normalization);
+      hQOnTime->SetTitle("On-time Charge;Charge (pe);/"+axis_norm);
 
       if (ifile==nFiles/2) hQOnTime->Draw();
       else hQOnTime->Draw("sames");
@@ -192,7 +240,7 @@
 
       h_qisk_ton->Sumw2();
       
-      h_qisk_ton->Scale(1./nevents);
+      h_qisk_ton->Scale(1./normalization);
       
       h_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Cable;Q_{mean} (pe)");
 
@@ -215,8 +263,8 @@
       h_nhit_ton->SetLineWidth(2);
       if (ifile%3==2) h_nhit_ton->SetLineStyle(2);
 
-      h_nhit_ton->Scale(1./nevents);
-      h_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Cable;On-time Mean Hit Rate (/event)");
+      h_nhit_ton->Scale(1./normalization);
+      h_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Cable;On-time Mean Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_nhit_ton->Draw();
@@ -244,8 +292,8 @@
       h_nhit_toff->SetLineWidth(2);
       if (ifile%3==2) h_nhit_toff->SetLineStyle(2);
 
-      h_nhit_toff->Scale(1./nevents);
-      h_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Cable;Off-time Mean Hit Rate (/event)");
+      h_nhit_toff->Scale(1./normalization);
+      h_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Cable;Off-time Mean Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_nhit_toff->Draw();
@@ -274,7 +322,7 @@
       h_nhit_ton_minus_toff->SetLineWidth(2);
       if (ifile%3==2) h_nhit_ton_minus_toff->SetLineStyle(2);
 
-      h_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Cable;(Ontime - Offtime) Hit Rate (/event)");
+      h_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_nhit_ton_minus_toff->Draw();
@@ -295,11 +343,11 @@
       for(int ibin=0 ; ibin<=h_rhit_occu_tmp->GetNbinsX() ; ++ibin) 
 	h_rhit_occu_tmp->SetBinContent(ibin, -log(1-h_rhit_occu_tmp->GetBinContent(ibin)));
 
-      h_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Cable;(Ontime - Offtime) Hit Rate (/event)");
+      h_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
 
       h_rhit_occu[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
       //h_nhit_occu[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
-      //h_nhit_occu[ifile]->Scale(float(nevents));
+      //h_nhit_occu[ifile]->Scale(float(normalization));
       //h_nhit_occu[ifile]->GetYaxis()->SetTitle("Number of Events");
     }    
 
@@ -312,7 +360,7 @@
 
       h_group_qisk_ton->Sumw2();
       
-      h_group_qisk_ton->Scale(1./nevents);
+      h_group_qisk_ton->Scale(1./normalization);
       
       h_group_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Group;Q_{mean} (pe)");
 
@@ -335,8 +383,8 @@
       h_group_nhit_ton->SetLineWidth(2);
       if (ifile%3==2) h_group_nhit_ton->SetLineStyle(2);
 
-      h_group_nhit_ton->Scale(1./nevents);
-      h_group_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Group;On-time Mean Hit Rate (/event)");
+      h_group_nhit_ton->Scale(1./normalization);
+      h_group_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Group;On-time Mean Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_group_nhit_ton->Draw();
@@ -364,8 +412,8 @@
       h_group_nhit_toff->SetLineWidth(2);
       if (ifile%3==2) h_group_nhit_toff->SetLineStyle(2);
 
-      h_group_nhit_toff->Scale(1./nevents);
-      h_group_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Group;Off-time Mean Hit Rate (/event)");
+      h_group_nhit_toff->Scale(1./normalization);
+      h_group_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Group;Off-time Mean Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_group_nhit_toff->Draw();
@@ -394,7 +442,7 @@
       h_group_nhit_ton_minus_toff->SetLineWidth(2);
       if (ifile%3==2) h_group_nhit_ton_minus_toff->SetLineStyle(2);
 
-      h_group_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Group;(Ontime - Offtime) Hit Rate (/event)");
+      h_group_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Group;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
 
       //if (ifile==nFiles/2)
       h_group_nhit_ton_minus_toff->Draw();
@@ -419,7 +467,7 @@
 
       h_group_rhit_occu[ifile] = (TH1D*)h_group_rhit_occu_tmp->Clone();
       //h_group_nhit_occu[ifile] = (TH1D*)h_group_rhit_occu_tmp->Clone();
-      //h_group_nhit_occu[ifile]->Scale(float(nevents));
+      //h_group_nhit_occu[ifile]->Scale(float(normalization));
       //h_group_nhit_occu[ifile]->GetYaxis()->SetTitle("Number of Events");
     }    
   }
@@ -432,6 +480,10 @@
   leg_nqisk->Draw();
   c_nqisk->Print("figures/nqisk.png");
 
+  c_nHitsOnTime->cd();
+  leg_nHitsOnTime->Draw();
+  c_nHitsOnTime->Print("figures/nHitsOnTime.png");
+  
   c_QOnTime->cd();
   leg_QOnTime->Draw();
   c_QOnTime->Print("figures/QOnTime.png");
@@ -564,6 +616,7 @@
     badchannels.push_back(badchannel);
   }
 
+  if (bNormByTime) break;
   
   TFile *outfile = new TFile("pc2pe_output.root", "RECREATE");
 
