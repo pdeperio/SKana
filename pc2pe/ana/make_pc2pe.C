@@ -14,7 +14,7 @@
   for (int ifile=0; ifile<nFiles; ifile++) {
 
     ofstream pgain_file;
-    pgain_file.open("pgain"+TreeVarNames[ifile]+"_19apr10");
+    pgain_file.open("pgain"+TreeVarNames[ifile]+"_19apr22");
     pgain_file << "   0  0  11146" << endl;  // Header (Version ? NPMTs)
 
     pc2pe->SetBranchAddress("rationorm"+TreeVarNames[ifile], &rationorm);

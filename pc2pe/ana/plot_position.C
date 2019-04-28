@@ -2,15 +2,19 @@
   gStyle->SetOptStat(0);
   //gStyle->SetPadRightMargin(0.12);
 
-  const int nFiles = 3;
+  const int nFiles = 4;
 
   TString TreeVarNames[nFiles] = {
-    "_sk4", "_sk5", "_sk5i"
+    "_sk4", "_sk5", "_sk5i", "_sk4official"
   }
-  int Colors[nFiles] = {kBlack, kRed, kBlue};
+  int Colors[nFiles] = {kBlack, kRed, kBlue, kGreen-2};
 
   TString FileTitles[nFiles] = {
-    "SK4", "SK5", "SK5 Inv."
+    "SK4",
+    "SK5",
+    //"SK5 Inv.",
+    "SK5 New",
+    "SK4 official"
   };
 
   // PMT Type separated
@@ -25,11 +29,11 @@
 
   TCanvas *c_pc2pe = new TCanvas(1);
   TLegend *leg = new TLegend(0.2, 0.78, 0.88, 0.88);
-  leg->SetNColumns(3);
+  leg->SetNColumns(2);
   
   TCanvas *c_pc2pe_rms = new TCanvas(1);
   TLegend *leg_rms = new TLegend(0.2, 0.2, 0.8, 0.3);
-  leg_rms->SetNColumns(3);
+  leg_rms->SetNColumns(2);
 
   TH1D *h_pc2pe[nFiles];
   TH1D *h_pc2pe_count[nFiles];
@@ -46,6 +50,8 @@
 		
   for (int ifile=0; ifile<nFiles; ifile++) {
 
+    if (TreeVarNames[ifile].Contains("sk5")) continue;
+      
     infile->cd();
     // Select good PMT flags
     //TString cut_pmttype = "(";

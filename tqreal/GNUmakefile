@@ -13,7 +13,7 @@ LOCAL_LIBS      =
 
 LOCAL_LIBS	= #sktqconv_qb.o
 
-OBJS   = ${LOCAL_LIBS} tqreal tqreal_ls_sk5
+OBJS   = ${LOCAL_LIBS} tqreal
 #OBJS = tqreal
 
 all: $(OBJS) 

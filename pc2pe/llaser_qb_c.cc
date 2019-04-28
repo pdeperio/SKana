@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
   } 
 
   // SK5 Low intensity
-  else if (80871<=RUN_NUMBER && RUN_NUMBER<=80875) {
+  else if (80871<=RUN_NUMBER && RUN_NUMBER<=80875 || RUN_NUMBER==81028) {
     ontimemin = 1000;
     ontimemax = 1300;
     offtimemin = 450;//410;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
   }
 
   // SK5 High intensity
-  else if (RUN_NUMBER==80877) {
+  else if (RUN_NUMBER==80877 || 81030) {
     ontimemin = 975;
     ontimemax = 1038;
     offtimemin = 420;//410;
@@ -261,6 +261,16 @@ int main(int argc, char *argv[])
   TH1F *h_group_qisk_ton = new TH1F("h_group_qisk_ton", "Per Group Charge (On-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
   TH1F *h_group_qisk_toff = new TH1F("h_group_qisk_toff", "Per Group Charge (Off-time);Group;Total Charge (pe)", nGroups, 0, nGroups);
 
+  float monitorQrange[2] = {2850, 2950};
+  if (RUN_NUMBER>80000) {
+    monitorQrange[0] = 570;
+    monitorQrange[1] = 670;
+  }
+
+  TH2F *h_monitor_q = new TH2F ("h_monitor_q_vs_time","Monitor PMT Charge;Epoch Time (s);Q [pC]", 500, StartTime-PadTime, EndTime+PadTime, 100, monitorQrange[0], monitorQrange[1]);
+  TH1F *h_monitor_t = new TH1F ("h_monitor_t","Monitor PMT Hit Time;Hit Time [ns]", 1000, 0, 30000);
+
+
   // total number of events
   int ntotal = tree->GetEntries();
 
@@ -292,19 +302,28 @@ int main(int argc, char *argv[])
 
     // Laser stability cut
     if (RUN_NUMBER==80885 && t_of_day < 1553583000) continue;
+    else if (RUN_NUMBER==81028 && t_of_day < 1555993848) continue;
 
     int ireduc = BasicReduction(HEAD);
     if(ireduc != 0) continue;
 
     int icabbit=0xffff;
     bool hit15012=0;
+    float q15012;
+    float t15012;
     for (int j = 0; j < TQREAL->nhits; j++) {
       int icab = TQREAL->cables[j] & icabbit;
       //if(icab == 15012) if(TQREAL->Q[j] > 100) hit15012 = 1; // for run 78381
-      if(icab == 15012) hit15012 = 1; 
+      if(icab == 15012) {
+        hit15012 = 1; 
+        q15012 = TQREAL->Q[j];
+        t15012 = TQREAL->T[j];
+      }
     }
     if (!hit15012) continue;
-    
+    h_monitor_q->Fill(t_of_day, q15012);
+    h_monitor_t->Fill(t15012);
+   
     rootread->skread(); // fill hit information
     
     //cout << "NEVSK: " << HEAD->nevsk << " NQISK: " << rootread->nqisk << endl;

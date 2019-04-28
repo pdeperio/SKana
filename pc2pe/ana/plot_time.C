@@ -14,19 +14,23 @@
   TString FileNames[nFiles] = {
     "pc2pe_tst061892_to_5.root",
     "pc2pe_tst080871_to_5.root",
-    "pc2pe_tst080885.root",
+    //"pc2pe_tst080885.root",
+    "pc2pe_tst081028.root",
     "pc2pe_tst061889.root",
     "pc2pe_tst080877.root",
-    "pc2pe_tst080884_and_6.root"
+    //"pc2pe_tst080884_and_6.root",
+    "pc2pe_tst081030.root"
   };
 
   TString FileTitles[nFiles] = {
     "SK4 Low", // (61892-61895)",
     "SK5 Low", // (80871-80875)",
-    "SK5 Low Inv.", // (80885)",
+    //"SK5 Low Inv.", // (80885)",
+    "SK5 Low New", // (80885)",
     "SK4 High", // (61889)",
     "SK5 High", // (80877)",
-    "SK5 High Inv." // (80884, 80886)"
+    //"SK5 High Inv." // (80884, 80886)"
+    "SK5 High New" // (80884, 80886)"
   };
 
   TString TimeAxis = "#splitline{%Y-%m-%d}{%H:%M}";
@@ -52,7 +56,8 @@
 
     // Timing cut on SK5 Low Inv. for laser stability
     if (ifile==2) {
-      float TimeCut = 1553583000;
+      //float TimeCut = 1553583000;  // Inv.
+      float TimeCut = 1555993848;  // New
       TLine *l_TimeCut = new TLine(TimeCut, 0, TimeCut, 500);
       l_TimeCut->SetLineColor(kGreen-2);
       l_TimeCut->SetLineStyle(2);

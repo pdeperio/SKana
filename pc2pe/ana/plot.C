@@ -12,19 +12,23 @@
   TString FileNames[nFiles] = {
     "pc2pe_tst061892_to_5.root",
     "pc2pe_tst080871_to_5.root",
-    "pc2pe_tst080885.root",
+    //"pc2pe_tst080885.root",
+    "pc2pe_tst081028.root",
     "pc2pe_tst061889.root",
     "pc2pe_tst080877.root",
-    "pc2pe_tst080884_and_6.root"
+    //"pc2pe_tst080884_and_6.root",
+    "pc2pe_tst081030.root"
   };
 
   TString FileTitles[nFiles] = {
     "SK4 Low", // (61892-61895)",
     "SK5 Low", // (80871-80875)",
-    "SK5 Low Inv.", // (80885)",
+    //"SK5 Low Inv.", // (80885)",
+    "SK5 Low New", // (80885)",
     "SK4 High", // (61889)",
     "SK5 High", // (80877)",
-    "SK5 High Inv." // (80884, 80886)"
+    //"SK5 High Inv." // (80884, 80886)"
+    "SK5 High New" // (80884, 80886)"
   };
 
   float TimeDuration[nFiles] = {
@@ -33,7 +37,8 @@
     18229,
     728,
     1725,
-    692
+    //692
+    1722
   };
   
 
@@ -183,7 +188,7 @@
       else hnqisk->Draw("sames");
 
       hnqisk->GetXaxis()->SetRangeUser(0, 500);
-      hnqisk->GetYaxis()->SetRangeUser(0, 0.3);
+      hnqisk->GetYaxis()->SetRangeUser(0, 0.41);
       
       leg_nqisk->AddEntry(hnqisk, FileTitles[ifile]+Form(" (%d, %.0f, %.0f)", nevents, hnqisk->GetMean(), hnqisk->GetRMS()), "l");
     }
@@ -609,12 +614,27 @@
   // Read official bad channel list
   vector<int> badchannels;
   ifstream fbadchannel;
-  fbadchannel.open("badchannels.txt");
+  fbadchannel.open("badchannels_sk5.txt");
   while (!fbadchannel.eof()){
     int badchannel;
     fbadchannel >> badchannel;
     badchannels.push_back(badchannel);
   }
+
+  // Read old official SK4 table
+  vector<double> sk4_pgain;
+  ifstream fsk4pgain;
+  fsk4pgain.open("pgain_30.00");
+
+  string line;
+  getline(fsk4pgain, line);
+
+  while (!fsk4pgain.eof()){
+    int channel;
+    double pgain;
+    fsk4pgain >> channel >> pgain;
+    sk4_pgain.push_back(pgain);
+  }  
 
   if (bNormByTime) break;
   
@@ -627,10 +647,11 @@
   int pmtflag[nFiles/2] = {0};
 
   int channel;
-  float rhit[nFiles/2], qmean[nFiles/2], ratio[nFiles/2], ratio_norm[nFiles/2];
+  float rhit[nFiles/2], qmean[nFiles/2], ratio[nFiles/2], ratio_norm[nFiles/2], ratio_norm_sk4;
   float rhit_err[nFiles/2], qmean_err[nFiles/2], ratio_err[nFiles/2], ratio_norm_err[nFiles/2];
   int pc2pe_bad[nFiles/2]={0}, badchannel;
-    
+  int pc2pe_bad_sk4;
+  
   float rmean[nFiles/2] = {0};
   float rmean_err[nFiles/2] = {0};
 
@@ -643,6 +664,9 @@
       t_pc2pe->Branch("channel", &channel, "channel/I");
       t_pc2pe->Branch("group", &group, "group/I");
       t_pc2pe->Branch("badchannel", &badchannel, "badchannel/I");
+      t_pc2pe->Branch("rationorm_sk4official", &ratio_norm_sk4, "rationorm_sk4official/F");
+      t_pc2pe->Branch("pmtflag_sk4official", &pmtflag[ifile], "pmtflag_sk4official/I");
+      t_pc2pe->Branch("pc2pe_bad_sk4official", &pc2pe_bad_sk4, "pc2pe_bad_sk4official/I");
     }
     t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
@@ -785,6 +809,11 @@
 	break;
       }
     }
+
+    // Official SK4 table
+    ratio_norm_sk4 = sk4_pgain[channel-1];
+    pc2pe_bad_sk4 = 0;
+    if (sk4_pgain[channel-1] == 1.00000000000) pc2pe_bad_sk4 = 1;    
 
     t_pc2pe->Fill();
   }

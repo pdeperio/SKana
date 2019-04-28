@@ -5,12 +5,16 @@
   const int nFiles = 3;
 
   TString TreeVarNames[nFiles] = {
-    "_sk4", "_sk5", "_sk5i"
+    "_sk4", "_sk5", "_sk5i"//, "_sk4official"
   }
-  int Colors[nFiles] = {kBlack, kRed, kBlue};
+  int Colors[nFiles] = {kBlack, kRed, kBlue};//, kGreen-2};
 
   TString FileTitles[nFiles] = {
-    "SK4", "SK5", "SK5 Inv."
+    "SK4",
+    "SK5",
+    //"SK5 Inv.",
+    "SK5 New"
+    //"SK4 official"
   };
 
   TFile *infile = new TFile("pc2pe_output.root");
@@ -45,7 +49,7 @@
       if (jpmttype<nPMTtypes-2) cut_pmttype += " || ";
     }
   
-    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile], cut_pmttype);
+    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile], cut_pmttype+" && pc2pe_bad"+TreeVarNames[ifile]+"==0");
 
     h_pc2pe[ifile]->SetLineColor(Colors[ifile]);
     h_pc2pe[ifile]->SetLineWidth(2);
@@ -119,17 +123,21 @@
   // 2D Distributions
   TH2D *h_pc2pe_2d[nFiles];
   
-  for (int ifile=0; ifile<nFiles-1; ifile++) {
+  for (int ifile=0; ifile<nFiles; ifile++) {
+    for (int jfile=ifile+1; jfile<nFiles; jfile++) {
 
-    TCanvas *c_pc2pe_2d = new TCanvas(1);
+      TCanvas *c_pc2pe_2d = new TCanvas(1);
 
-    TString histname = "pc2pe_2d"+TreeVarNames[ifile];
-    h_pc2pe_2d[ifile] = new TH2D(histname, ";pc2pe"+TreeVarNames[ifile]+" Ratio;pc2pe"+TreeVarNames[ifile+1]+" Ratio;Number of Channels", 50, 0.1, 2, 50, 0.1, 2);
+      TString histname = "pc2pe_2d"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile];
+      h_pc2pe_2d[ifile] = new TH2D(histname, ";pc2pe "+FileTitles[ifile]+";pc2pe "+FileTitles[jfile]+";Number of Channels", 50, 0.1, 2, 50, 0.1, 2);
     
-    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":rationorm"+TreeVarNames[ifile+1]);
+      pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":rationorm"+TreeVarNames[jfile]);
 
-    h_pc2pe_2d[ifile]->Draw("colz");
+      h_pc2pe_2d[ifile]->Draw("colz");
 
-    c_pc2pe_2d->Print("figures/pc2pe"+TreeVarNames[ifile]+"_vs"+TreeVarNames[ifile+1]+".png");
+      h_pc2pe_2d[ifile]->SetTitle(Form("Correlation = %.2f", h_pc2pe_2d[ifile]->GetCorrelationFactor()));
+
+      c_pc2pe_2d->Print("figures/pc2pe"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+".png");
+    }
   }
 }

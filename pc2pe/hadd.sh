@@ -8,4 +8,6 @@
 ./hadd -f -t output/pc2pe_tst080884_and_6.root output/8088[4,6]/*.root &
 ./hadd -f -t output/pc2pe_tst080885.root output/80885/*.root &
 
+./hadd -f -t output/pc2pe_tst081028.root output/81028/*.root &
+./hadd -f -t output/pc2pe_tst081030.root output/81030/*.root &
 
