@@ -1,8 +1,8 @@
 {
-  const int nFiles = 3;
+  const int nFiles = 5;
   
   TString TreeVarNames[nFiles] = {
-    "_sk4", "_sk5", "_sk5i"
+    "_sk4", "_sk5", "_sk5i", "_sk5n", "_sk5avg"
   }
 
   int channel;
@@ -14,7 +14,7 @@
   for (int ifile=0; ifile<nFiles; ifile++) {
 
     ofstream pgain_file;
-    pgain_file.open("pgain"+TreeVarNames[ifile]+"_19apr22");
+    pgain_file.open("pgain"+TreeVarNames[ifile]+"_19apr29");
     pgain_file << "   0  0  11146" << endl;  // Header (Version ? NPMTs)
 
     pc2pe->SetBranchAddress("rationorm"+TreeVarNames[ifile], &rationorm);

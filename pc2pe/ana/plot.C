@@ -1,34 +1,90 @@
-{  
-  gStyle->SetOptStat(0);
+void print_avgerr(TH1D *h_in) {
+  double avgErr = 0;
+  int nBins = 0;
+
+  // PMT Channel binning
+  for (int ibin=2; ibin<=h_in->GetNbinsX(); ibin++) {
+    if (h_in->GetBinContent(ibin)>0 && h_in->GetBinError(ibin)>0) {
+      avgErr += h_in->GetBinError(ibin)/h_in->GetBinContent(ibin);
+      nBins++;
+    }
+  }
+  avgErr /= nBins;
+  cout << h_in->GetName() << " avg. rel. err. = " << avgErr << endl;
+}
+
+// https://ned.ipac.caltech.edu/level5/Leo/Stats4_5.html
+TH1D* calc_weighted_average(TH1D *h_in1, TH1D *h_in2) {
   
+  TH1D *h_avg = (TH1D*)h_in1->Clone();
+  h_avg->SetName(Form("%savg", h_in1->GetName()));
+  h_avg->Reset();
+  
+  for (int ibin=0; ibin<=h_in1->GetNbinsX()+1; ibin++) {
+
+    double err1 = h_in1->GetBinError(ibin);
+    double err2 = h_in2->GetBinError(ibin);
+    if (err1<=0 || err2<=0 || err1!=err1 || err2!=err2) {
+      h_avg->SetBinContent(ibin, 1);
+      h_avg->SetBinError(ibin, 0);
+      continue; 
+    }
+
+    double val1 = h_in1->GetBinContent(ibin);
+    double val2 = h_in2->GetBinContent(ibin);
+    
+    double sum_mean_over_err2 = val1/(err1*err1) + val2/(err2*err2);
+    double sum_err2 = 1/((err1*err1) + (err2*err2));
+    
+    h_avg->SetBinContent(ibin, sum_mean_over_err2/sum_err2);
+    h_avg->SetBinError(ibin, sqrt(1/sum_err2));
+
+    cout << val1 << " " << val2 << " " << err1 << " " << err2 << " " << sum_mean_over_err2/sum_err2 << " " << sqrt(1/sum_err2) << endl;
+  }
+
+  print_avgerr(h_avg);
+  return h_avg;
+}
+
+void plot() {  
+  gStyle->SetOptStat(0);
+  gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
+
   TString datadir = "../output/";
 
   const int nChannels = 11147;
   
-  const int nFiles = 6;
-
-  int Colors[nFiles] = {kBlack, kRed, kBlue, kGray+1, kMagenta, kCyan+1};
+  const int nFiles = 8;
+  
+  int Colors[nFiles] = {kBlack, kRed, kBlue, kGreen-2, kGray+1, kMagenta, kCyan+1, kGreen};
 
   TString FileNames[nFiles] = {
     "pc2pe_tst061892_to_5.root",
     "pc2pe_tst080871_to_5.root",
-    //"pc2pe_tst080885.root",
-    "pc2pe_tst081028.root",
+    "pc2pe_tst080885.root", // Inv
+    "pc2pe_tst081028.root", // New
     "pc2pe_tst061889.root",
     "pc2pe_tst080877.root",
-    //"pc2pe_tst080884_and_6.root",
-    "pc2pe_tst081030.root"
+    "pc2pe_tst080884_and_6.root", // Inv
+    "pc2pe_tst081030.root" // New
   };
 
   TString FileTitles[nFiles] = {
     "SK4 Low", // (61892-61895)",
     "SK5 Low", // (80871-80875)",
-    //"SK5 Low Inv.", // (80885)",
+    "SK5 Low Inv.", // (80885)",
     "SK5 Low New", // (80885)",
     "SK4 High", // (61889)",
     "SK5 High", // (80877)",
-    //"SK5 High Inv." // (80884, 80886)"
+    "SK5 High Inv.", // (80884, 80886)"
     "SK5 High New" // (80884, 80886)"
+  };
+
+  const int nConfigs = nFiles/2 + 1; // +1 for SK5 weighted average
+  enum config_enum {sk4, sk5, sk5i, sk5n, sk5avg};
+  
+  TString TreeVarNames[nConfigs] = {
+    "_sk4", "_sk5", "_sk5i", "_sk5n", "_sk5avg"
   };
 
   float TimeDuration[nFiles] = {
@@ -37,21 +93,18 @@
     18229,
     728,
     1725,
-    //692
-    1722
+    692,  // Inv
+    1722  // New
   };
   
-
-  TString TreeVarNames[nFiles/2] = {
-    "_sk4", "_sk5", "_sk5i"
-  };
-
   // Must be propagated to llaser_qb_c.cc
   float ontime_window[nFiles][2] = {
     1180, 1400,
     1000, 1300,
     1000, 1300,
+    1000, 1300,
     1140, 1200,
+    975, 1038,
     975, 1038,
     975, 1038
   };
@@ -63,6 +116,7 @@
     450, 750,
     420, 480,
     420, 483,
+    420, 483,
     420, 483
     //400, 800,
     //410, 900,
@@ -72,9 +126,9 @@
     //410, 600    
   };
 
-  float rHitThresholds[nFiles/2] = {0.009, 0.005, 0.005};
+  float rHitThresholds[nFiles/2] = {0.009, 0.005, 0.005, 0.005};
   //float QMeanThresholds[nFiles/2] = {22, 22, 22};
-  float QMeanThresholds[nFiles/2] = {50, 50, 50};
+  float QMeanThresholds[nFiles/2] = {50, 50, 50, 50};
 
   TCanvas *c_ttof = new TCanvas("c_ttof","c_ttof", 0, 0, 1200, 600);
   c_ttof->SetLogy(1);
@@ -101,23 +155,17 @@
 
   //TH1D *h_nhit_occu[nFiles/2];
   TH1D *h_qmean[nFiles/2];
-  TH1D *h_rhit_occu[nFiles/2];
-  
-  TH1D *h_group_qmean[nFiles/2];
-  TH1D *h_group_rhit_occu[nFiles/2];
-  TH1D *h_group_pc2pe[nFiles/2];
 
-  TTree *ConnectionTable[nFiles/2];
+  TH1D *h_rhit_occu[nFiles/2];
+  TH1D *h_rhit_occu_wtf[nFiles/2]; // Needed to save previous histogram, which doesn't survive later
+  
+  TTree *ConnectionTable[nConfigs];
 
   bool bNormByTime = 0;
 
   for (int ifile=0; ifile<nFiles; ifile++) {
     
     TFile *infile = new TFile(datadir+FileNames[ifile]);
-
-    TTree *ConnectionTableTmp = (TTree*)infile->Get("ConnectionTable");
-    if (ifile<nFiles/2) 
-      ConnectionTable[ifile] = (TTree*)ConnectionTableTmp->Clone();
     
     ////////////////////////////////////////////
     // Plot TToF
@@ -127,7 +175,7 @@
 
     ttof->SetLineColor(Colors[ifile]);
     ttof->SetLineWidth(2);
-    if (ifile%3==2) ttof->SetLineStyle(2);
+    if (ifile%(nFiles/2)==nFiles/2-1) ttof->SetLineStyle(2);
 
     // Normalize to total number of laser trigger events
     int nevents = hnqisk->Integral();
@@ -179,7 +227,6 @@
       //hnqisk->Sumw2();
       hnqisk->SetLineColor(Colors[ifile]);
       hnqisk->SetLineWidth(2);
-      if (ifile%3==2) hnqisk->SetLineStyle(2);
 
       hnqisk->Scale(1./normalization);
       hnqisk->SetTitle("Total Number of Hits;Nqisk;/"+axis_norm);
@@ -201,7 +248,6 @@
       //hnHitsOnTime->Sumw2();
       hnHitsOnTime->SetLineColor(Colors[ifile]);
       hnHitsOnTime->SetLineWidth(2);
-      if (ifile%3==2) hnHitsOnTime->SetLineStyle(2);
 
       hnHitsOnTime->Scale(1./normalization);
       hnHitsOnTime->SetTitle("Total Number of On-Time Hits;On-time Hits;/"+axis_norm);
@@ -225,7 +271,6 @@
       hQOnTime->Rebin(5);
       hQOnTime->SetLineColor(Colors[ifile]);
       hQOnTime->SetLineWidth(2);
-      if (ifile%3==2) hQOnTime->SetLineStyle(2);
 
       hQOnTime->Scale(1./normalization);
       hQOnTime->SetTitle("On-time Charge;Charge (pe);/"+axis_norm);
@@ -249,8 +294,9 @@
       
       h_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Cable;Q_{mean} (pe)");
 
-      h_qmean[ifile-3] = (TH1D*)h_qisk_ton->Clone();
+      h_qmean[ifile-nFiles/2] = (TH1D*)h_qisk_ton->Clone();
 
+      h_qmean[ifile-nFiles/2]->SetName("h_qisk_ton"+TreeVarNames[ifile-nFiles/2]);
       //leg_qisk_ton->AddEntry(h_qisk_ton, FileTitles[ifile], "l");
     }
     
@@ -266,11 +312,12 @@
       h_nhit_ton->SetMarkerColor(Colors[ifile]);
       h_nhit_ton->SetMarkerSize(0.1);
       h_nhit_ton->SetLineWidth(2);
-      if (ifile%3==2) h_nhit_ton->SetLineStyle(2);
 
       h_nhit_ton->Scale(1./normalization);
       h_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Cable;On-time Mean Hit Rate (/"+axis_norm+")");
-
+      //TString histname = h_nhit_ton->GetName()+TreeVarNames[ifile];
+      //h_nhit_ton->SetName(histname);
+      
       //if (ifile==nFiles/2)
       h_nhit_ton->Draw();
       //else h_nhit_ton->Draw("sames");
@@ -281,6 +328,8 @@
       
       //leg_nhit_ton->AddEntry(h_nhit_ton, FileTitles[ifile], "l");
       c_nhit_ton->Print("figures/nhit_ton"+TreeVarNames[ifile]+".png");
+
+      //print_avgerr(h_nhit_ton);
     }
 
     ////////////////////////////////////////////
@@ -295,10 +344,11 @@
       h_nhit_toff->SetMarkerColor(Colors[ifile]);
       h_nhit_toff->SetMarkerSize(0.1);
       h_nhit_toff->SetLineWidth(2);
-      if (ifile%3==2) h_nhit_toff->SetLineStyle(2);
 
       h_nhit_toff->Scale(1./normalization);
       h_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Cable;Off-time Mean Hit Rate (/"+axis_norm+")");
+      //TString histname = h_nhit_toff->GetName()+TreeVarNames[ifile];
+      //h_nhit_toff->SetName(histname);
 
       //if (ifile==nFiles/2)
       h_nhit_toff->Draw();
@@ -310,6 +360,7 @@
       
       //leg_nhit_toff->AddEntry(h_nhit_toff, FileTitles[ifile], "l");
       c_nhit_toff->Print("figures/nhit_toff"+TreeVarNames[ifile]+".png");
+      //print_avgerr(h_nhit_toff);
     }
 
     ////////////////////////////////////////////
@@ -325,9 +376,10 @@
       h_nhit_ton_minus_toff->SetMarkerColor(Colors[ifile]);
       h_nhit_ton_minus_toff->SetMarkerSize(0.1);
       h_nhit_ton_minus_toff->SetLineWidth(2);
-      if (ifile%3==2) h_nhit_ton_minus_toff->SetLineStyle(2);
 
       h_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
+      TString histname = h_nhit_ton_minus_toff->GetName()+TreeVarNames[ifile];
+      h_nhit_ton_minus_toff->SetName(histname);
 
       //if (ifile==nFiles/2)
       h_nhit_ton_minus_toff->Draw();
@@ -338,6 +390,8 @@
       h_nhit_ton_minus_toff->GetYaxis()->SetRangeUser(-0.005, maxY);
       
       //leg_nhit_ton_minus_toff->AddEntry(h_nhit_ton_minus_toff, FileTitles[ifile], "l");
+
+      //print_avgerr(h_nhit_ton_minus_toff);
     }
 
     ///////////////////////////////
@@ -345,136 +399,26 @@
     if (ifile<nFiles/2) {
 
       TH1D *h_rhit_occu_tmp = (TH1D*)h_nhit_ton_minus_toff->Clone();
-      for(int ibin=0 ; ibin<=h_rhit_occu_tmp->GetNbinsX() ; ++ibin) 
-	h_rhit_occu_tmp->SetBinContent(ibin, -log(1-h_rhit_occu_tmp->GetBinContent(ibin)));
+      for(int ibin=0 ; ibin<=h_rhit_occu_tmp->GetNbinsX() ; ++ibin) {
+
+	double ValBeforeCorr = h_rhit_occu_tmp->GetBinContent(ibin);
+	double ValAfterCorr = -log(1 - ValBeforeCorr);
+	h_rhit_occu_tmp->SetBinContent(ibin, ValAfterCorr);
+
+	// Not perfect error propogation
+	h_rhit_occu_tmp->SetBinError(ibin, h_rhit_occu_tmp->GetBinError(ibin) * ValAfterCorr/ValBeforeCorr);
+      }
 
       h_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
 
-      h_rhit_occu[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
-      //h_nhit_occu[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
+      h_rhit_occu_wtf[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
+      h_rhit_occu_wtf[ifile]->SetName("h_rhit_occu"+TreeVarNames[ifile]);
       //h_nhit_occu[ifile]->Scale(float(normalization));
       //h_nhit_occu[ifile]->GetYaxis()->SetTitle("Number of Events");
-    }    
+      h_rhit_occu[ifile] = h_rhit_occu_wtf[ifile];
 
-    //////////////////////////////////////////////////////////////////
-    /////////////// Below same but for grouped PMTs //////////////////
-    
-    ////////////////////////////////////////////
-    // Plot On-time charge per group for high intensity only
-    if (ifile>=nFiles/2) {
-
-      h_group_qisk_ton->Sumw2();
-      
-      h_group_qisk_ton->Scale(1./normalization);
-      
-      h_group_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Group;Q_{mean} (pe)");
-
-      h_group_qmean[ifile-3] = (TH1D*)h_group_qisk_ton->Clone();
-      
-      //leg_qisk_ton->AddEntry(h_group_qisk_ton, FileTitles[ifile], "l");
+      //print_avgerr(h_rhit_occu[ifile]);
     }
-    
-    ////////////////////////////////////////////
-    // Plot On-time hits per group for low intensity only
-    if (ifile<nFiles/2) {
-      //c_nhit_ton->cd();
-      TCanvas *c_nhit_ton = new TCanvas(Form("c_group_nhit_ton_%d",ifile),Form("c_group_nhit_ton_%d",ifile), 500, 500, 600, 400);
-
-      h_group_nhit_ton->Sumw2();
-      
-      h_group_nhit_ton->SetLineColor(Colors[ifile]);
-      h_group_nhit_ton->SetMarkerColor(Colors[ifile]);
-      h_group_nhit_ton->SetMarkerSize(0.1);
-      h_group_nhit_ton->SetLineWidth(2);
-      if (ifile%3==2) h_group_nhit_ton->SetLineStyle(2);
-
-      h_group_nhit_ton->Scale(1./normalization);
-      h_group_nhit_ton->SetTitle(FileTitles[ifile]+";PMT Group;On-time Mean Hit Rate (/"+axis_norm+")");
-
-      //if (ifile==nFiles/2)
-      h_group_nhit_ton->Draw();
-      //else h_group_nhit_ton->Draw("sames");
-
-      //h_group_nhit_ton->GetXaxis()->SetRangeUser(4e5, 1e6);
-      float maxY = h_group_nhit_ton->GetMaximum();
-      h_group_nhit_ton->GetYaxis()->SetRangeUser(-0.01, maxY);
-      
-      //leg_nhit_ton->AddEntry(h_group_nhit_ton, FileTitles[ifile], "l");
-      c_nhit_ton->Print("figures/nhit_ton"+TreeVarNames[ifile]+".png");
-    }
-
-    ////////////////////////////////////////////
-    // Plot Off-time hits per group for low intensity only
-    if (ifile<nFiles/2) {
-      //c_nhit_toff->cd();
-      TCanvas *c_nhit_toff = new TCanvas(Form("c_group_nhit_toff_%d",ifile),Form("c_group_nhit_toff_%d",ifile), 500, 500, 600, 400);
-
-      h_group_nhit_toff->Sumw2();
-      
-      h_group_nhit_toff->SetLineColor(Colors[ifile]);
-      h_group_nhit_toff->SetMarkerColor(Colors[ifile]);
-      h_group_nhit_toff->SetMarkerSize(0.1);
-      h_group_nhit_toff->SetLineWidth(2);
-      if (ifile%3==2) h_group_nhit_toff->SetLineStyle(2);
-
-      h_group_nhit_toff->Scale(1./normalization);
-      h_group_nhit_toff->SetTitle(FileTitles[ifile]+";PMT Group;Off-time Mean Hit Rate (/"+axis_norm+")");
-
-      //if (ifile==nFiles/2)
-      h_group_nhit_toff->Draw();
-      //else h_group_nhit_toff->Draw("sames");
-
-      //h_group_nhit_toff->GetXaxis()->SetRangeUser(4e5, 1e6);
-      float maxY = h_group_nhit_toff->GetMaximum();
-      h_group_nhit_toff->GetYaxis()->SetRangeUser(-0.01, maxY);
-      
-      //leg_nhit_toff->AddEntry(h_group_nhit_toff, FileTitles[ifile], "l");
-      c_nhit_toff->Print("figures/nhit_toff"+TreeVarNames[ifile]+".png");
-    }
-
-    ////////////////////////////////////////////
-    // Plot On-time minus Off-time hits per group for low intensity only
-    if (ifile<nFiles/2) {
-
-      TCanvas *c_nhit_ton_minus_toff = new TCanvas(Form("c_group_nhit_ton_minus_toff_%d",ifile),Form("c_group_nhit_ton_minus_toff_%d",ifile), 500, 500, 600, 400);
-
-      TH1D *h_group_nhit_ton_minus_toff = (TH1D*)h_group_nhit_ton->Clone();
-      h_group_nhit_ton_minus_toff->Add(h_group_nhit_toff, -1);
-      
-      h_group_nhit_ton_minus_toff->SetLineColor(Colors[ifile]);
-      h_group_nhit_ton_minus_toff->SetMarkerColor(Colors[ifile]);
-      h_group_nhit_ton_minus_toff->SetMarkerSize(0.1);
-      h_group_nhit_ton_minus_toff->SetLineWidth(2);
-      if (ifile%3==2) h_group_nhit_ton_minus_toff->SetLineStyle(2);
-
-      h_group_nhit_ton_minus_toff->SetTitle(FileTitles[ifile]+";PMT Group;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
-
-      //if (ifile==nFiles/2)
-      h_group_nhit_ton_minus_toff->Draw();
-      //else h_group_nhit_ton_minus_toff->Draw("sames");
-
-      //h_group_nhit_ton_minus_toff->GetXaxis()->SetRangeUser(4e5, 1e6);
-      float maxY = h_group_nhit_ton_minus_toff->GetMaximum();
-      h_group_nhit_ton_minus_toff->GetYaxis()->SetRangeUser(-0.005, maxY);
-      
-      //leg_nhit_ton_minus_toff->AddEntry(h_group_nhit_ton_minus_toff, FileTitles[ifile], "l");
-    }
-
-    ///////////////////////////////
-    // Occupancy correction
-    if (ifile<nFiles/2) {
-
-      TH1D *h_group_rhit_occu_tmp = (TH1D*)h_group_nhit_ton_minus_toff->Clone();
-      //for(int ibin=0 ; ibin<=h_group_rhit_occu_tmp->GetNbinsX() ; ++ibin)
-      //h_group_rhit_occu_tmp->SetBinContent(ibin, -log(1-h_group_rhit_occu_tmp->GetBinContent(ibin)));
-      
-      //h_group_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Group;(Ontime - Offtime) Hit Rate (/event)");
-
-      h_group_rhit_occu[ifile] = (TH1D*)h_group_rhit_occu_tmp->Clone();
-      //h_group_nhit_occu[ifile] = (TH1D*)h_group_rhit_occu_tmp->Clone();
-      //h_group_nhit_occu[ifile]->Scale(float(normalization));
-      //h_group_nhit_occu[ifile]->GetYaxis()->SetTitle("Number of Events");
-    }    
   }
 
   c_ttof->cd();
@@ -496,36 +440,29 @@
   //c_qisk_ton->cd();
   //leg_qisk_ton->Draw();
 
+  TH1D *h_qmean_over_rhit[nConfigs];
+  TH1D *h_pc2pe[nConfigs];
+
   for (int ifile=0; ifile<nFiles/2; ifile++) {
 
     // Hit Rate
     TCanvas *c_rhit_occu = new TCanvas(Form("c_rhit_occu_%d",ifile),Form("c_rhit_occu_%d",ifile), 500, 500, 600, 400);
-      
+    
     h_rhit_occu[ifile]->SetLineColor(Colors[ifile]);
     h_rhit_occu[ifile]->SetMarkerColor(Colors[ifile]);
     h_rhit_occu[ifile]->SetMarkerSize(0.1);
     h_rhit_occu[ifile]->SetLineWidth(2);
-    if (ifile%3==2) h_rhit_occu[ifile]->SetLineStyle(2);
+
     h_rhit_occu[ifile]->Draw();
 
     TLine *l_rHitThresh = new TLine(0, rHitThresholds[ifile], nChannels, rHitThresholds[ifile]);
-    l_rHitThresh->SetLineColor(Colors[ifile+3]);
+    l_rHitThresh->SetLineColor(Colors[ifile+nFiles/2]);
     l_rHitThresh->SetLineWidth(2);
     l_rHitThresh->Draw();
 
     c_rhit_occu->Print("figures/rhit"+TreeVarNames[ifile]+".png");
 
-    double avgErr = 0;
-    int nBins = 0;
-    for (int ibin=1; ibin<=h_rhit_occu[ifile]->GetNbinsX(); ibin++) {
-      if (h_rhit_occu[ifile]->GetBinContent(ibin)) {
-	avgErr += h_rhit_occu[ifile]->GetBinError(ibin)/h_rhit_occu[ifile]->GetBinContent(ibin);
-	nBins++;
-      }
-    }
-    avgErr /= nBins;
-    cout << TreeVarNames[ifile] << " rhit avg. rel. err. = " << avgErr << endl;;
-
+    print_avgerr(h_rhit_occu[ifile]);
     
     // Number of Hits
     //TCanvas *c_nhit_occu = new TCanvas(Form("c_nhit_occu_%d",ifile),Form("c_nhit_occu_%d",ifile), 500, 500, 600, 400);
@@ -534,7 +471,7 @@
     //h_nhit_occu[ifile]->SetMarkerColor(Colors[ifile]);
     //h_nhit_occu[ifile]->SetMarkerSize(0.1);
     //h_nhit_occu[ifile]->SetLineWidth(2);
-    //if (ifile%3==2) h_nhit_occu[ifile]->SetLineStyle(2);
+    //if (ifile%(nFiles/2)==nFiles/2-1) h_nhit_occu[ifile]->SetLineStyle(2);
     //h_nhit_occu[ifile]->Draw();
 
     // Mean Charge    
@@ -544,7 +481,6 @@
     h_qmean[ifile]->SetMarkerColor(Colors[ifile]);
     h_qmean[ifile]->SetMarkerSize(0.1);
     h_qmean[ifile]->SetLineWidth(2);
-    if (ifile%3==2) h_qmean[ifile]->SetLineStyle(2);
     h_qmean[ifile]->Draw();
 
     float maxY = h_qmean[ifile]->GetMaximum();
@@ -552,69 +488,27 @@
     if (ifile==nFiles/2) h_qmean[ifile]->GetYaxis()->SetRangeUser(-10, 120);
 
     TLine *l_QMeanThresh = new TLine(0, QMeanThresholds[ifile], nChannels, QMeanThresholds[ifile]);
-    l_QMeanThresh->SetLineColor(Colors[ifile+3]);
+    l_QMeanThresh->SetLineColor(Colors[ifile+nFiles/2]);
     l_QMeanThresh->SetLineWidth(2);
     l_QMeanThresh->Draw();
 
     c_qmean->Print("figures/qmean"+TreeVarNames[ifile]+".png");
 
-    double avgErr = 0;
-    int nBins = 0;
-    for (int ibin=1; ibin<=h_qmean[ifile]->GetNbinsX(); ibin++) {
-      if (h_qmean[ifile]->GetBinContent(ibin)) {
-	avgErr += h_qmean[ifile]->GetBinError(ibin)/h_qmean[ifile]->GetBinContent(ibin);
-	nBins++;
-      }
-    }
-    avgErr /= nBins;
-    cout << TreeVarNames[ifile] << " Qmean avg. rel. err. = " << avgErr << endl;
-    
-    //////////////////////////////////////////////////////////////////
-    /////////////// Below same but for grouped PMTs //////////////////
-    
-    // Hit Rate
-    TCanvas *c_group_rhit_occu = new TCanvas(Form("c_group_rhit_occu_%d",ifile),Form("c_group_rhit_occu_%d",ifile), 500, 500, 600, 400);
-      
-    h_group_rhit_occu[ifile]->SetLineColor(Colors[ifile]);
-    h_group_rhit_occu[ifile]->SetMarkerColor(Colors[ifile]);
-    h_group_rhit_occu[ifile]->SetMarkerSize(0.1);
-    h_group_rhit_occu[ifile]->SetLineWidth(2);
-    if (ifile%3==2) h_group_rhit_occu[ifile]->SetLineStyle(2);
-    h_group_rhit_occu[ifile]->Draw();
+    print_avgerr(h_qmean[ifile]);
 
-    c_group_rhit_occu->Print("figures/group_rhit"+TreeVarNames[ifile]+".png");
-    // Number of Hits
-    //TCanvas *c_nhit_occu = new TCanvas(Form("c_nhit_occu_%d",ifile),Form("c_nhit_occu_%d",ifile), 500, 500, 600, 400);
-    //  
-    //h_group_nhit_occu[ifile]->SetLineColor(Colors[ifile]);
-    //h_group_nhit_occu[ifile]->SetMarkerColor(Colors[ifile]);
-    //h_group_nhit_occu[ifile]->SetMarkerSize(0.1);
-    //h_group_nhit_occu[ifile]->SetLineWidth(2);
-    //if (ifile%3==2) h_group_nhit_occu[ifile]->SetLineStyle(2);
-    //h_group_nhit_occu[ifile]->Draw();
+    // Take temporary division
+    h_qmean_over_rhit[ifile] = (TH1D*)h_qmean[ifile]->Clone();
+    h_qmean_over_rhit[ifile]->SetName("h_qmean_over_rhit"+TreeVarNames[ifile]);
+    h_qmean_over_rhit[ifile]->Divide(h_rhit_occu[ifile]);
+    print_avgerr(h_qmean_over_rhit[ifile]);
 
-    // Mean Charge    
-    TCanvas *c_group_qmean = new TCanvas(Form("c_group_qmean_%d",ifile),Form("c_group_qmean_%d",ifile), 500, 500, 600, 400);
-      
-    h_group_qmean[ifile]->SetLineColor(Colors[ifile]);
-    h_group_qmean[ifile]->SetMarkerColor(Colors[ifile]);
-    h_group_qmean[ifile]->SetMarkerSize(0.1);
-    h_group_qmean[ifile]->SetLineWidth(2);
-    if (ifile%3==2) h_group_qmean[ifile]->SetLineStyle(2);
-    h_group_qmean[ifile]->Draw();
-
-    float maxY = h_group_qmean[ifile]->GetMaximum();
-    h_group_qmean[ifile]->GetYaxis()->SetRangeUser(-10, maxY);
-    if (ifile==nFiles/2) h_group_qmean[ifile]->GetYaxis()->SetRangeUser(-10, 120);
-
-    c_group_qmean->Print("figures/group_qmean"+TreeVarNames[ifile]+".png");    
   }
 
 
   // Read official bad channel list
   vector<int> badchannels;
   ifstream fbadchannel;
-  fbadchannel.open("badchannels_sk5.txt");
+  fbadchannel.open("const/badchannels_sk5.txt");
   while (!fbadchannel.eof()){
     int badchannel;
     fbadchannel >> badchannel;
@@ -624,7 +518,7 @@
   // Read old official SK4 table
   vector<double> sk4_pgain;
   ifstream fsk4pgain;
-  fsk4pgain.open("pgain_30.00");
+  fsk4pgain.open("const/pgain_30.00");
 
   string line;
   getline(fsk4pgain, line);
@@ -634,7 +528,20 @@
     double pgain;
     fsk4pgain >> channel >> pgain;
     sk4_pgain.push_back(pgain);
-  }  
+  }
+  
+  // Read QE table
+  vector<double> sk4_qe;
+  ifstream fsk4qe;
+  fsk4qe.open("const/qetable4_1.dat");
+
+  while (!fsk4qe.eof()){
+    int channel;
+    double qe;
+    fsk4qe >> channel >> qe;
+    sk4_qe.push_back(qe);
+  }
+
 
   if (bNormByTime) break;
   
@@ -644,18 +551,31 @@
   
   int group = -1;
 
-  int pmtflag[nFiles/2] = {0};
+  int pmtflag[nConfigs] = {0};
 
   int channel;
-  float rhit[nFiles/2], qmean[nFiles/2], ratio[nFiles/2], ratio_norm[nFiles/2], ratio_norm_sk4;
-  float rhit_err[nFiles/2], qmean_err[nFiles/2], ratio_err[nFiles/2], ratio_norm_err[nFiles/2];
-  int pc2pe_bad[nFiles/2]={0}, badchannel;
+  float rhit[nConfigs], qmean[nConfigs], ratio[nConfigs], ratio_norm[nConfigs], ratio_norm_sk4;
+  float rhit_err[nConfigs], qmean_err[nConfigs], ratio_err[nConfigs], ratio_norm_err[nConfigs];
+  int pc2pe_bad[nConfigs]={0}, badchannel;
   int pc2pe_bad_sk4;
+  float qe_sk4;
+  int qe_bad_sk4;
   
-  float rmean[nFiles/2] = {0};
-  float rmean_err[nFiles/2] = {0};
+  float rmean[nConfigs] = {0};
+  
+  for (int ifile=0; ifile<nConfigs; ifile++) {
 
-  for (int ifile=0; ifile<nFiles/2; ifile++) {
+    TFile *infile = new TFile(datadir+FileNames[ifile]);
+
+    TTree *ConnectionTableTmp = (TTree*)infile->Get("ConnectionTable");
+
+    if (ifile<nConfigs) {
+      if (ifile==sk5avg) {
+	TFile *infile_sk5avg = new TFile(datadir+"pc2pe_tst081028_kludge4avg.root");
+	TTree *ConnectionTableTmp = (TTree*)infile_sk5avg->Get("ConnectionTable");
+      } 
+      ConnectionTable[ifile] = (TTree*)ConnectionTableTmp->Clone();
+    }
 
     ConnectionTable[ifile]->SetBranchAddress("group", &group);
     ConnectionTable[ifile]->SetBranchAddress("pmtflag", &pmtflag[ifile]);
@@ -667,134 +587,124 @@
       t_pc2pe->Branch("rationorm_sk4official", &ratio_norm_sk4, "rationorm_sk4official/F");
       t_pc2pe->Branch("pmtflag_sk4official", &pmtflag[ifile], "pmtflag_sk4official/I");
       t_pc2pe->Branch("pc2pe_bad_sk4official", &pc2pe_bad_sk4, "pc2pe_bad_sk4official/I");
+      t_pc2pe->Branch("qe_sk4", &qe_sk4, "qe_sk4/F");
+      t_pc2pe->Branch("qe_bad_sk4", &qe_bad_sk4, "qe_bad_sk4/I");
     }
-    t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("ratio"+TreeVarNames[ifile], &ratio[ifile], "ratio"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("ratio"+TreeVarNames[ifile], &ratio[ifile], "ratio"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("rationorm"+TreeVarNames[ifile], &ratio_norm[ifile], "rationorm"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("pc2pe_bad"+TreeVarNames[ifile], &pc2pe_bad[ifile], "pc2pe_bad"+TreeVarNames[ifile]+"/I");
 
-    t_pc2pe->Branch("rhit_err"+TreeVarNames[ifile], &rhit_err[ifile], "rhit_err"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("qmean_err"+TreeVarNames[ifile], &qmean_err[ifile], "qmean_err"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("ratio_err"+TreeVarNames[ifile], &ratio_err[ifile], "ratio_err"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("rhit_err"+TreeVarNames[ifile], &rhit_err[ifile], "rhit_err"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("qmean_err"+TreeVarNames[ifile], &qmean_err[ifile], "qmean_err"+TreeVarNames[ifile]+"/F");
+    //t_pc2pe->Branch("ratio_err"+TreeVarNames[ifile], &ratio_err[ifile], "ratio_err"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("rationorm_err"+TreeVarNames[ifile], &ratio_norm_err[ifile], "rationorm_err"+TreeVarNames[ifile]+"/F");
 
     t_pc2pe->Branch("pmtflag"+TreeVarNames[ifile], &pmtflag[ifile], "pmtflag"+TreeVarNames[ifile]+"/I");
 
+    //cout << "Bad Channels in Dataset: " << TreeVarNames[ifile].Data() << endl;
+
     // First get ratio normalization
-    cout << "Bad Channels in Dataset: " << TreeVarNames[ifile].Data() << endl;
 
+    // Except for later weighted average
+    if (ifile == sk5avg) {
+      h_pc2pe[ifile] = (TH1D*)h_qmean_over_rhit[sk5]->Clone();
+      h_pc2pe[ifile]->Reset();
+      h_pc2pe[ifile]->SetName("h_pc2pe"+TreeVarNames[ifile]);
+      continue;
+    }
+    
     int nGoodChannels = 0;
-
+    
     for (int ibin=2; ibin<=h_rhit_occu[ifile]->GetNbinsX(); ibin++) {
+
+      ConnectionTable[ifile]->GetEntry(ibin-2);
+
       rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
       qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
 
-      rhit_err[ifile] = h_rhit_occu[ifile]->GetBinError(ibin);
-      qmean_err[ifile] = h_qmean[ifile]->GetBinError(ibin);
-
-      ratio[ifile] = 1;
-      if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]) {	
-	ratio[ifile] = qmean[ifile]/rhit[ifile];
+      if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
+	  //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
+	  ) {	
+	ratio[ifile] = h_qmean_over_rhit[ifile]->GetBinContent(ibin);
 	rmean[ifile] += ratio[ifile];
-
-	// Error propagation
-	float qmean_relerr = qmean_err[ifile] / qmean[ifile];
-	float rhit_relerr = rhit_err[ifile] / rhit[ifile];
-	
-	ratio_err[ifile] = ratio[ifile]*sqrt(qmean_relerr*qmean_relerr + rhit_relerr*rhit_relerr);
-	rmean_err[ifile] += ratio_err[ifile]*ratio_err[ifile];
 
 	nGoodChannels++;
       }
-
-      else cout << ibin-1 << endl;
+      //else cout << ibin-1 << endl;
     }
-    
     rmean[ifile] /= (float)nGoodChannels;
-    rmean_err[ifile] = sqrt(rmean_err[ifile]);
-    rmean_err[ifile] /= (float)nGoodChannels;
+
+    h_pc2pe[ifile] = (TH1D*)h_qmean_over_rhit[ifile]->Clone();
+    h_pc2pe[ifile]->SetName("h_pc2pe"+TreeVarNames[ifile]);
+    h_pc2pe[ifile]->Scale(1/rmean[ifile]);
     
-    cout << "Total bad channels = " << nChannels - 1 - nGoodChannels << endl << endl;
-
-    cout << TreeVarNames[ifile] << " rmean = " << rmean[ifile] << " +/- " << rmean_err[ifile] << endl;
-
-    ////////////////////////////////////////////////////////////
-    /////////////// Below for grouped PMTs //////////////////
-    h_group_pc2pe[ifile] = (TH1D*)h_group_qmean[ifile]->Clone();
-    h_group_pc2pe[ifile]->Divide(h_group_rhit_occu[ifile]);
-    int nGroups = 0;
-    float rmean_group = 0;
-
-    for (int group=1; group<=h_group_pc2pe[ifile]->GetNbinsX(); group++) {
-
-      double group_ratio = h_group_pc2pe[ifile]->GetBinContent(group);
-
-      if (group_ratio<=0) continue;
-
-      rmean_group += group_ratio;
-      nGroups++;	
-    }
-    rmean_group /= (float)nGroups;
-    h_group_pc2pe[ifile]->Scale(1/rmean_group); 
+    //cout << TreeVarNames[ifile] << " rmean = " << rmean[ifile] << endl;
   }
-
-  TCanvas *c_group_pc2pe = new TCanvas("c_group_pc2pe","c_group_pc2pe", 500, 500, 600, 400);
-  TLegend *leg_group_pc2pe = new TLegend(0.2, 0.75, 0.88, 0.85);
-  leg_group_pc2pe->SetNColumns(3);
   
-  for (int ifile=0; ifile<nFiles/2; ifile++) {
-    h_group_pc2pe[ifile]->SetLineColor(Colors[ifile]);
-    h_group_pc2pe[ifile]->SetLineWidth(2);
-    h_group_pc2pe[ifile]->GetYaxis()->SetTitle("Relative Gain (pc2pe ratio)");
-    h_group_pc2pe[ifile]->GetYaxis()->SetRangeUser(0.95, 1.07);
-    if (!ifile) h_group_pc2pe[ifile]->Draw();
-    else h_group_pc2pe[ifile]->Draw("sames");
-      
-    leg_group_pc2pe->AddEntry(h_group_pc2pe[ifile], FileTitles[ifile].ReplaceAll(" Low",""), "l");
-  }
-
-  leg_group_pc2pe->Draw();
-  c_group_pc2pe->Print("figures/group_pc2pe.png");    
-
-  //t_pc2pe[ifile] = new TTree("pc2pe", FileTitles[ifile].ReplaceAll(" Low", ""));
-  
-  // Then fill tree with normalized ratios
   for (int ibin=2; ibin<=h_rhit_occu[0]->GetNbinsX(); ibin++) {
 
     channel = ibin-1;
     
-    for (int ifile=0; ifile<nFiles/2; ifile++) {
+    for (int ifile=0; ifile<nConfigs; ifile++) {
 
       ConnectionTable[ifile]->GetEntry(channel-1);
 
-      rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
-      qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
-
-      rhit_err[ifile] = h_rhit_occu[ifile]->GetBinError(ibin);
-      qmean_err[ifile] = h_qmean[ifile]->GetBinError(ibin);
-
       ratio_norm[ifile] = ratio[ifile] = 1;
-      
-      if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]) {
-	pc2pe_bad[ifile] = 0;
+      ratio_norm_err[ifile] = ratio_err[ifile] = 0;
 
-	ratio[ifile] = qmean[ifile]/rhit[ifile];
-	ratio_norm[ifile] = ratio[ifile]/rmean[ifile];
+      if (ifile != sk5avg) {
 
-	// Error propagation
-	float qmean_relerr = qmean_err[ifile] / qmean[ifile];
-	float rhit_relerr = rhit_err[ifile] / rhit[ifile];
+	rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
+	qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
 	
-	ratio_err[ifile] = ratio[ifile]*sqrt(qmean_relerr*qmean_relerr + rhit_relerr*rhit_relerr);
-	ratio_norm_err[ifile] = ratio_err[ifile]/rmean[ifile];
+	// Good channel selection by threshold
+	if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
+	    //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
+	    ) {
+
+	  pc2pe_bad[ifile] = 0;
+
+	  ratio[ifile] = h_qmean_over_rhit[ifile]->GetBinContent(ibin);
+	  ratio_norm[ifile] = h_pc2pe[ifile]->GetBinContent(ibin);
 	  
-	if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
-	  cout << "WTF " << TreeVarNames[ifile].Data() << " " << channel << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	  ratio_err[ifile] = h_qmean_over_rhit[ifile]->GetBinError(ibin);
+	  ratio_norm_err[ifile] = h_pc2pe[ifile]->GetBinError(ibin);
+
+	  if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
+	    cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	}
+
+	else {
+	  pc2pe_bad[ifile] = 1;
+	  h_pc2pe[ifile]->SetBinContent(ibin, ratio_norm[ifile]);
+	  h_pc2pe[ifile]->SetBinError(ibin, ratio_norm_err[ifile]);
+	}
       }
 
-      else pc2pe_bad[ifile] = 1;
+      // SK5 Weighted average
+      else {
 
+	pc2pe_bad[ifile] = pc2pe_bad[sk5] && pc2pe_bad[sk5n];
+	
+	double err1 = ratio_norm_err[sk5];
+	double err2 = ratio_norm_err[sk5n];
+	if (!pc2pe_bad[ifile] && err1>0 && err2>0) {
+	
+	  double val1 = ratio_norm[sk5];
+	  double val2 = ratio_norm[sk5n];
+	
+	  double sum_mean_over_err2 = val1/(err1*err1) + val2/(err2*err2);
+	  double sum_err2 = 1/(err1*err1) + 1/(err2*err2);
+	
+	  ratio_norm[ifile] = sum_mean_over_err2/sum_err2;
+	  ratio_norm_err[ifile] = sqrt(1/sum_err2);
+
+	  h_pc2pe[ifile]->SetBinContent(ibin, ratio_norm[ifile]);
+	  h_pc2pe[ifile]->SetBinError(ibin, ratio_norm_err[ifile]);
+	}
+      }
     }
 
     // Official bad channels
@@ -810,13 +720,20 @@
       }
     }
 
-    // Official SK4 table
+    // Official SK3/SK4 table
     ratio_norm_sk4 = sk4_pgain[channel-1];
     pc2pe_bad_sk4 = 0;
     if (sk4_pgain[channel-1] == 1.00000000000) pc2pe_bad_sk4 = 1;    
 
+    qe_sk4 = sk4_qe[channel-1];
+    qe_bad_sk4 = 0;
+    if (qe_sk4 == 1) qe_bad_sk4 = 1;    
+
     t_pc2pe->Fill();
   }
+  
+  for (int ifile=0; ifile<nConfigs; ifile++)
+    print_avgerr(h_pc2pe[ifile]);
 
   outfile->Write();
 }

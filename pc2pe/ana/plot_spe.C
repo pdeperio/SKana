@@ -4,32 +4,46 @@ void plot_spe(bool MakeFile = 0)
   gStyle->SetPadRightMargin(0.15);
   gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
 
-  const int nSPEfiles = 2;
+  const int nSPEfiles = 1;
   TString SPEruns[nSPEfiles] = {
-    "80329",
+    //"80329",
     "80467"
   };
   
   TString SPEfiledir = "../spe_ana_junjie/";
 
-  const int nFiles = 3;
+  const int nFiles = 5;
 
   TString TreeVarNames[nFiles] = {
-    "_sk4", "_sk5", "_sk5i"
+    "_sk4", "_sk5", "_sk5i", "_sk5n", "_sk5avg"
   };
-  int Colors[nFiles] = {kBlack, kBlue, kRed};
+  int Colors[nFiles] = {
+    kGray+2,
+    kRed,
+    kBlue,
+    kGreen-2,
+    kBlack
+  };
 
   TString FileTitles[nFiles] = {
     "SK4",
     "SK5",
-    //"SK5 Inv."
-    "SK5 New"
+    "SK5 Inv.",
+    "SK5 New",
+    "SK5 Avg."
   };
+  enum config_enum {sk4, sk5, sk5i, sk5n, sk5avg};
 
-  
+  const int nGroups = 35;
+
+  // PMT Type separated
+  const int nPMTtypes = 4;
+  int PMTflags[nPMTtypes] = {3, 4, 6, -1};
+  TString PMTTypeNames[nPMTtypes] = {"SK2", "SK3", "HK", "Other"};
+
   TTree *t_pc2pe;
-  int channel, group, pc2pe_bad_sk5;
-  float rationorm_sk5;
+  int channel, group, pc2pe_bad, pmtflag;
+  float rationorm;
 
   TString pc2pe_and_spe_file = "pc2pe_output.root";
   if (!MakeFile) {
@@ -102,10 +116,13 @@ void plot_spe(bool MakeFile = 0)
     t_pc2pe->Write();
   }
 
+  int ifile = sk5avg;
+
   t_pc2pe->SetBranchAddress("channel", &channel);
   t_pc2pe->SetBranchAddress("group", &group);
-  t_pc2pe->SetBranchAddress("rationorm_sk5", &rationorm_sk5);
-  t_pc2pe->SetBranchAddress("pc2pe_bad_sk5", &pc2pe_bad_sk5);
+  t_pc2pe->SetBranchAddress("rationorm"+TreeVarNames[ifile], &rationorm);
+  t_pc2pe->SetBranchAddress("pc2pe_bad"+TreeVarNames[ifile], &pc2pe_bad);
+  t_pc2pe->SetBranchAddress("pmtflag"+TreeVarNames[ifile], &pmtflag);
 
 
   TH1D *h_pc2pe[nFiles];
@@ -120,13 +137,8 @@ void plot_spe(bool MakeFile = 0)
   float minY = 0.95;
   float maxY = 1.06;
 
-  int ifile = 2;
-  h_pc2pe[ifile] = (TH1D*)h_group_qisk_ton->Clone();
   TString histname = "group_pc2pe"+TreeVarNames[ifile];
-  h_pc2pe[ifile]->SetName(histname);
-  h_pc2pe[ifile]->SetTitle(Form(";PMT Group;Avg. Rel.Gain, SPE Peak,Mean"));
-
-  h_pc2pe[ifile]->Reset();
+  h_pc2pe[ifile] = new TH1D(histname, ";PMT Group;Avg. Rel.Gain, SPE Peak,Mean", nGroups, 0, nGroups);
   
   h_pc2pe_count[ifile] = (TH1D*)h_pc2pe[ifile]->Clone();
   h_pc2pe_count[ifile]->SetName(histname+"_count");
@@ -153,10 +165,8 @@ void plot_spe(bool MakeFile = 0)
   
   for (int ispe=0; ispe<nSPEfiles; ispe++) {
     for (int ivar=0; ivar<2; ivar++) {
-      TH1D* h_spe = (TH1D*)h_group_qisk_ton->Clone();
       TString histname = "group_spe_"+spe_var[ivar]+"_"+SPEruns[ispe];
-      h_spe->SetName(histname);
-      h_spe->Reset();
+      TH1D* h_spe =  new TH1D(histname, "Run "+SPEruns[ispe]+";PMT Group;"+spe_var[ivar], nGroups, 0, nGroups);
   
       h_spe_count = (TH1D*)h_spe->Clone();
       h_spe_count->SetName(histname+"_count");
@@ -201,8 +211,6 @@ void plot_spe(bool MakeFile = 0)
   leg->Draw();
 
   c_pc2pe->Print("figures/pc2pe_spe_overlay.png");
-
-  //break;
   
   // 2D
   
@@ -212,12 +220,28 @@ void plot_spe(bool MakeFile = 0)
       TCanvas *c_pc2pe_vs_spe = new TCanvas(1);
     
       TString histname = "pc2pe_vs_spe_"+spe_var[ivar]+"_"+SPEruns[ispe];
-      TH2D *h_pc2pe_vs_spe = new TH2D(histname, ";SPE "+spe_var[ivar]+";pc2pe"+TreeVarNames[ifile]+" Ratio;Number of Channels", 120, 2, 4.4, 120, 0.6, 1.7);
+      TH2D *h_pc2pe_vs_spe = new TH2D(histname, ";SPE "+spe_var[ivar]+";"+FileTitles[ifile]+" pc2pe;Number of Channels", 120, 2, 4.4, 120, 0.6, 1.7);
     
-      pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":spe_"+spe_var[ivar]+"_"+SPEruns[ispe], "pc2pe_bad_sk5==0");
+      pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":spe_"+spe_var[ivar]+"_"+SPEruns[ispe], "pc2pe_bad"+TreeVarNames[ifile]+"==0");
     
       h_pc2pe_vs_spe->Draw("colz");
 
+      if (ivar) {
+	TProfile *prof = h_pc2pe_vs_spe->ProfileX();
+	prof->SetMarkerColor(kGray);
+	prof->SetLineColor(kGray);
+	prof->Draw("SAME");
+	TF1 *f_prof = new TF1(Form("f_%s", h_pc2pe_vs_spe->GetName()), "pol1", 2, 4.4);
+	prof->Fit(f_prof, "N");
+	f_prof->SetLineColor(kGray+2);
+	f_prof->SetLineWidth(1);
+	f_prof->Draw("SAME");
+
+	TLatex *fLineText = new TLatex(3.25, 1.53, Form("pc2pe = %.2f #times SPEmean + %.2f", f_prof->GetParameter(1), f_prof->GetParameter(0)));
+	fLineText->SetTextSize(0.04);
+	fLineText->Draw();
+      }
+      
       h_pc2pe_vs_spe->SetTitle("SPE Run " + SPEruns[ispe]+Form(" (Correlation = %.2f)", h_pc2pe_vs_spe->GetCorrelationFactor()));
             
       //TPaveText *tRMSoverMeans = new TPaveText(0.2, 0.7, 0.5, 0.88);
@@ -249,7 +273,7 @@ void plot_spe(bool MakeFile = 0)
     }
   }
 
-  //break;
+  break;
   
   // Draw averaged SPE charge distributions
   const int nRMSranges = 3;
@@ -257,11 +281,14 @@ void plot_spe(bool MakeFile = 0)
   int nChannels[nRMSranges] = {0};
   TString RMSrangeString[nRMSranges] = {"pc2pe < mean-2*RMS", "|pc2pe - mean| < 0.5*RMS", "pc2pe > mean+2*RMS"};
   TString RMSrangeName[nRMSranges] = {"minus2rms", "mean", "plus2rms"};
-    
+
   ofstream fPMTlists[nRMSranges];
   TCanvas *c_spe_all[nRMSranges] = {0};
   TString c_spe_all_names[nRMSranges];
-  
+
+  TH1D *h_spe_charge_avg_pmttype[nPMTtypes] = {0};
+  int nChannels_pmttype[nPMTtypes] = {0};
+    
   for (int iline=0; iline<nRMSranges; iline++) {
     fPMTlists[iline].open("channel_list_pc2pe_"+RMSrangeName[iline]+".txt");
     if (iline!=1) {
@@ -272,14 +299,14 @@ void plot_spe(bool MakeFile = 0)
   }
 
   TFile *inhistfile = new TFile("pc2pe_hists.root");
-  TH1D *h_pc2pe_group_mean = (TH1D*)inhistfile->Get("group_pc2pe_sk5_2d_pfx");
-  TH1D *h_pc2pe_group_rms = (TH1D*)inhistfile->Get("group_pc2pe_sk5");
-
+  TH1D *h_pc2pe_group_mean = (TH1D*)inhistfile->Get("group_pc2pe"+TreeVarNames[ifile]+"_2d_pfx");
+  TH1D *h_pc2pe_group_rms = (TH1D*)inhistfile->Get("group_pc2pe"+TreeVarNames[ifile]);
 
   for (int ispe=0; ispe<nSPEfiles; ispe++) {
+    
     TFile *spefile = new TFile(SPEfiledir+"fit_result_"+SPEruns[ispe]+".root");
 
-
+    // Initialize SPE average histo for extreme pc2pe's
     for (int iline=0; iline<nRMSranges; iline++) {
       h_spe_charge_avg[iline] = (TH1D*)spefile->Get("h_spe_onoff_1")->Clone();
       h_spe_charge_avg[iline]->Reset();
@@ -288,64 +315,93 @@ void plot_spe(bool MakeFile = 0)
       h_spe_charge_avg[iline]->SetName(histname);
       nChannels[iline] = 0;
     }
-    
+
+    // Initialize SPE average histo for different PMT types
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
+      h_spe_charge_avg_pmttype[ipmttype] = (TH1D*)spefile->Get("h_spe_onoff_1")->Clone();
+      h_spe_charge_avg_pmttype[ipmttype]->Reset();
+      TString histname = h_spe_charge_avg_pmttype[ipmttype]->GetName();
+      histname += "_" + SPEruns[ispe] + Form("_avg_pmttype_%d", ipmttype);
+      h_spe_charge_avg_pmttype[ipmttype]->SetName(histname);
+      nChannels_pmttype[ipmttype] = 0;
+    }
+
     cout << spefile->GetName() << endl;
     
     for (int ichannel=0; ichannel<t_pc2pe->GetEntries(); ichannel++) {
       t_pc2pe->GetEntry(ichannel);
 
       if (ichannel%1000==0) cout << "Channel " << channel << endl;
-      
-      if (pc2pe_bad_sk5) continue;
+
+      // Skip bad
+      if (pc2pe_bad) continue;
 
       TH1D *h_spe_charge = (TH1D*)spefile->Get(Form("h_spe_onoff_%d", channel));
       if (!h_spe_charge || h_spe_charge->IsZombie()) continue;
-      
+
+      int ipmttype;
+      for (ipmttype=0; ipmttype<nPMTtypes; ipmttype++)
+	if (pmtflag==PMTflags[ipmttype]) break;
+
       double pc2pe_mean = h_pc2pe_group_mean->GetBinContent(group+1);
       double pc2pe_rms = h_pc2pe_group_rms->GetBinContent(group+1);
 
       int iline = -1;
-      if (rationorm_sk5 < pc2pe_mean - 2*pc2pe_rms) iline = 0;
-      else if (fabs(rationorm_sk5-pc2pe_mean) < 0.5*pc2pe_rms) iline = 1;
-      else if (rationorm_sk5 > pc2pe_mean + 2*pc2pe_rms) iline = 2;
+      if (rationorm < pc2pe_mean - 2*pc2pe_rms) iline = 0;
+      else if (fabs(rationorm-pc2pe_mean) < 0.5*pc2pe_rms) iline = 1;
+      else if (rationorm > pc2pe_mean + 2*pc2pe_rms) iline = 2;
 
-      if (iline<0) continue;
-
-      if (!ispe) {
-	fPMTlists[iline] << channel << endl;
-
-	if (c_spe_all[iline]) {
-	  c_spe_all[iline]->cd();
-	  h_spe_charge->Draw();
-	  c_spe_all[iline]->Print(c_spe_all_names[iline]);
+      // Skip HK PMTs for RMS study (must correspond to plot_position.C)
+      if (iline>=0 && pmtflag!=6) {
+	if (!ispe) {
+	  fPMTlists[iline] << channel << endl;
+	  
+	  if (c_spe_all[iline]) {
+	    c_spe_all[iline]->cd();
+	    TString histname = h_spe_charge->GetTitle();
+	    histname += " ("+PMTTypeNames[ipmttype]+" PMT)";
+	    h_spe_charge->SetTitle(histname);
+	    h_spe_charge->Draw();
+	    c_spe_all[iline]->Print(c_spe_all_names[iline]);
+	  }
 	}
       }
 
-      int nBaseBins = h_spe_charge_avg[iline]->GetNbinsX();
+      // Make SPE charge histo has consistent binning before summing
+      int nBaseBins = h_spe_charge_avg[ipmttype]->GetNbinsX();
       int nBinsThis = h_spe_charge->GetNbinsX();
       if (nBinsThis > nBaseBins)
 	h_spe_charge->Rebin(nBinsThis/nBaseBins);
-
-      h_spe_charge->Scale(1/h_spe_charge->Integral());
       
-      h_spe_charge_avg[iline]->Add(h_spe_charge);
+      // Normalize SPE charge histo
+      h_spe_charge->Scale(1/h_spe_charge->Integral());
 
-      nChannels[iline]++;
+      if (iline>=0 && pmtflag!=6) {      
+	h_spe_charge_avg[iline]->Add(h_spe_charge);
+	nChannels[iline]++;
+      }
+      
+      h_spe_charge_avg_pmttype[ipmttype]->Add(h_spe_charge);
+      nChannels_pmttype[ipmttype]++;
     }
 
     TCanvas *c_spe_charge_avg = new TCanvas(1);
-    TLegend *leg_spe_charge = new TLegend(0.4, 0.6, 1, 0.88);
+    TLegend *leg_spe_charge = new TLegend(0.5, 0.6, 0.95, 0.88);
     leg_spe_charge->SetHeader("Group Selection (# of Channels)");
     
     for (int iline=0; iline<nRMSranges; iline++) {
+      h_spe_charge_avg[iline]->Scale(1./nChannels[iline]);
+
       h_spe_charge_avg[iline]->SetTitle("Normalized SPE Charge Distributions (Run "+SPEruns[ispe]+")");
       h_spe_charge_avg[iline]->GetYaxis()->SetTitle(Form("Average Rate"));
-      h_spe_charge_avg[iline]->Scale(1./nChannels[iline]);
+
       h_spe_charge_avg[iline]->SetLineColor(iline+1);
       h_spe_charge_avg[iline]->SetMarkerColor(iline+1);
       h_spe_charge_avg[iline]->SetLineWidth(2);
+
       if (!iline) h_spe_charge_avg[iline]->Draw();
       else h_spe_charge_avg[iline]->Draw("same");
+
       leg_spe_charge->AddEntry(h_spe_charge_avg[iline], RMSrangeString[iline]+Form(" (%d)", nChannels[iline]), "lp");
     }
     leg_spe_charge->Draw();
@@ -353,6 +409,36 @@ void plot_spe(bool MakeFile = 0)
 
     c_spe_charge_avg->SetLogy(1);
     c_spe_charge_avg->Print("figures/spe_avg_charge_"+SPEruns[ispe]+"_logy.png");
+
+    
+    TCanvas *c_spe_charge_avg_pmttype = new TCanvas(1);
+    TLegend *leg_spe_charge_pmttype = new TLegend(0.5, 0.6, 0.95, 0.88);
+    leg_spe_charge_pmttype->SetHeader("PMT Type (# of Channels)");
+    
+    for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
+
+      if (!nChannels_pmttype[ipmttype]) continue;
+      
+      h_spe_charge_avg_pmttype[ipmttype]->Scale(1./nChannels_pmttype[ipmttype]);
+
+      h_spe_charge_avg_pmttype[ipmttype]->SetTitle("Normalized SPE Charge Distributions (Run "+SPEruns[ispe]+")");
+      h_spe_charge_avg_pmttype[ipmttype]->GetYaxis()->SetTitle(Form("Average Rate"));
+
+      h_spe_charge_avg_pmttype[ipmttype]->SetLineColor(ipmttype+2);
+      h_spe_charge_avg_pmttype[ipmttype]->SetMarkerColor(ipmttype+2);
+      h_spe_charge_avg_pmttype[ipmttype]->SetLineWidth(2);
+
+      if (!ipmttype) h_spe_charge_avg_pmttype[ipmttype]->Draw();
+      else h_spe_charge_avg_pmttype[ipmttype]->Draw("same");
+
+      leg_spe_charge_pmttype->AddEntry(h_spe_charge_avg_pmttype[ipmttype], PMTTypeNames[ipmttype]+Form(" (%d)", nChannels_pmttype[ipmttype]), "lp");
+    }
+    leg_spe_charge_pmttype->Draw();
+    c_spe_charge_avg_pmttype->Print("figures/spe_avg_charge_pmttype_"+SPEruns[ispe]+".png");
+
+    c_spe_charge_avg_pmttype->SetLogy(1);
+    c_spe_charge_avg_pmttype->Print("figures/spe_avg_charge_pmttype_"+SPEruns[ispe]+"_logy.png");
+
   }
 
   for (int iline=0; iline<nRMSranges; iline++)

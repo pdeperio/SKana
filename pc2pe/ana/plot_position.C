@@ -5,16 +5,22 @@
   const int nFiles = 4;
 
   TString TreeVarNames[nFiles] = {
-    "_sk4", "_sk5", "_sk5i", "_sk4official"
+    //"_sk4",
+    "_sk5",
+    "_sk5i",
+    "_sk5n",
+    "_sk5avg"
+    //"_sk4official"
   }
   int Colors[nFiles] = {kBlack, kRed, kBlue, kGreen-2};
 
   TString FileTitles[nFiles] = {
-    "SK4",
+    //"SK4",
     "SK5",
-    //"SK5 Inv.",
+    "SK5 Inv.",
     "SK5 New",
-    "SK4 official"
+    "SK5 Avg."
+    //"SK4 official"
   };
 
   // PMT Type separated
@@ -22,18 +28,19 @@
   int PMTflags[nPMTtypes] = {3, 4, 6, -1};
   TString PMTTypeNames[nPMTtypes] = {"SK2", "SK3", "HK", "Other"};
 
-
+  const int nGroups = 35;
+  
   TFile *infile = new TFile("pc2pe_output.root");
 
   TString DrawOpts = "][ P HIST";
 
   TCanvas *c_pc2pe = new TCanvas(1);
   TLegend *leg = new TLegend(0.2, 0.78, 0.88, 0.88);
-  leg->SetNColumns(2);
+  leg->SetNColumns(3);
   
   TCanvas *c_pc2pe_rms = new TCanvas(1);
   TLegend *leg_rms = new TLegend(0.2, 0.2, 0.8, 0.3);
-  leg_rms->SetNColumns(2);
+  leg_rms->SetNColumns(3);
 
   TH1D *h_pc2pe[nFiles];
   TH1D *h_pc2pe_count[nFiles];
@@ -47,10 +54,10 @@
   TLegend *leg_lines = new TLegend(0, 0, 1, 1);
 
   TFile *outfile = new TFile("pc2pe_hists.root", "RECREATE");
-		
+
   for (int ifile=0; ifile<nFiles; ifile++) {
 
-    if (TreeVarNames[ifile].Contains("sk5")) continue;
+    //if (TreeVarNames[ifile].Contains("sk5i")) continue;
       
     infile->cd();
     // Select good PMT flags
@@ -63,17 +70,17 @@
     //cut_pmttype = "1";  // Ignore cut
     
     // 1D
-    h_pc2pe[ifile] = (TH1D*)h_group_qisk_ton->Clone();
     TString histname = "group_pc2pe"+TreeVarNames[ifile];
-    h_pc2pe[ifile]->SetName(histname);
-    h_pc2pe[ifile]->SetTitle("");
-    h_pc2pe[ifile]->Reset();
+    h_pc2pe[ifile] = new TH1D(histname, ";PMT Group; pc2pe Averaged", nGroups, 0, nGroups);
 
     h_pc2pe_count[ifile] = (TH1D*)h_pc2pe[ifile]->Clone();
     h_pc2pe_count[ifile]->SetName(histname+"_count");
+
+    // Be careful here, this ruins the pc2pe average
+    TString cutNoHK = ""; //"pmtflag"+TreeVarNames[ifile]+"!=6";
     
-    pc2pe->Project(histname, "group", "rationorm"+TreeVarNames[ifile]);
-    pc2pe->Project(histname+"_count", "group");
+    pc2pe->Project(histname, "group", "rationorm"+TreeVarNames[ifile], cutNoHK);
+    pc2pe->Project(histname+"_count", "group", cutNoHK);
     
     h_pc2pe[ifile]->Divide(h_pc2pe_count[ifile]);
     
@@ -107,8 +114,8 @@
 
     // 2D
     histname = histname+"_2d";
-    TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group; Relative Gain (pc2pe ratio)", 35, 0, 35, 50, 0.4, 1.6); 
-    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":group");
+    TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group; Relative Gain (pc2pe ratio)", nGroups, 0, nGroups, 50, 0.4, 1.6); 
+    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":group", cutNoHK);
 
     TCanvas *c_pc2pe_vs_group = new TCanvas(1);
     
@@ -216,7 +223,7 @@
       l_Sep->Draw();
     }
 
-    TLine *l_unity = new TLine(0, 1, 35, 1);
+    TLine *l_unity = new TLine(0, 1, nGroups, 1);
     l_unity->SetLineColor(kGray+1);
     l_unity->Draw();
 
