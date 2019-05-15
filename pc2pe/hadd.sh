@@ -11,4 +11,6 @@
 ./hadd -f -t output/pc2pe_tst081028.root output/81028/*.root &
 ./hadd -f -t output/pc2pe_tst081030.root output/81030/*.root &
 
-cp pc2pe_tst081028.root pc2pe_tst081028_kludge4avg.root
+wait 
+
+cp output/pc2pe_tst081028.root output/pc2pe_tst081028_kludge4avg.root
