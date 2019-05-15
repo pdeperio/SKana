@@ -46,6 +46,14 @@ TH1D* calc_weighted_average(TH1D *h_in1, TH1D *h_in2) {
   return h_avg;
 }
 
+float get_pmt_phi(int pmtx, int pmty) {
+  return 180./TMath::Pi()*atan((float)pmty/pmtx);
+}
+
+float get_pmt_theta(int pmtx, int pmty, int pmtz) {
+  return 180./TMath::Pi()*atan( (float)pmtz / sqrt((float)pmtx*pmtx + (float)pmty*pmty)); 
+}
+
 void plot() {  
   gStyle->SetOptStat(0);
   gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
@@ -548,12 +556,12 @@ void plot() {
   TFile *outfile = new TFile("pc2pe_output.root", "RECREATE");
 
   TTree *t_pc2pe = new TTree("pc2pe","SK pc2pe Ratios");//[nFiles/2];
-  
-  int group = -1;
 
   int pmtflag[nConfigs] = {0};
-
-  int channel;
+  
+  int group = -1;
+  int channel, pmtx, pmty, pmtz;
+  float phi, theta;
   float rhit[nConfigs], qmean[nConfigs], ratio[nConfigs], ratio_norm[nConfigs], ratio_norm_sk4;
   float rhit_err[nConfigs], qmean_err[nConfigs], ratio_err[nConfigs], ratio_norm_err[nConfigs];
   int pc2pe_bad[nConfigs]={0}, badchannel;
@@ -578,11 +586,19 @@ void plot() {
     }
 
     ConnectionTable[ifile]->SetBranchAddress("group", &group);
+    ConnectionTable[ifile]->SetBranchAddress("pmtx", &pmtx);
+    ConnectionTable[ifile]->SetBranchAddress("pmty", &pmty);
+    ConnectionTable[ifile]->SetBranchAddress("pmtz", &pmtz);
     ConnectionTable[ifile]->SetBranchAddress("pmtflag", &pmtflag[ifile]);
 
     if (!ifile) {
       t_pc2pe->Branch("channel", &channel, "channel/I");
       t_pc2pe->Branch("group", &group, "group/I");
+      t_pc2pe->Branch("pmtx", &pmtx, "pmtx/I");
+      t_pc2pe->Branch("pmty", &pmty, "pmty/I");
+      t_pc2pe->Branch("pmtz", &pmtz, "pmtz/I");
+      t_pc2pe->Branch("phi", &phi, "phi/F");
+      t_pc2pe->Branch("theta", &theta, "theta/F");      
       t_pc2pe->Branch("badchannel", &badchannel, "badchannel/I");
       t_pc2pe->Branch("rationorm_sk4official", &ratio_norm_sk4, "rationorm_sk4official/F");
       t_pc2pe->Branch("pmtflag_sk4official", &pmtflag[ifile], "pmtflag_sk4official/I");
@@ -729,6 +745,9 @@ void plot() {
     qe_bad_sk4 = 0;
     if (qe_sk4 == 1) qe_bad_sk4 = 1;    
 
+    phi = get_pmt_phi(pmtx, pmty);
+    theta = get_pmt_theta(pmtx, pmty, pmtz);
+    
     t_pc2pe->Fill();
   }
   
