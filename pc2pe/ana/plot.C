@@ -47,7 +47,9 @@ TH1D* calc_weighted_average(TH1D *h_in1, TH1D *h_in2) {
 }
 
 float get_pmt_phi(int pmtx, int pmty) {
-  return 180./TMath::Pi()*atan((float)pmty/pmtx);
+  float angle = TMath::Sign(atan((float)pmty/pmtx), (float)pmty);
+  if (pmtx<0) angle = TMath::Sign(1., angle)*(TMath::Pi()-fabs(angle));
+  return 180./TMath::Pi()*angle;
 }
 
 float get_pmt_theta(int pmtx, int pmty, int pmtz) {
@@ -58,13 +60,16 @@ void plot() {
   gStyle->SetOptStat(0);
   gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
 
-  TString datadir = "../output/";
+  //TString datadir = "../output_apr24/";
+  //TString datadir = "../output_may21_shortwindow/";
+  TString datadir = "../output_may22_fixtimestability/";
 
   const int nChannels = 11147;
   
   const int nFiles = 8;
   
   int Colors[nFiles] = {kBlack, kRed, kBlue, kGreen-2, kGray+1, kMagenta, kCyan+1, kGreen};
+  //int Colors[nFiles] = {kBlack, kRed, kBlue, kBlue, kGray+1, kMagenta, kCyan+1, kRed};
 
   TString FileNames[nFiles] = {
     "pc2pe_tst061892_to_5.root",
@@ -106,11 +111,19 @@ void plot() {
   };
   
   // Must be propagated to llaser_qb_c.cc
+  float low_intensity_window = 100;
   float ontime_window[nFiles][2] = {
-    1180, 1400,
-    1000, 1300,
-    1000, 1300,
-    1000, 1300,
+    // Tight time-window
+    1180, 1180+low_intensity_window,
+    1000, 1000+low_intensity_window,
+    1000, 1000+low_intensity_window,
+    1000, 1000+low_intensity_window,
+    
+    //1180, 1400,
+    //1000, 1300,
+    //1000, 1300,
+    //1000, 1300,
+    
     1140, 1200,
     975, 1038,
     975, 1038,
@@ -122,6 +135,7 @@ void plot() {
     480, 700,
     450, 750,
     450, 750,
+    450, 750,    
     420, 480,
     420, 483,
     420, 483,
@@ -171,6 +185,8 @@ void plot() {
 
   bool bNormByTime = 0;
 
+  bool isDrawn = 0;
+  
   for (int ifile=0; ifile<nFiles; ifile++) {
     
     TFile *infile = new TFile(datadir+FileNames[ifile]);
@@ -183,7 +199,7 @@ void plot() {
 
     ttof->SetLineColor(Colors[ifile]);
     ttof->SetLineWidth(2);
-    if (ifile%(nFiles/2)==nFiles/2-1) ttof->SetLineStyle(2);
+    //if (ifile%(nFiles/2)==nFiles/2-1) ttof->SetLineStyle(2);
 
     // Normalize to total number of laser trigger events
     int nevents = hnqisk->Integral();
@@ -198,12 +214,17 @@ void plot() {
     ttof->Scale(1./normalization);
     ttof->GetYaxis()->SetTitle("Hits/"+axis_norm);
     ttof->SetTitle("Hit times and On/Off-time Windows");
-    
-    if (!ifile) ttof->Draw();
-    else {
-      ttof->Draw("sames");
-      TPaveStats *st = (TPaveStats*)ttof->FindObject("stats");
-    }
+
+    //if (ifile==sk5n || ifile==sk5n+nFiles/2) {
+
+      if (!isDrawn) {
+	ttof->Draw();
+	isDrawn = 1;
+      }
+      else {
+	ttof->Draw("sames");
+	TPaveStats *st = (TPaveStats*)ttof->FindObject("stats");
+      }
     
     leg_ttof->AddEntry(ttof, FileTitles[ifile], "l");
 
@@ -227,7 +248,7 @@ void plot() {
       l_OffTimeWindow->SetLineWidth(2);
       l_OffTimeWindow->Draw();
     }
-
+    //}
     ////////////////////////////////////////////
     // Plot total nqisk for low intensity only
     if (ifile<nFiles/2) {
@@ -414,7 +435,9 @@ void plot() {
 	h_rhit_occu_tmp->SetBinContent(ibin, ValAfterCorr);
 
 	// Not perfect error propogation
-	h_rhit_occu_tmp->SetBinError(ibin, h_rhit_occu_tmp->GetBinError(ibin) * ValAfterCorr/ValBeforeCorr);
+	double error = h_rhit_occu_tmp->GetBinError(ibin);
+	if (ValBeforeCorr) error *= ValAfterCorr/ValBeforeCorr;
+	h_rhit_occu_tmp->SetBinError(ibin, error);
       }
 
       h_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
@@ -430,7 +453,7 @@ void plot() {
   }
 
   c_ttof->cd();
-  leg_ttof->Draw();
+  //leg_ttof->Draw();
   c_ttof->Print("figures/ttof.png");
 
   c_nqisk->cd();
@@ -538,18 +561,30 @@ void plot() {
     sk4_pgain.push_back(pgain);
   }
   
-  // Read QE table
-  vector<double> sk4_qe;
-  ifstream fsk4qe;
-  fsk4qe.open("const/qetable4_1.dat");
+  // Read QE tables
+  const int nQEtables = 3;
+  vector<double> qe_tables[nQEtables];
+  TString QEfilenames[nQEtables] = {
+    "const/qetable3_0.dat",
+    "const/qetable4_1.dat",
+    "const/relativeQE_12859.dat"
+  };
+  
+  TString QEtitles[nQEtables] = {
+    "sk3", "sk4", "sk5"
+  };
 
-  while (!fsk4qe.eof()){
-    int channel;
-    double qe;
-    fsk4qe >> channel >> qe;
-    sk4_qe.push_back(qe);
+  for (int iqe=0; iqe<nQEtables; iqe++) {
+    ifstream f_qe;
+    f_qe.open(QEfilenames[iqe].Data());
+
+    while (!f_qe.eof()) {
+      int channel;
+      double qe_tmp;
+      f_qe >> channel >> qe_tmp;
+      qe_tables[iqe].push_back(qe_tmp);
+    }
   }
-
 
   if (bNormByTime) break;
   
@@ -566,13 +601,13 @@ void plot() {
   float rhit_err[nConfigs], qmean_err[nConfigs], ratio_err[nConfigs], ratio_norm_err[nConfigs];
   int pc2pe_bad[nConfigs]={0}, badchannel;
   int pc2pe_bad_sk4;
-  float qe_sk4;
-  int qe_bad_sk4;
+  float qe[nQEtables];
+  int qe_bad[nQEtables];
   
   float rmean[nConfigs] = {0};
   
   for (int ifile=0; ifile<nConfigs; ifile++) {
-
+    
     TFile *infile = new TFile(datadir+FileNames[ifile]);
 
     TTree *ConnectionTableTmp = (TTree*)infile->Get("ConnectionTable");
@@ -600,22 +635,26 @@ void plot() {
       t_pc2pe->Branch("phi", &phi, "phi/F");
       t_pc2pe->Branch("theta", &theta, "theta/F");      
       t_pc2pe->Branch("badchannel", &badchannel, "badchannel/I");
-      t_pc2pe->Branch("rationorm_sk4official", &ratio_norm_sk4, "rationorm_sk4official/F");
+      t_pc2pe->Branch("pc2pe_sk4official", &ratio_norm_sk4, "pc2pe_sk4official/F");
       t_pc2pe->Branch("pmtflag_sk4official", &pmtflag[ifile], "pmtflag_sk4official/I");
       t_pc2pe->Branch("pc2pe_bad_sk4official", &pc2pe_bad_sk4, "pc2pe_bad_sk4official/I");
-      t_pc2pe->Branch("qe_sk4", &qe_sk4, "qe_sk4/F");
-      t_pc2pe->Branch("qe_bad_sk4", &qe_bad_sk4, "qe_bad_sk4/I");
+      t_pc2pe->Branch("pmtflag_sk3", &pmtflag[ifile], "pmtflag_sk3/I");      
+
+      for (int iqe=0; iqe<nQEtables; iqe++) {
+	t_pc2pe->Branch("qe_"+QEtitles[iqe], &qe[iqe], "qe_"+QEtitles[iqe]+"/F");
+	t_pc2pe->Branch("qe_bad_"+QEtitles[iqe], &qe_bad[iqe], "qe_bad_"+QEtitles[iqe]+"/I");
+      }
     }
-    //t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
-    //t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
-    //t_pc2pe->Branch("ratio"+TreeVarNames[ifile], &ratio[ifile], "ratio"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("rationorm"+TreeVarNames[ifile], &ratio_norm[ifile], "rationorm"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("rhit"+TreeVarNames[ifile], &rhit[ifile], "rhit"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("qmean"+TreeVarNames[ifile], &qmean[ifile], "qmean"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("ratio"+TreeVarNames[ifile], &ratio[ifile], "ratio"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("pc2pe"+TreeVarNames[ifile], &ratio_norm[ifile], "pc2pe"+TreeVarNames[ifile]+"/F");
     t_pc2pe->Branch("pc2pe_bad"+TreeVarNames[ifile], &pc2pe_bad[ifile], "pc2pe_bad"+TreeVarNames[ifile]+"/I");
 
     //t_pc2pe->Branch("rhit_err"+TreeVarNames[ifile], &rhit_err[ifile], "rhit_err"+TreeVarNames[ifile]+"/F");
     //t_pc2pe->Branch("qmean_err"+TreeVarNames[ifile], &qmean_err[ifile], "qmean_err"+TreeVarNames[ifile]+"/F");
     //t_pc2pe->Branch("ratio_err"+TreeVarNames[ifile], &ratio_err[ifile], "ratio_err"+TreeVarNames[ifile]+"/F");
-    t_pc2pe->Branch("rationorm_err"+TreeVarNames[ifile], &ratio_norm_err[ifile], "rationorm_err"+TreeVarNames[ifile]+"/F");
+    t_pc2pe->Branch("pc2pe_err"+TreeVarNames[ifile], &ratio_norm_err[ifile], "pc2pe_err"+TreeVarNames[ifile]+"/F");
 
     t_pc2pe->Branch("pmtflag"+TreeVarNames[ifile], &pmtflag[ifile], "pmtflag"+TreeVarNames[ifile]+"/I");
 
@@ -719,6 +758,10 @@ void plot() {
 
 	  h_pc2pe[ifile]->SetBinContent(ibin, ratio_norm[ifile]);
 	  h_pc2pe[ifile]->SetBinError(ibin, ratio_norm_err[ifile]);
+
+	  if (ratio_norm[ifile] > val1 && ratio_norm[ifile] > val2 ||
+	      ratio_norm[ifile] < val1 && ratio_norm[ifile] < val2 )
+	    cout << "wtf" << endl;
 	}
       }
     }
@@ -741,18 +784,29 @@ void plot() {
     pc2pe_bad_sk4 = 0;
     if (sk4_pgain[channel-1] == 1.00000000000) pc2pe_bad_sk4 = 1;    
 
-    qe_sk4 = sk4_qe[channel-1];
-    qe_bad_sk4 = 0;
-    if (qe_sk4 == 1) qe_bad_sk4 = 1;    
-
+    for (int iqe=0; iqe<nQEtables; iqe++) {
+      qe[iqe] = qe_tables[iqe][channel-1];
+      qe_bad[iqe] = 0;
+      if (qe[iqe] == 1 || qe[iqe] == 1.000000) { 
+	qe_bad[iqe] = 1;
+	qe[iqe] = -1;
+      }
+    }
+    
     phi = get_pmt_phi(pmtx, pmty);
     theta = get_pmt_theta(pmtx, pmty, pmtz);
     
     t_pc2pe->Fill();
   }
-  
-  for (int ifile=0; ifile<nConfigs; ifile++)
+
+  outfile->cd();
+  for (int ifile=0; ifile<nConfigs; ifile++) 
     print_avgerr(h_pc2pe[ifile]);
+
+  for (int ifile=0; ifile<nConfigs-1; ifile++) {
+    h_rhit_occu[ifile]->Write();
+    h_qmean[ifile]->Write();
+  }
 
   outfile->Write();
 }

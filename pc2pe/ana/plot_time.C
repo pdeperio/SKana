@@ -3,33 +3,34 @@
   gStyle->SetTitleX(0.25);
   gStyle->SetPadRightMargin(0.1);
 
-  TString datadir = "../output/";
+  TString datadir = "../output_apr24/";
+  //TString datadir = "../output_apr24_time/";
+  //TString datadir = "../output_may22_fixtimestability/";
+  //TString datadir = "../output_may21_shortwindow/";
 
   const int nChannels = 11147;
   
-  const int nFiles = 6;
-
-  int Colors[nFiles] = {kBlack, kRed, kBlue, kGray+1, kMagenta, kCyan+1};
+  const int nFiles = 8;
 
   TString FileNames[nFiles] = {
     "pc2pe_tst061892_to_5.root",
     "pc2pe_tst080871_to_5.root",
-    //"pc2pe_tst080885.root",
+    "pc2pe_tst080885.root",
     "pc2pe_tst081028.root",
     "pc2pe_tst061889.root",
     "pc2pe_tst080877.root",
-    //"pc2pe_tst080884_and_6.root",
+    "pc2pe_tst080884_and_6.root",
     "pc2pe_tst081030.root"
   };
 
   TString FileTitles[nFiles] = {
     "SK4 Low", // (61892-61895)",
     "SK5 Low", // (80871-80875)",
-    //"SK5 Low Inv.", // (80885)",
+    "SK5 Low Inv.", // (80885)",
     "SK5 Low New", // (80885)",
     "SK4 High", // (61889)",
     "SK5 High", // (80877)",
-    //"SK5 High Inv." // (80884, 80886)"
+    "SK5 High Inv.", // (80884, 80886)"
     "SK5 High New" // (80884, 80886)"
   };
 

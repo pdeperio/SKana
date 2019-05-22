@@ -1,18 +1,37 @@
 {
   gStyle->SetOptStat(0);
   gStyle->SetPadRightMargin(0.15);
+  gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
 
-  const int nFiles = 7;
+  
+  const int nFiles = 9;
 
+  enum file_enum {sk4, sk5, sk5i, sk5n, sk5avg, sk4official, sk3_qe, sk4_qe, sk5_qe};
+  
   TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "qe",
+    "qe",
+    "qe"
+  };
+
+  TString FileDatasets[nFiles] = {
     "_sk4",
     "_sk5",
     "_sk5i",
     "_sk5n",
     "_sk5avg",
     "_sk4official",
-    "_qe_sk4" // QE
+    "_sk3", // QE
+    "_sk4", // QE    
+    "_sk5" // QE
   }
+  
   int Colors[nFiles] = {
     kGray+2,
     kRed,
@@ -20,19 +39,85 @@
     kGreen-2,
     kBlack,
     kGray+1,
+    kMagenta-7,
+    kMagenta-9,
     kMagenta
   };
 
   TString FileTitles[nFiles] = {
-    "SK4 Reanalysis",
-    "SK5",
+    "SK4 Reana.",
+    "SK5 Mar.",
     "SK5 Inv.",
-    "SK5 New",
+    "SK5 Apr.",
     "SK5 Avg.",
-    "SK3/4 official",
-    "SK4 QE"
+    "SK3/4 off.",
+    "SK3",
+    "SK4",    
+    "SK5"
   };
 
+  TString CanvasAppend = "_all";
+
+  /**/
+
+  /*
+  const int nFiles = 3;
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  };
+
+  TString FileDatasets[nFiles] = {
+    "_sk5",
+    "_sk5i",
+    "_sk5n"
+  };
+
+  
+  int Colors[nFiles] = {
+    kBlack,
+    kRed,
+    kBlue
+  };
+
+  TString FileTitles[nFiles] = {
+    "March",
+    "Upside Down",
+    "April"
+  };
+
+  TString CanvasAppend = "_sk5only";
+
+  /**/
+  
+  /*
+  const int nFiles = 2;
+
+  TString FileDatasets[nFiles] = {
+    "_sk5avg",
+    "_sk4official"
+  };
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe"
+  };
+  
+  int Colors[nFiles] = {
+    kBlack,
+    kGray+2
+  };
+
+  TString FileTitles[nFiles] = {
+    "SK5",
+    "SK3/4 official"
+  };
+  
+  TString CanvasAppend = "";
+  /**/
+  
   TFile *infile = new TFile("pc2pe_output.root");
 
   TString DrawOpts = "HIST";
@@ -56,34 +141,29 @@
 
   for (int ifile=0; ifile<nFiles; ifile++) {
 
-    TString histname = "pc2pe"+TreeVarNames[ifile];
-    TString histtitle = ";pc2pe Ratio";
-    if (ifile==nFiles-1) histtitle = ";SK4 QE";
+    TString histname = TreeVarNames[ifile]+FileDatasets[ifile];
+    TString histtitle = ";"+TreeVarNames[ifile]; //+" "+FileTitles[ifile];
     histtitle += ";Number of Channels";
     
     h_pc2pe[ifile] = new TH1D(histname, histtitle, 50, 0.1, 2);
 
     // Select good PMT flags
-    int useFile = ifile;
-    if (ifile==nFiles-1) useFile = 0;
     TString cut_pmttype = "(";
     for (int jpmttype=0; jpmttype<nPMTtypes-1; jpmttype++) {
-      cut_pmttype += "pmtflag"+TreeVarNames[useFile]+Form("==%d",PMTflags[jpmttype]);
+      cut_pmttype += "pmtflag"+FileDatasets[ifile]+Form("==%d",PMTflags[jpmttype]);
       if (jpmttype<nPMTtypes-2) cut_pmttype += " || ";
     }
     cut_pmttype += ")";
 
-    if (ifile==nFiles-1) cut_pmttype += " && qe_bad_sk4 == 0";
-    else cut_pmttype += " && pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-
-    TString plotVar = "rationorm"+TreeVarNames[ifile];
-    if (ifile==nFiles-1) plotVar = "qe_sk4";
+    cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+    
+    TString plotVar = TreeVarNames[ifile]+FileDatasets[ifile];
     
     pc2pe->Project(histname, plotVar, cut_pmttype);
 
     h_pc2pe[ifile]->SetLineColor(Colors[ifile]);
     h_pc2pe[ifile]->SetLineWidth(2);
-
+        
     if (!ifile) 
       h_pc2pe[ifile]->Draw(); //DrawOpts += "same";
     else 
@@ -93,8 +173,7 @@
   }  
 
   leg->Draw();
-  c_pc2pe->Print("figures/pc2pe.png");
-
+  c_pc2pe->Print("figures/pc2pe"+CanvasAppend+".png");
 
   
   TH1D *h_pc2pe_pmttypes[nFiles][nPMTtypes];
@@ -109,7 +188,7 @@
     h_pc2pe[ifile]->Draw();
     h_pc2pe[ifile]->SetTitle(FileTitles[ifile]);
 
-    cout << "1D " << FileTitles[ifile] << endl;
+    cout << "1D " << FileTitles[ifile] << " " << TreeVarNames[ifile] << endl;
     cout << "     Mean,  RMS" << endl;
     
     leg_pc2pe_pmttype->AddEntry(h_pc2pe[ifile], Form("All (%d, %.2f, %.3f)", (int)h_pc2pe[ifile]->GetEntries(), h_pc2pe[ifile]->GetMean(), h_pc2pe[ifile]->GetRMS()), "l");
@@ -119,31 +198,27 @@
     
     for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
       
-      TString histname = "pc2pe"+TreeVarNames[ifile]+"_pmt"+PMTTypeNames[ipmttype];
-      TString histtitle = ";pc2pe Ratio";
-      if (ifile==nFiles-1) histtitle = ";SK4 QE";
+      TString histname = TreeVarNames[ifile]+FileDatasets[ifile]+"_pmt"+PMTTypeNames[ipmttype];
+      TString histtitle = ";"+TreeVarNames[ifile];
       histtitle += ";Number of Channels";
       
       h_pc2pe_pmttypes[ifile][ipmttype] = new TH1D(histname, histtitle, 50, 0.1, 2);
 
       // Use SK4 PMT type list
-      int useFile = ifile;
-      if (ifile==nFiles-1) useFile = 0;
-      TString cut_pmttype = "pmtflag"+TreeVarNames[useFile]+Form("==%d",PMTflags[ipmttype]);
+      TString cut_pmttype = "pmtflag"+FileDatasets[ifile]+Form("==%d",PMTflags[ipmttype]);
       if (ipmttype==nPMTtypes-1) {
 	cut_pmttype = "";
 	for (int jpmttype=0; jpmttype<nPMTtypes-1; jpmttype++) {
-	  cut_pmttype += "pmtflag"+TreeVarNames[useFile]+Form("!=%d",PMTflags[jpmttype]);
+	  cut_pmttype += "pmtflag"+FileDatasets[ifile]+Form("!=%d",PMTflags[jpmttype]);
 	  if (jpmttype<nPMTtypes-2) cut_pmttype += " && ";
 	}
       }
-      if (ifile==nFiles-1) cut_pmttype += " && qe_bad_sk4 == 0";
-      else cut_pmttype += " && pc2pe_bad"+TreeVarNames[ifile]+" == 0";
+      cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+      
+      TString plotVar = TreeVarNames[ifile]+FileDatasets[ifile];
 
-      TString plotVar = "rationorm"+TreeVarNames[ifile];
-      if (ifile==nFiles-1) plotVar = "qe_sk4";
       pc2pe->Project(histname, plotVar, cut_pmttype);
-
+      
       int nentries = h_pc2pe_pmttypes[ifile][ipmttype]->GetEntries();
       if (!nentries) continue;
       
@@ -166,43 +241,36 @@
     cout << endl;
     
     leg_pc2pe_pmttype->Draw();
-    c_pc2pe_pmttype->Print("figures/pc2pe_pmttype"+TreeVarNames[ifile]+".png");
+    c_pc2pe_pmttype->Print("figures/"+TreeVarNames[ifile]+FileDatasets[ifile]+"_pmttype.png");
     
-  }  
+  }
 
-
-  
   // 2D Distributions
   TH2D *h_pc2pe_2d[nFiles];
-  
+
+  TString var_title[2];
   for (int ifile=0; ifile<nFiles; ifile++) {
+
+    var_title[0] = FileTitles[ifile]+" "+TreeVarNames[ifile];
+    TString i_var = TreeVarNames[ifile]+FileDatasets[ifile];
+      
     for (int jfile=ifile+1; jfile<nFiles; jfile++) {
 
-      cout << FileTitles[ifile] << " vs " << FileTitles[jfile] << endl;
+      var_title[1] = FileTitles[jfile]+" "+TreeVarNames[jfile];
+      TString j_var = TreeVarNames[jfile]+FileDatasets[jfile];
+      
+      cout << var_title[1].Data() << " vs " << var_title[0].Data() << endl;
 
       TCanvas *c_pc2pe_2d = new TCanvas(1);
-
-      TString histname = "pc2pe_2d"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile];
-      TString xTitle = "pc2pe "+FileTitles[ifile];
-      if (ifile==nFiles-1) xTitle = "QE SK4";
-      TString yTitle = "pc2pe "+FileTitles[jfile];
-      if (jfile==nFiles-1) yTitle = "QE SK4";
-
-      h_pc2pe_2d[ifile] = new TH2D(histname, ";"+xTitle+";"+yTitle+";Number of Channels", 120, 0.1, 2, 120, 0.1, 2);
-
-      TString plotVarX = "rationorm"+TreeVarNames[ifile];
-      if (ifile==nFiles-1) plotVarX = "qe_sk4";
-      TString plotVarY = "rationorm"+TreeVarNames[jfile];
-      if (jfile==nFiles-1) plotVarY = "qe_sk4";
-
-      TString cut_badpmt = "";
-      if (ifile==nFiles-1) cut_badpmt = "qe_bad_sk4 == 0";
-      else cut_badpmt = "pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-      if (jfile==nFiles-1) cut_badpmt += "&& qe_bad_sk4 == 0";
-      else cut_badpmt += " && pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-
       
-      pc2pe->Project(histname, plotVarY+":"+plotVarX, cut_badpmt);
+      TString histname = j_var+"_vs_"+i_var;
+
+      h_pc2pe_2d[ifile] = new TH2D(histname, ";"+var_title[0]+";"+var_title[1]+";Number of Channels", 120, 0.1, 2, 120, 0.1, 2);
+
+      TString cut_badpmt = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+      cut_badpmt += " && "+ TreeVarNames[jfile]+"_bad"+FileDatasets[jfile]+" == 0";
+      
+      pc2pe->Project(histname, j_var+":"+i_var, cut_badpmt);
 
       h_pc2pe_2d[ifile]->Draw("colz");
 
@@ -223,22 +291,21 @@
 	double RMSoverMean = RMS2d/Mean2d*100;
 	double RMSoverMeanErr = RMSoverMean*sqrt(pow(MeanErr2d/Mean2d, 2)+pow(RMSErr2d/RMS2d, 2));
 	
-	TString AxisTitle = yTitle;
-	if (!iaxis) AxisTitle = xTitle;
-	tRMSoverMeans->AddText(AxisTitle+Form(": %.2f #pm %.2f", RMSoverMean, RMSoverMeanErr));
+	tRMSoverMeans->AddText(var_title[iaxis]+Form(": %.2f #pm %.2f", RMSoverMean, RMSoverMeanErr));
 
 	cout << Form("%.2f ± %.2f", RMSoverMean, RMSoverMeanErr);
 	if (!iaxis) {
 	  cout  << ", ";
 	}
       }
-      cout << endl;
-
-	tRMSoverMeans->Draw();
-
-      c_pc2pe_2d->Print("figures/pc2pe"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+".png");
+      cout << endl << endl;
+      
+      tRMSoverMeans->Draw();
+      
+      c_pc2pe_2d->Print("figures/"+histname+".png");
     }
   }
+  /**/
 
   // Position Separated Scatter Plots
   const int nGroups = 4;
@@ -260,56 +327,49 @@
   
   int GroupColors[nGroups] = {kBlack, kRed, kGreen, kGray+1};
 
-  for (int ifile=0; ifile<nFiles; ifile++) {    
+  for (int ifile=0; ifile<nFiles; ifile++) {
+
+    var_title[0] = FileTitles[ifile]+" "+TreeVarNames[ifile];
+    TString i_var = TreeVarNames[ifile]+FileDatasets[ifile];
+
     for (int jfile=ifile+1; jfile<nFiles; jfile++) {
 
+      var_title[1] = FileTitles[jfile]+" "+TreeVarNames[jfile];
+      TString j_var = TreeVarNames[jfile]+FileDatasets[jfile];
+      
       TCanvas *c_pc2pe_2d_sep = new TCanvas(1);
       TLegend *leg_pc2pe_2d_sep = new TLegend(0.2, 0.65, 0.45, 0.88);
       leg_pc2pe_2d_sep->SetHeader("PMT Type (Corr., x #sigma/#mu (%), y #sigma/#mu (%))");
 
-      // Use SK4 PMT type list
-      int iuseFile = ifile;
-      if (ifile==nFiles-1) iuseFile = 0;
-      int juseFile = jfile;
-      if (jfile==nFiles-1) juseFile = 0;
+      TString histname_base = j_var+"_vs_"+i_var;
 
       for (int igroup=0; igroup<nGroups; igroup++) {
 
 	TString cut_ihkpmt, cut_jhkpmt;
 	if (igroup == HK) {
-	  cut_ihkpmt = "pmtflag"+TreeVarNames[iuseFile]+"==6";
-	  cut_jhkpmt = "pmtflag"+TreeVarNames[juseFile]+"==6";
+	  cut_ihkpmt = "pmtflag"+FileDatasets[ifile]+"==6";
+	  cut_jhkpmt = "pmtflag"+FileDatasets[jfile]+"==6";
 	} else {
-	  cut_ihkpmt = "pmtflag"+TreeVarNames[iuseFile]+"!=6";
-	  cut_jhkpmt = "pmtflag"+TreeVarNames[juseFile]+"!=6";
+	  cut_ihkpmt = "pmtflag"+FileDatasets[ifile]+"!=6";
+	  cut_jhkpmt = "pmtflag"+FileDatasets[jfile]+"!=6";
 	}
 	
-	TString cut_all = cut_ihkpmt + "&&" + cut_jhkpmt;
-	if (igroup != HK) cut_all += "&&" + GroupSelection[igroup];
+	TString cut_all = cut_ihkpmt + " && " + cut_jhkpmt;
+	if (igroup != HK) cut_all += " && " + GroupSelection[igroup];
 
-	TString cut_badpmt = "&& ";
-	if (ifile==nFiles-1) cut_badpmt+ = "qe_bad_sk4 == 0";
-	else cut_badpmt += "pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-	if (jfile==nFiles-1) cut_badpmt += "&& qe_bad_sk4 == 0";
-	else cut_badpmt += " && pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-	cut_all += cut_badpmt;
+	TString cut_badpmt = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+	cut_badpmt += " && "+ TreeVarNames[jfile]+"_bad"+FileDatasets[jfile]+" == 0";
+	cut_all += " && " + cut_badpmt;
 	
-	TString histname = "pc2pe_2d_sep"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+"_"+GroupName[igroup];
-    
-	TString plotVarX = "rationorm"+TreeVarNames[ifile];
-	if (ifile==nFiles-1) plotVarX = "qe_sk4";
-	TString plotVarY = "rationorm"+TreeVarNames[jfile];
-	if (jfile==nFiles-1) plotVarY = "qe_sk4";
+	TString histname = histname_base+"_"+GroupName[igroup];
+    	
+	pc2pe->Draw(j_var+":"+i_var, cut_all, "goff");
 	
-	pc2pe->Draw(plotVarY+":"+plotVarX, cut_all, "goff");
-	
-	//h_pc2pe_2d[ifile]->SetTitle(Form("Correlation = %.2f", h_pc2pe_2d[ifile]->GetCorrelationFactor()));
-
 	TGraph *gr = new TGraph(pc2pe->GetSelectedRows(), pc2pe->GetV2(), pc2pe->GetV1());
 
 	if (!gr->GetN()) continue;
 	
-	gr->SetTitle(";pc2pe "+FileTitles[ifile]+";pc2pe "+FileTitles[jfile]);
+	gr->SetTitle(";"+var_title[0]+";"+var_title[1]);
 	gr->SetMarkerSize(0.06);
 	gr->SetMarkerColor(GroupColors[igroup]);
 	gr->SetFillColor(GroupColors[igroup]);
@@ -326,62 +386,55 @@
       }
 
       leg_pc2pe_2d_sep->Draw();
-      c_pc2pe_2d_sep->Print("figures/pc2pe_2d_sep"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+".png");
-
+      c_pc2pe_2d_sep->Print("figures/"+histname_base+"_groupsep.png");
 
     }
   }
+  /**/
 
   // PMT type separated 2D dists
   for (int ifile=0; ifile<nFiles; ifile++) {    
+
+    var_title[0] = FileTitles[ifile]+" "+TreeVarNames[ifile];
+    TString i_var = TreeVarNames[ifile]+FileDatasets[ifile];
+
     for (int jfile=ifile+1; jfile<nFiles; jfile++) {
 
+      var_title[1] = FileTitles[jfile]+" "+TreeVarNames[jfile];
+      TString j_var = TreeVarNames[jfile]+FileDatasets[jfile];
+      
       TCanvas *c_pc2pe_2d_pmtsep = new TCanvas(1);
       TLegend *leg_pc2pe_2d_pmtsep = new TLegend(0.6, 0.7, 0.99, 0.99);
       leg_pc2pe_2d_pmtsep->SetHeader("PMT Type (Corr., x #sigma/#mu (%), y #sigma/#mu (%))");
 
-      // Use SK4 PMT type list
-      int iuseFile = ifile;
-      if (ifile==nFiles-1) iuseFile = 0;
-      int juseFile = jfile;
-      if (jfile==nFiles-1) juseFile = 0;
+      cout << var_title[1].Data() << " vs " << var_title[0].Data() << endl;
 
-      cout << FileTitles[ifile] << " vs " << FileTitles[jfile] << endl;
-      
+      TString histname_base = j_var+"_vs_"+i_var;
+
       for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
       
-	TString histname = "pc2pe_2d_pmtsep"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+"_"+PMTTypeNames[ipmttype];
-	TString histtitle = ";pc2pe Ratio";
-	if (ifile==nFiles-1) histtitle = ";SK4 QE";
-	histtitle += ";Number of Channels";
-      
+	TString histname = histname_base+"_pmtsep_"+PMTTypeNames[ipmttype];
+	TString histtitle = ";"+var_title[0]+";"+var_title[1];
+	
 	TH2D *h_pc2pe_pmttypes_tmp = new TH2D(histname, histtitle, 150, 0.7, 1.6, 150, 0.7, 1.6);
 
-	TString cut_pmttype = "pmtflag"+TreeVarNames[iuseFile]+Form("==%d",PMTflags[ipmttype]);
-	cut_pmttype += " && pmtflag"+TreeVarNames[juseFile]+Form("==%d ",PMTflags[ipmttype]);
+	TString cut_pmttype = "pmtflag"+FileDatasets[ifile]+Form("==%d",PMTflags[ipmttype]);
+	cut_pmttype += " && pmtflag"+FileDatasets[jfile]+Form("==%d ",PMTflags[ipmttype]);
 	
 	TString cut_all = cut_pmttype;
 	
-	TString cut_badpmt = "&& ";
-	if (ifile==nFiles-1) cut_badpmt+ = "qe_bad_sk4 == 0 ";
-	else cut_badpmt += "pc2pe_bad"+TreeVarNames[ifile]+" == 0 ";
-	if (jfile==nFiles-1) cut_badpmt += "&& qe_bad_sk4 == 0";
-	else cut_badpmt += " && pc2pe_bad"+TreeVarNames[ifile]+" == 0";
-	cut_all += cut_badpmt;
-	    
-	TString plotVarX = "rationorm"+TreeVarNames[ifile];
-	if (ifile==nFiles-1) plotVarX = "qe_sk4";
-	TString plotVarY = "rationorm"+TreeVarNames[jfile];
-	if (jfile==nFiles-1) plotVarY = "qe_sk4";
+	TString cut_badpmt = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+	cut_badpmt += " && "+ TreeVarNames[jfile]+"_bad"+FileDatasets[jfile]+" == 0";
+	cut_all += " && " + cut_badpmt;
 	
-	pc2pe->Project(histname, plotVarY+":"+plotVarX, cut_all);
-	pc2pe->Draw(plotVarY+":"+plotVarX, cut_all, "goff");
+	pc2pe->Project(histname, j_var+":"+i_var, cut_all);
+	pc2pe->Draw(j_var+":"+i_var, cut_all, "goff");
 	
 	TGraph *gr = new TGraph(pc2pe->GetSelectedRows(), pc2pe->GetV2(), pc2pe->GetV1());
 
 	if (!gr->GetN()) continue;
 	
-	gr->SetTitle(";pc2pe "+FileTitles[ifile]+";pc2pe "+FileTitles[jfile]);
+	gr->SetTitle(histtitle);
 	gr->SetMarkerSize(0.06);
 	gr->SetMarkerColor(PMTtypeColors[ipmttype]);
 	gr->SetFillColor(PMTtypeColors[ipmttype]);
@@ -420,8 +473,7 @@
       cout << endl;
       
       leg_pc2pe_2d_pmtsep->Draw();
-      c_pc2pe_2d_pmtsep->Print("figures/pc2pe_2d_pmtsep"+TreeVarNames[ifile]+"_vs"+TreeVarNames[jfile]+".png");
-
+      c_pc2pe_2d_pmtsep->Print("figures/"+histname_base+"_pmtsep.png");
 
     }
   }

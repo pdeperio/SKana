@@ -6,27 +6,30 @@
   }
 
   int channel;
-  float rationorm;
+  float pc2pe;
+
+  TString folder = "figures_may22_fixtimestability/";
+  //TString folder = "";
   
-  TFile *infile = new TFile("pc2pe_output.root");
-  TTree *pc2pe = (TTree*)infile->Get("pc2pe");
+  TFile *infile = new TFile(folder+"pc2pe_output.root");
+  TTree *t_pc2pe = (TTree*)infile->Get("pc2pe");
   
   for (int ifile=0; ifile<nFiles; ifile++) {
 
     ofstream pgain_file;
-    pgain_file.open("pgain"+TreeVarNames[ifile]+"_19apr29");
+    pgain_file.open(folder+"pgain"+TreeVarNames[ifile]+"_19may22");
     pgain_file << "   0  0  11146" << endl;  // Header (Version ? NPMTs)
 
-    pc2pe->SetBranchAddress("rationorm"+TreeVarNames[ifile], &rationorm);
-    pc2pe->SetBranchAddress("channel", &channel);
+    t_pc2pe->SetBranchAddress("pc2pe"+TreeVarNames[ifile], &pc2pe);
+    t_pc2pe->SetBranchAddress("channel", &channel);
 
-    for (int ipmt=0; ipmt<pc2pe->GetEntries(); ipmt++) {
+    for (int ipmt=0; ipmt<t_pc2pe->GetEntries(); ipmt++) {
 
-      pc2pe->GetEntry(ipmt);
+      t_pc2pe->GetEntry(ipmt);
       
       pgain_file << setw(5);
       pgain_file << channel;
-      pgain_file << " " << rationorm << endl;
+      pgain_file << " " << pc2pe << endl;
     }
   }
 

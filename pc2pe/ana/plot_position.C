@@ -2,27 +2,159 @@
   gStyle->SetOptStat(0);
   //gStyle->SetPadRightMargin(0.12);
 
-  const int nFiles = 4;
+  /*
+  const int nFiles = 6;
 
-  TString TreeVarNames[nFiles] = {
-    //"_sk4",
+  TString FileDatasets[nFiles] = {
+    "_sk4",
     "_sk5",
     "_sk5i",
     "_sk5n",
-    "_sk5avg"
-    //"_sk4official"
-  }
-  int Colors[nFiles] = {kBlack, kRed, kBlue, kGreen-2};
+    "_sk5avg",
+    "_sk4official"
+  };
+  enum config_enum {sk4, sk5, sk5i, sk5n, sk5avg, sk4official};
 
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  }
+  
+  int Colors[nFiles] = {kBlack, kOrange, kGreen, kMagenta, kRed, kGray+2};
+  int Markers[nFiles] = {25, 23, 26, 23, 20, 24};
+  int StartingMarker = 24;
+  
   TString FileTitles[nFiles] = {
-    //"SK4",
-    "SK5",
+    "SK4 Reana",
+    "SK5 Mar.",
     "SK5 Inv.",
-    "SK5 New",
-    "SK5 Avg."
-    //"SK4 official"
+    "SK5 Apr.",
+    "SK5 Avg.",
+    "SK3/4 off."
   };
 
+  TString CanvasAppend = "_all";
+
+  /**/
+
+  
+  const int nFiles = 2;
+
+  TString FileDatasets[nFiles] = {
+    "_sk4official",
+    "_sk3"
+  };
+  enum config_enum {sk4official, sk4_qe, sk4};
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "qe"
+  }
+  
+  int Colors[nFiles] = {kBlack, kRed,};
+  int Markers[nFiles] = {24, 25};
+  int StartingMarker = 24;
+  
+  TString FileTitles[nFiles] = {
+    "SK3/4 off.",
+    "SK3 QE"
+  };
+
+  TString CanvasAppend = "_sk3only";
+
+  /**/
+
+  /*
+  const int nFiles = 3;
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  };
+
+  TString FileDatasets[nFiles] = {
+    "_sk5",
+    "_sk5i",
+    "_sk5n"
+  };
+  enum config_enum {sk5, sk5i, sk5n, sk4};
+  
+  int Colors[nFiles] = {kBlack, kRed, kBlue};
+  int Markers[nFiles] = {23, 26, 23};
+  int StartingMarker = 24;
+  
+  TString FileTitles[nFiles] = {
+    "March",
+    "Upside Down",
+    "April"
+  };
+
+  TString CanvasAppend = "_sk5only";
+
+  /**/
+
+  /*
+  const int nFiles = 3;
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  };
+
+  TString FileDatasets[nFiles] = {
+    "_sk5",
+    "_sk5n",
+    "_sk5avg"
+  };
+
+  enum config_enum {sk5, sk5n, sk5avg, sk4};
+  
+  int Colors[nFiles] = {kBlue, kRed, kBlack};
+  int Markers[nFiles] = {24, 25, 20};
+  int StartingMarker = 24;
+  
+  TString FileTitles[nFiles] = {
+    "March",
+    "April",
+    "Average"
+  };
+
+  TString CanvasAppend = "_sk5avg";
+  /**/
+
+  /*
+  const int nFiles = 2;
+
+  TString FileDatasets[nFiles] = {
+    "_sk5avg",
+    "_sk4official"
+  };
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe"
+  };
+  
+  enum config_enum {sk5avg, sk4official, sk4};
+  
+  int Colors[nFiles] = {kBlack, kRed};
+  int Markers[nFiles] = {20, 4};
+  int StartingMarker = 20;
+  
+  TString FileTitles[nFiles] = {
+    "SK5",
+    "SK3/4 official"
+  };
+
+  TString CanvasAppend = "_final";
+
+  /**/
+  
   // PMT Type separated
   const int nPMTtypes = 4;
   int PMTflags[nPMTtypes] = {3, 4, 6, -1};
@@ -35,7 +167,7 @@
   TString DrawOpts = "][ P HIST";
 
   TCanvas *c_pc2pe = new TCanvas(1);
-  TLegend *leg = new TLegend(0.2, 0.78, 0.88, 0.88);
+  TLegend *leg = new TLegend(0.2, 0.85, 0.88, 0.95);
   leg->SetNColumns(3);
   
   TCanvas *c_pc2pe_rms = new TCanvas(1);
@@ -60,32 +192,32 @@
     //if (TreeVarNames[ifile].Contains("sk5i")) continue;
       
     infile->cd();
-    // Select good PMT flags
-    //TString cut_pmttype = "(";
-    //for (int jpmttype=0; jpmttype<nPMTtypes-1; jpmttype++) {
-    //  cut_pmttype += "pmtflag"+TreeVarNames[ifile]+Form("==%d",PMTflags[jpmttype]);
-    //  if (jpmttype<nPMTtypes-2) cut_pmttype += " || ";
-    //}
-    //cut_pmttype += ")";
-    //cut_pmttype = "1";  // Ignore cut
+    
+    // Reject bad PMTs
+    TString cut_all = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
     
     // 1D
-    TString histname = "group_pc2pe"+TreeVarNames[ifile];
-    h_pc2pe[ifile] = new TH1D(histname, ";PMT Group; pc2pe Averaged", nGroups, 0, nGroups);
+    TString varname = TreeVarNames[ifile]+FileDatasets[ifile];
+    TString histname = varname+"_group";
+    TString histtitle = FileTitles[ifile];//+" "+TreeVarNames[ifile];
+    
+    h_pc2pe[ifile] = new TH1D(histname, ";PMT Group;"+TreeVarNames[ifile]+" Averaged", nGroups, 0, nGroups);
 
     h_pc2pe_count[ifile] = (TH1D*)h_pc2pe[ifile]->Clone();
     h_pc2pe_count[ifile]->SetName(histname+"_count");
 
     // Be careful here, this ruins the pc2pe average
-    TString cutNoHK = ""; //"pmtflag"+TreeVarNames[ifile]+"!=6";
+    // This is for plot_spe.C study without HK PMTs, remove for making full plots
+    cut_all += "";//"&& pmtflag"+TreeVarNames[ifile]+"!=6";
     
-    pc2pe->Project(histname, "group", "rationorm"+TreeVarNames[ifile], cutNoHK);
-    pc2pe->Project(histname+"_count", "group", cutNoHK);
+    pc2pe->Project(histname, "group", varname, cut_all);
+    pc2pe->Project(histname+"_count", "group", cut_all);
     
     h_pc2pe[ifile]->Divide(h_pc2pe_count[ifile]);
     
     h_pc2pe[ifile]->SetMarkerColor(Colors[ifile]);
-    h_pc2pe[ifile]->SetMarkerStyle(ifile+2);
+    if (nFiles>=6) h_pc2pe[ifile]->SetMarkerStyle(ifile + StartingMarker);
+    else h_pc2pe[ifile]->SetMarkerStyle(Markers[ifile]);
     h_pc2pe[ifile]->SetMarkerSize(1.5);
 
     h_pc2pe[ifile]->GetYaxis()->SetRangeUser(minY, maxY);
@@ -97,7 +229,7 @@
     else 
       h_pc2pe[ifile]->Draw(DrawOpts+" same");
     
-    leg->AddEntry(h_pc2pe[ifile], FileTitles[ifile], "p");
+    leg->AddEntry(h_pc2pe[ifile], histtitle, "p");
 
     // Geometry separation
     for (int isep=18; isep<=26; isep+=8) {
@@ -113,9 +245,9 @@
 
 
     // 2D
-    histname = histname+"_2d";
-    TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group; Relative Gain (pc2pe ratio)", nGroups, 0, nGroups, 50, 0.4, 1.6); 
-    pc2pe->Project(histname, "rationorm"+TreeVarNames[ifile]+":group", cutNoHK);
+    histname += "_2d";
+    TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group;"+TreeVarNames[ifile], nGroups, 0, nGroups, 50, 0.4, 1.6); 
+    pc2pe->Project(histname, varname+":group", cut_all);
 
     TCanvas *c_pc2pe_vs_group = new TCanvas(1);
     
@@ -161,9 +293,9 @@
       h_proj->SetLineColor(Colors[ifile]);
       if (!ifile) h_proj->Draw();
       else h_proj->Draw("same");
-      if (ibin==2) leg_projections->AddEntry(h_proj, FileTitles[ifile], "l");
+      if (ibin==2) leg_projections->AddEntry(h_proj, histtitle, "l");
 
-      if (ifile==1) {
+      if (ifile==sk4) {
 	for (int iline=-2; iline<=2; iline++) {
 	  TLine *l_proj = new TLine(Mean+RMS*iline, 0, Mean+RMS*iline, h_proj->GetMaximum()*5);
 	  l_proj->SetLineStyle(abs(iline)+2);
@@ -196,14 +328,15 @@
 
     leg_pc2pe_vs_group->Draw();
 
-    c_pc2pe_vs_group->Print("figures/pc2pe_vs_group_rmsoverlay"+TreeVarNames[ifile]+".png");
+    c_pc2pe_vs_group->Print("figures/"+varname+"_vs_group_rmsoverlay.png");
     
     // Compare RMSs
     c_pc2pe_rms->cd();
 
     h_pc2pe_rms->GetYaxis()->SetTitle("pc2pe RMS");
     h_pc2pe_rms->SetMarkerColor(Colors[ifile]);
-    h_pc2pe_rms->SetMarkerStyle(ifile+2);
+    if (nFiles>=6) h_pc2pe_rms->SetMarkerStyle(ifile+StartingMarker);
+    else h_pc2pe_rms->SetMarkerStyle(Markers[ifile]);
     h_pc2pe_rms->SetMarkerSize(1.5);
 
     h_pc2pe_rms->GetYaxis()->SetRangeUser(0, 0.09);
@@ -233,11 +366,13 @@
 
   c_pc2pe->cd();
   leg->Draw();
-  c_pc2pe->Print("figures/pc2pe_grouped.png");
+  c_pc2pe->Print("figures/pc2pe_grouped"+CanvasAppend+".png");
+  c_pc2pe->Print("figures/pc2pe_grouped"+CanvasAppend+".pdf");
 
   c_pc2pe_rms->cd();
   leg_rms->Draw();
-  c_pc2pe_rms->Print("figures/pc2pe_rms.png");
+  c_pc2pe_rms->Print("figures/pc2pe_rms"+CanvasAppend+".png");
+  c_pc2pe_rms->Print("figures/pc2pe_rms"+CanvasAppend+".pdf");
 
   c_projections->cd(2);
   leg_projections->Draw();
