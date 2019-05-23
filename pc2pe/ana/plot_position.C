@@ -41,7 +41,7 @@
 
   /**/
 
-  
+  /*
   const int nFiles = 2;
 
   TString FileDatasets[nFiles] = {
@@ -67,6 +67,38 @@
   TString CanvasAppend = "_sk3only";
 
   /**/
+  /*
+  
+  const int nFiles = 4;
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",    
+    "pc2pe"
+  };
+
+  TString FileDatasets[nFiles] = {
+    "_sk5",
+    "_sk5i",
+    "_sk5n",
+    "_sk5avg"    
+  };
+  enum config_enum {sk5, sk5i, sk5n, sk5avg, sk4};
+  
+  int Colors[nFiles] = {kGreen+2, kRed, kBlue, kBlack};
+  int Markers[nFiles] = {32, 26, 32, 20};
+  int StartingMarker = 24;
+  
+  TString FileTitles[nFiles] = {
+    "March",
+    "Upside Down",
+    "April",
+    "Average"
+  };
+
+  TString CanvasAppend = "_sk5avg";
+
+  /**/
 
   /*
   const int nFiles = 3;
@@ -83,7 +115,7 @@
   };
   enum config_enum {sk5, sk5i, sk5n, sk4};
   
-  int Colors[nFiles] = {kBlack, kRed, kBlue};
+  int Colors[nFiles] = {kGreen+2, kRed, kBlue};
   int Markers[nFiles] = {23, 26, 23};
   int StartingMarker = 24;
   
@@ -96,7 +128,6 @@
   TString CanvasAppend = "_sk5only";
 
   /**/
-
   /*
   const int nFiles = 3;
 
@@ -127,11 +158,42 @@
   TString CanvasAppend = "_sk5avg";
   /**/
 
+ 
+  const int nFiles = 3;
+
+  TString FileDatasets[nFiles] = {
+    "_sk5avg",
+    "_sk4official",
+    "_sk4"
+  };
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  };
+  
+  enum config_enum {sk5avg, sk4official, sk4};
+  
+  int Colors[nFiles] = {kBlack, kRed, kBlue};
+  int Markers[nFiles] = {20, 4, 21};
+  int StartingMarker = 20;
+  
+  TString FileTitles[nFiles] = {
+    "SK5",
+    "SK3/4 official",
+    "SK4"
+  };
+
+  TString CanvasAppend = "_final";
+
+  /**/
+
   /*
   const int nFiles = 2;
 
   TString FileDatasets[nFiles] = {
-    "_sk5avg",
+    "_sk4",
     "_sk4official"
   };
 
@@ -140,20 +202,21 @@
     "pc2pe"
   };
   
-  enum config_enum {sk5avg, sk4official, sk4};
+  enum config_enum {sk4, sk4official};
   
-  int Colors[nFiles] = {kBlack, kRed};
-  int Markers[nFiles] = {20, 4};
+  int Colors[nFiles] = {kGreen-2, kRed-2};
+  int Markers[nFiles] = {20, 20};
   int StartingMarker = 20;
   
   TString FileTitles[nFiles] = {
-    "SK5",
+    "SK4",
     "SK3/4 official"
   };
 
-  TString CanvasAppend = "_final";
+  TString CanvasAppend = "_sk4only";
 
   /**/
+
   
   // PMT Type separated
   const int nPMTtypes = 4;
@@ -167,7 +230,7 @@
   TString DrawOpts = "][ P HIST";
 
   TCanvas *c_pc2pe = new TCanvas(1);
-  TLegend *leg = new TLegend(0.2, 0.85, 0.88, 0.95);
+  TLegend *leg = new TLegend(0.2, 0.85, 0.9, 0.95);
   leg->SetNColumns(3);
   
   TCanvas *c_pc2pe_rms = new TCanvas(1);
@@ -194,7 +257,7 @@
     infile->cd();
     
     // Reject bad PMTs
-    TString cut_all = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+    TString cut_all = "";//TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
     
     // 1D
     TString varname = TreeVarNames[ifile]+FileDatasets[ifile];

@@ -62,7 +62,8 @@ void plot() {
 
   //TString datadir = "../output_apr24/";
   //TString datadir = "../output_may21_shortwindow/";
-  TString datadir = "../output_may22_fixtimestability/";
+  //TString datadir = "../output_may22_fixtimestability/";
+  TString datadir = "../output_may23_groupfix/";
 
   const int nChannels = 11147;
   
@@ -741,27 +742,31 @@ void plot() {
       // SK5 Weighted average
       else {
 
-	pc2pe_bad[ifile] = pc2pe_bad[sk5] && pc2pe_bad[sk5n];
+	bool b_errs_gt_zero = 1;
 	
-	double err1 = ratio_norm_err[sk5];
-	double err2 = ratio_norm_err[sk5n];
-	if (!pc2pe_bad[ifile] && err1>0 && err2>0) {
+	pc2pe_bad[ifile] = pc2pe_bad[sk5];
+	for (int jfile=sk5; jfile<=sk5n; jfile++) {
+	  pc2pe_bad[ifile] = pc2pe_bad[ifile] && pc2pe_bad[jfile];
+
+	  b_errs_gt_zero = b_errs_gt_zero && ratio_norm_err[jfile] > 0;
+	}
+
+	double sum_mean_over_err2 = 0;
+	double sum_err2 = 0;
 	
-	  double val1 = ratio_norm[sk5];
-	  double val2 = ratio_norm[sk5n];
-	
-	  double sum_mean_over_err2 = val1/(err1*err1) + val2/(err2*err2);
-	  double sum_err2 = 1/(err1*err1) + 1/(err2*err2);
-	
+	if (!pc2pe_bad[ifile] && b_errs_gt_zero) {
+
+	  for (int jfile=sk5; jfile<=sk5n; jfile++) {
+	    sum_mean_over_err2 += ratio_norm[jfile]/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
+	    sum_err2 += 1/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
+	  }
+	  
 	  ratio_norm[ifile] = sum_mean_over_err2/sum_err2;
 	  ratio_norm_err[ifile] = sqrt(1/sum_err2);
 
 	  h_pc2pe[ifile]->SetBinContent(ibin, ratio_norm[ifile]);
 	  h_pc2pe[ifile]->SetBinError(ibin, ratio_norm_err[ifile]);
 
-	  if (ratio_norm[ifile] > val1 && ratio_norm[ifile] > val2 ||
-	      ratio_norm[ifile] < val1 && ratio_norm[ifile] < val2 )
-	    cout << "wtf" << endl;
 	}
       }
     }

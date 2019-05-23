@@ -8,7 +8,7 @@
   int channel;
   float pc2pe;
 
-  TString folder = "figures_may22_fixtimestability/";
+  TString folder = "figures_may23_groupfix/";
   //TString folder = "";
   
   TFile *infile = new TFile(folder+"pc2pe_output.root");
@@ -17,7 +17,7 @@
   for (int ifile=0; ifile<nFiles; ifile++) {
 
     ofstream pgain_file;
-    pgain_file.open(folder+"pgain"+TreeVarNames[ifile]+"_19may22");
+    pgain_file.open(folder+"pgain"+TreeVarNames[ifile]+"_19may23");
     pgain_file << "   0  0  11146" << endl;  // Header (Version ? NPMTs)
 
     t_pc2pe->SetBranchAddress("pc2pe"+TreeVarNames[ifile], &pc2pe);
