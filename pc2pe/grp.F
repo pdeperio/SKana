@@ -28,73 +28,72 @@ C
 
       open(LUNGRP,FILE='pmt_groups.txt')
 
+      ballx = 0.3535             ! m
+      bally = -0.707            ! m
+      ballz = 0.0               ! m
+      print *, 'Ball position =', ballx, bally, ballz
 
 ************************ grouping   ****************************************
-      DO K = 1,7
-         
-         write(*,*)'K=',K
- 
-         REM = 0
-         KAI = 0
-         
-         DO ipmt = 1,MAXPM
+      REM = 0
+      KAI = 0
+      
+      DO ipmt = 1,MAXPM
 
-            IF(KIJPM(1,ipmt).eq.1)THEN ! barrel
-               REM=mod(ipmt,51)
-               IF(REM.eq.0)THEN
-                  REM=51
-               END IF 
-               grp=int(real(REM-1)/3.)+1
+         IF(KIJPM(1,ipmt).eq.1)THEN ! barrel
+            REM=mod(ipmt,51)
+            IF(REM.eq.0)THEN
+               REM=51
+            END IF 
+            grp=int(real(REM-1)/3.)+1
 
-               write(LUNGRP,*) ipmt,grp
+            write(LUNGRP,*) ipmt,grp
 
-            ELSE IF(KIJPM(1,ipmt).eq.2)THEN ! top
-               r=sqrt((xyzpm(1,ipmt)-ballx*100.)**2+(xyzpm(2,ipmt)-bally*100.)**2)               
+         ELSE IF(KIJPM(1,ipmt).eq.2)THEN ! top
+            r=sqrt((xyzpm(1,ipmt)-ballx*100.)**2+(xyzpm(2,ipmt)-bally*100.)**2)               
 
-               if(r.gt.RINTK) then ! oosoto        
+            if(r.gt.RINTK) then ! oosoto        
+               
+               write(LUNGRP,*) ipmt,25
+                
+               GOTO 20
+               
+            endif
+            
+            DO I=1,8
+               J=I+17
+               
+               if(r.le.I*RINTK/8) then ! group I
+                 
+                  write(LUNGRP,*) ipmt,J
+
+                  GOTO 20
+               end if
+            END DO   
+            
+         ELSE IF(KIJPM(1,ipmt).eq.3)THEN ! bottom   
+            r=sqrt((xyzpm(1,ipmt)-ballx*100.)**2+(xyzpm(2,ipmt)-bally*100.)**2)
+            
+            if(r.gt.RINTK) then ! oosoto
+               
+               write(LUNGRP,*) ipmt,33
                   
-                  write(LUNGRP,*) ipmt,25
-                   
+               GOTO 20                  
+               
+            endif
+
+            DO I=1,8
+               J=I+25
+               if(r.le.I*RINTK/8) then ! group I
+
+                  write(LUNGRP,*) ipmt,J
+                     
                   GOTO 20
                   
-               endif
-               
-               DO I=1,8
-                  J=I+17
-                  
-                  if(r.le.I*RINTK/8) then ! group I
-                    
-                     write(LUNGRP,*) ipmt,J
-
-                     GOTO 20
-                  end if
-               END DO   
-               
-            ELSE IF(KIJPM(1,ipmt).eq.3)THEN ! bottom   
-               r=sqrt((xyzpm(1,ipmt)-ballx*100.)**2+(xyzpm(2,ipmt)-bally*100.)**2)
-               
-               if(r.gt.RINTK) then ! oosoto
-                  
-                  write(LUNGRP,*) ipmt,33
-                     
-                  GOTO 20                  
-                  
-               endif
-
-               DO I=1,8
-                  J=I+25
-                  if(r.le.I*RINTK/8) then ! group I
-
-                     write(LUNGRP,*) ipmt,J
-                        
-                     GOTO 20
-                     
-                  end if
-               END DO               
-               
-            END IF
- 20         CONTINUE  
-         END DO
+               end if
+            END DO               
+            
+         END IF
+ 20      CONTINUE  
       END DO
    
       CLOSE(LUNGRP)

@@ -140,20 +140,30 @@ int main(int argc, char *argv[])
   // Determined by eye with ttof plot from ana/plot.C
   float ontimemin, ontimemax, offtimemin, offtimemax;
 
+  float low_intensity_window = -1;//100;
+
   // SK4 Low intensity
   if (61892<=RUN_NUMBER && RUN_NUMBER<=61895) {
     ontimemin = 1180;
     ontimemax = 1400;
     offtimemin = 480;//400;
     offtimemax = 700;//800;
+    if (low_intensity_window>0) {
+      ontimemax = ontimemin+low_intensity_window;
+      offtimemax = offtimemin+low_intensity_window;
+    }
   } 
 
   // SK5 Low intensity
-  else if (80871<=RUN_NUMBER && RUN_NUMBER<=80875 || RUN_NUMBER==81028) {
+  else if ((80871<=RUN_NUMBER && RUN_NUMBER<=80875) || RUN_NUMBER==81028) {
     ontimemin = 1000;
     ontimemax = 1300;
     offtimemin = 450;//410;
     offtimemax = 750;//900;
+    if (low_intensity_window>0) {
+      ontimemax = ontimemin+low_intensity_window;
+      offtimemax = offtimemin+low_intensity_window;
+    }
   } 
 
   // SK5 Low intensity (source inverted)
@@ -162,6 +172,10 @@ int main(int argc, char *argv[])
     ontimemax = 1300;
     offtimemin = 450;//410;
     offtimemax = 750;//900;
+    if (low_intensity_window>0) {
+      ontimemax = ontimemin+low_intensity_window;
+      offtimemax = offtimemin+low_intensity_window;
+    }
   } 
 
   // SK4 High intensity
@@ -173,7 +187,7 @@ int main(int argc, char *argv[])
   }
 
   // SK5 High intensity
-  else if (RUN_NUMBER==80877 || 81030) {
+  else if (RUN_NUMBER==80877 || RUN_NUMBER==81030) {
     ontimemin = 975;
     ontimemax = 1038;
     offtimemin = 420;//410;
