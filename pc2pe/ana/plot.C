@@ -64,7 +64,7 @@ void plot() {
   //TString datadir = "../output_may21_shortwindow/";
   //TString datadir = "../output_may22_fixtimestability/";
   TString datadir = "../output_may23_groupfix/";
-
+  
   const int nChannels = 11147;
   
   const int nFiles = 8;
@@ -316,7 +316,9 @@ void plot() {
 
     ////////////////////////////////////////////
     // Plot On-time charge per channel for high intensity only
-    if (ifile>=nFiles/2) {
+    if (ifile>=nFiles/2)
+    //if (ifile<nFiles/2) 
+      {
 
       h_qisk_ton->Sumw2();
       
@@ -325,8 +327,11 @@ void plot() {
       h_qisk_ton->SetTitle(FileTitles[ifile]+";PMT Cable;Q_{mean} (pe)");
 
       h_qmean[ifile-nFiles/2] = (TH1D*)h_qisk_ton->Clone();
-
       h_qmean[ifile-nFiles/2]->SetName("h_qisk_ton"+TreeVarNames[ifile-nFiles/2]);
+      
+      //h_qmean[ifile] = (TH1D*)h_qisk_ton->Clone();
+      //h_qmean[ifile]->SetName("h_qisk_ton"+TreeVarNames[ifile]);
+
       //leg_qisk_ton->AddEntry(h_qisk_ton, FileTitles[ifile], "l");
     }
     
@@ -604,9 +609,12 @@ void plot() {
   int pc2pe_bad_sk4;
   float qe[nQEtables];
   int qe_bad[nQEtables];
-  
-  float rmean[nConfigs] = {0};
-  
+
+  const bool bSeparateHK = 1;
+
+  float rmean[nConfigs][bSeparateHK+1] = {0};
+  int nGoodChannels[bSeparateHK+1] = {0};
+
   for (int ifile=0; ifile<nConfigs; ifile++) {
     
     TFile *infile = new TFile(datadir+FileNames[ifile]);
@@ -670,35 +678,63 @@ void plot() {
       h_pc2pe[ifile]->SetName("h_pc2pe"+TreeVarNames[ifile]);
       continue;
     }
-    
-    int nGoodChannels = 0;
-    
+
+    // First get average of charge/hit ratios
+    for (int ipmttype=0; ipmttype<bSeparateHK+1; ipmttype++)
+      nGoodChannels[ipmttype] = 0;	   
+
+    // Sum up all the ratios
     for (int ibin=2; ibin<=h_rhit_occu[ifile]->GetNbinsX(); ibin++) {
 
-      ConnectionTable[ifile]->GetEntry(ibin-2);
+      channel = ibin-1;
+
+      ConnectionTable[ifile]->GetEntry(channel-1);
 
       rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
       qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
 
       if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
+	  && !(pmtflag[ifile]==6 && channel==7100) // Skip abnormally large relative gain HK PMT
 	  //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
-	  ) {	
-	ratio[ifile] = h_qmean_over_rhit[ifile]->GetBinContent(ibin);
-	rmean[ifile] += ratio[ifile];
+	  ) {
 
-	nGoodChannels++;
+	bool isHKpmt = 0;
+	if (bSeparateHK && pmtflag[ifile]==6) isHKpmt = 1;
+	
+	ratio[ifile] = h_qmean_over_rhit[ifile]->GetBinContent(ibin);
+	rmean[ifile][isHKpmt] += ratio[ifile];
+
+	nGoodChannels[isHKpmt]++;
       }
       //else cout << ibin-1 << endl;
     }
-    rmean[ifile] /= (float)nGoodChannels;
 
+    
+    // Calculate average of charge/hit ratios
+    for (int ipmttype=0; ipmttype<bSeparateHK+1; ipmttype++)
+      rmean[ifile][ipmttype] /= (float)nGoodChannels[ipmttype];
+
+    // Normalize charge/hit ratios by the average
     h_pc2pe[ifile] = (TH1D*)h_qmean_over_rhit[ifile]->Clone();
     h_pc2pe[ifile]->SetName("h_pc2pe"+TreeVarNames[ifile]);
-    h_pc2pe[ifile]->Scale(1/rmean[ifile]);
     
+    for (int ibin=2; ibin<=h_pc2pe[ifile]->GetNbinsX(); ibin++) {
+      ConnectionTable[ifile]->GetEntry(ibin-2);
+
+      bool isHKpmt = 0;
+      if (bSeparateHK && pmtflag[ifile]==6) isHKpmt = 1;
+
+      ratio[ifile] = h_qmean_over_rhit[ifile]->GetBinContent(ibin);
+      ratio_err[ifile] = h_qmean_over_rhit[ifile]->GetBinError(ibin);
+      
+      h_pc2pe[ifile]->SetBinContent(ibin, ratio[ifile]/rmean[ifile][isHKpmt]);
+      h_pc2pe[ifile]->SetBinError(ibin, ratio_err[ifile]/rmean[ifile][isHKpmt]);
+    }
+
     //cout << TreeVarNames[ifile] << " rmean = " << rmean[ifile] << endl;
   }
-  
+
+  // Now apply other thresholds and fill tree
   for (int ibin=2; ibin<=h_rhit_occu[0]->GetNbinsX(); ibin++) {
 
     channel = ibin-1;
@@ -710,6 +746,7 @@ void plot() {
       ratio_norm[ifile] = ratio[ifile] = 1;
       ratio_norm_err[ifile] = ratio_err[ifile] = 0;
 
+      // Calculate each dataset configuration (not average)
       if (ifile != sk5avg) {
 
 	rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
@@ -717,6 +754,7 @@ void plot() {
 	
 	// Good channel selection by threshold
 	if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
+	    && !(pmtflag[ifile]==6 && channel==7100) // Skip abnormally large relative gain HK PMT
 	    //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
 	    ) {
 
@@ -729,7 +767,8 @@ void plot() {
 	  ratio_norm_err[ifile] = h_pc2pe[ifile]->GetBinError(ibin);
 
 	  if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
-	    cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	    cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+
 	}
 
 	else {

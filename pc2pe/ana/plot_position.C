@@ -158,7 +158,7 @@
   TString CanvasAppend = "_sk5avg";
   /**/
 
- 
+  /*
   const int nFiles = 3;
 
   TString FileDatasets[nFiles] = {
@@ -188,6 +188,32 @@
   TString CanvasAppend = "_final";
 
   /**/
+
+  
+  const int nFiles = 2;
+
+  TString FileDatasets[nFiles] = {
+    "_sk5avg",
+    "_sk4official"
+  };
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe"
+  };
+  
+  enum config_enum {sk5avg, sk4official, sk4};
+  
+  int Colors[nFiles] = {kBlack, kRed};
+  int Markers[nFiles] = {20, 4};
+  int StartingMarker = 20;
+  
+  TString FileTitles[nFiles] = {
+    "SK5",
+    "SK3/4 official"
+  };
+
+  TString CanvasAppend = "_final";
 
   /*
   const int nFiles = 2;

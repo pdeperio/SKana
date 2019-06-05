@@ -3,7 +3,7 @@
   gStyle->SetPadRightMargin(0.15);
   gErrorIgnoreLevel = kWarning;  // Suppress "Info in <TCanvas::Print>" messages
 
-  
+  /*
   const int nFiles = 9;
 
   enum file_enum {sk4, sk5, sk5i, sk5n, sk5avg, sk4official, sk3_qe, sk4_qe, sk5_qe};
@@ -60,10 +60,11 @@
 
   /**/
 
-  /*
-  const int nFiles = 3;
+  
+  const int nFiles = 4;
 
   TString TreeVarNames[nFiles] = {
+    "pc2pe",
     "pc2pe",
     "pc2pe",
     "pc2pe"
@@ -72,20 +73,23 @@
   TString FileDatasets[nFiles] = {
     "_sk5",
     "_sk5i",
-    "_sk5n"
+    "_sk5n",
+    "_sk5avg"
   };
 
   
   int Colors[nFiles] = {
-    kBlack,
+    kGreen-2,
     kRed,
-    kBlue
+    kBlue,
+    kBlack
   };
 
   TString FileTitles[nFiles] = {
     "March",
-    "Upside Down",
-    "April"
+    "Inverted",
+    "April",
+    "Average"
   };
 
   TString CanvasAppend = "_sk5only";
@@ -117,6 +121,32 @@
   
   TString CanvasAppend = "";
   /**/
+
+  /*
+  const int nFiles = 2;
+
+  TString FileDatasets[nFiles] = {
+    "_sk5i",
+    "_sk5i"
+  };
+
+  TString TreeVarNames[nFiles] = {
+    "rhit",
+    "qmean"
+  };
+  
+  int Colors[nFiles] = {
+    kBlack,
+    kGray+2
+  };
+
+  TString FileTitles[nFiles] = {
+    "Hit Rate",
+    "Mean Charge"
+  };
+  
+  TString CanvasAppend = "_rhitqmean";
+  /**/
   
   TFile *infile = new TFile("pc2pe_output.root");
 
@@ -131,6 +161,9 @@
   // 1D distributions
 
   // All
+  //double xrange[2] = {0, 0.05};
+  //double xrange[2] = {0, 400};
+  double xrange[2] = {0.1, 2};
 
   TCanvas *c_pc2pe = new TCanvas(1);
   c_pc2pe->SetLogy(1);
@@ -145,7 +178,7 @@
     TString histtitle = ";"+TreeVarNames[ifile]; //+" "+FileTitles[ifile];
     histtitle += ";Number of Channels";
     
-    h_pc2pe[ifile] = new TH1D(histname, histtitle, 50, 0.1, 2);
+    h_pc2pe[ifile] = new TH1D(histname, histtitle, 50, xrange[0], xrange[1]);
 
     // Select good PMT flags
     TString cut_pmttype = "(";
@@ -155,7 +188,8 @@
     }
     cut_pmttype += ")";
 
-    cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+    if (TreeVarNames[ifile].Contains("pc2pe") || TreeVarNames[ifile].Contains("qe"))
+      cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
     
     TString plotVar = TreeVarNames[ifile]+FileDatasets[ifile];
     
@@ -202,7 +236,7 @@
       TString histtitle = ";"+TreeVarNames[ifile];
       histtitle += ";Number of Channels";
       
-      h_pc2pe_pmttypes[ifile][ipmttype] = new TH1D(histname, histtitle, 50, 0.1, 2);
+      h_pc2pe_pmttypes[ifile][ipmttype] = new TH1D(histname, histtitle, 50, xrange[0], xrange[1]);
 
       // Use SK4 PMT type list
       TString cut_pmttype = "pmtflag"+FileDatasets[ifile]+Form("==%d",PMTflags[ipmttype]);
@@ -213,7 +247,8 @@
 	  if (jpmttype<nPMTtypes-2) cut_pmttype += " && ";
 	}
       }
-      cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
+      if (TreeVarNames[ifile].Contains("pc2pe") || TreeVarNames[ifile].Contains("qe"))
+	cut_pmttype += " && "+TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
       
       TString plotVar = TreeVarNames[ifile]+FileDatasets[ifile];
 
@@ -244,7 +279,8 @@
     c_pc2pe_pmttype->Print("figures/"+TreeVarNames[ifile]+FileDatasets[ifile]+"_pmttype.png");
     
   }
-
+  break;
+  
   // 2D Distributions
   TH2D *h_pc2pe_2d[nFiles];
 
@@ -265,7 +301,7 @@
       
       TString histname = j_var+"_vs_"+i_var;
 
-      h_pc2pe_2d[ifile] = new TH2D(histname, ";"+var_title[0]+";"+var_title[1]+";Number of Channels", 120, 0.1, 2, 120, 0.1, 2);
+      h_pc2pe_2d[ifile] = new TH2D(histname, ";"+var_title[0]+";"+var_title[1]+";Number of Channels", 120, xrange[0], xrange[1], 120, xrange[0], xrange[1]);
 
       TString cut_badpmt = TreeVarNames[ifile]+"_bad"+FileDatasets[ifile]+" == 0";
       cut_badpmt += " && "+ TreeVarNames[jfile]+"_bad"+FileDatasets[jfile]+" == 0";
