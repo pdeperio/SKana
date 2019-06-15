@@ -35,6 +35,8 @@ class ConnectionTable
   Int_t group;
   Int_t group_arr[11146];
 
+  Float_t prodyear[2];
+
   int LoadPMT(int ipmt) {return tConnection->GetEntry(ipmt);};
   void WriteTree() {tConnection->Write();};
 
@@ -44,6 +46,7 @@ class ConnectionTable
 
   void SortTree();
   void AddGroupings();
+  void AddProductionYear();
 };
 
 

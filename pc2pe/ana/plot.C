@@ -63,7 +63,8 @@ void plot() {
   //TString datadir = "../output_apr24/";
   //TString datadir = "../output_may21_shortwindow/";
   //TString datadir = "../output_may22_fixtimestability/";
-  TString datadir = "../output_may23_groupfix/";
+  //TString datadir = "../output_may23_groupfix/";
+  TString datadir = "../output_jun15_fixhk/";
   
   const int nChannels = 11147;
   
@@ -95,8 +96,8 @@ void plot() {
   };
 
   const int nConfigs = nFiles/2 + 1; // +1 for SK5 weighted average
+  // Must maintain this ordering for sk5avg to work properly below
   enum config_enum {sk4, sk5, sk5i, sk5n, sk5avg};
-  
   TString TreeVarNames[nConfigs] = {
     "_sk4", "_sk5", "_sk5i", "_sk5n", "_sk5avg"
   };
@@ -126,9 +127,9 @@ void plot() {
     //1000, 1300,
     
     1140, 1200,
-    975, 1038,
-    975, 1038,
-    975, 1038
+    975, 1120, // 1038, misses HK PMTs
+    975, 1120, // 1038, misses HK PMTs
+    975, 1120  // 1038 misses HK PMTs
   };
 
   // Must have same length as ontime_window above?
@@ -138,9 +139,9 @@ void plot() {
     450, 750,
     450, 750,    
     420, 480,
-    420, 483,
-    420, 483,
-    420, 483
+    420, 565, // 483,
+    420, 565, // 483,
+    420, 565  // 483
     //400, 800,
     //410, 900,
     //410, 900,
@@ -609,22 +610,30 @@ void plot() {
   int pc2pe_bad_sk4;
   float qe[nQEtables];
   int qe_bad[nQEtables];
+  float prodyear_sk4, prodyear_sk5;
 
   const bool bSeparateHK = 1;
 
   float rmean[nConfigs][bSeparateHK+1] = {0};
   int nGoodChannels[bSeparateHK+1] = {0};
-
+  
   for (int ifile=0; ifile<nConfigs; ifile++) {
-    
+
+    cout << endl << "Setting values for file: " << TreeVarNames[ifile].Data() << " with thresholds: " << rHitThresholds[ifile] << " " << QMeanThresholds[ifile] << endl;
+
     TFile *infile = new TFile(datadir+FileNames[ifile]);
 
-    TTree *ConnectionTableTmp = (TTree*)infile->Get("ConnectionTable");
+    TFile *fConnectionTable;
+    if (TreeVarNames[ifile].Contains("sk4")) fConnectionTable = new TFile("ConnectionTable_SK4.root");
+    else fConnectionTable = new TFile("ConnectionTable_SK5.root");
+    
+    TTree *ConnectionTableTmp = (TTree*)fConnectionTable->Get("ConnectionTable");
 
     if (ifile<nConfigs) {
       if (ifile==sk5avg) {
 	TFile *infile_sk5avg = new TFile(datadir+"pc2pe_tst081028_kludge4avg.root");
-	TTree *ConnectionTableTmp = (TTree*)infile_sk5avg->Get("ConnectionTable");
+	fConnectionTable->cd();
+	TTree *ConnectionTableTmp = (TTree*)fConnectionTable->Get("ConnectionTable");
       } 
       ConnectionTable[ifile] = (TTree*)ConnectionTableTmp->Clone();
     }
@@ -634,6 +643,8 @@ void plot() {
     ConnectionTable[ifile]->SetBranchAddress("pmty", &pmty);
     ConnectionTable[ifile]->SetBranchAddress("pmtz", &pmtz);
     ConnectionTable[ifile]->SetBranchAddress("pmtflag", &pmtflag[ifile]);
+    ConnectionTable[ifile]->SetBranchAddress("prodyear_sk4", &prodyear_sk4);
+    ConnectionTable[ifile]->SetBranchAddress("prodyear_sk5", &prodyear_sk5);
 
     if (!ifile) {
       t_pc2pe->Branch("channel", &channel, "channel/I");
@@ -647,6 +658,7 @@ void plot() {
       t_pc2pe->Branch("pc2pe_sk4official", &ratio_norm_sk4, "pc2pe_sk4official/F");
       t_pc2pe->Branch("pmtflag_sk4official", &pmtflag[ifile], "pmtflag_sk4official/I");
       t_pc2pe->Branch("pc2pe_bad_sk4official", &pc2pe_bad_sk4, "pc2pe_bad_sk4official/I");
+      t_pc2pe->Branch("prodyear_sk4official", &prodyear_sk4, "prodyear_sk4official/F");
       t_pc2pe->Branch("pmtflag_sk3", &pmtflag[ifile], "pmtflag_sk3/I");      
 
       for (int iqe=0; iqe<nQEtables; iqe++) {
@@ -667,6 +679,11 @@ void plot() {
 
     t_pc2pe->Branch("pmtflag"+TreeVarNames[ifile], &pmtflag[ifile], "pmtflag"+TreeVarNames[ifile]+"/I");
 
+    if (TreeVarNames[ifile].Contains("sk4"))
+      t_pc2pe->Branch("prodyear"+TreeVarNames[ifile], &prodyear_sk4, "prodyear"+TreeVarNames[ifile]+"/F");
+    else
+      t_pc2pe->Branch("prodyear"+TreeVarNames[ifile], &prodyear_sk5, "prodyear"+TreeVarNames[ifile]+"/F");
+    
     //cout << "Bad Channels in Dataset: " << TreeVarNames[ifile].Data() << endl;
 
     // First get ratio normalization
@@ -705,8 +722,13 @@ void plot() {
 	rmean[ifile][isHKpmt] += ratio[ifile];
 
 	nGoodChannels[isHKpmt]++;
+
       }
-      //else cout << ibin-1 << endl;
+      
+      else
+	if (pmtflag[ifile]==6)
+	  cout << "Bad pc2pe: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+
     }
 
     
@@ -842,6 +864,7 @@ void plot() {
     
     t_pc2pe->Fill();
   }
+  cout << endl;
 
   outfile->cd();
   for (int ifile=0; ifile<nConfigs; ifile++) 

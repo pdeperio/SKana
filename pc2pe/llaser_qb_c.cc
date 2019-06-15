@@ -189,17 +189,17 @@ int main(int argc, char *argv[])
   // SK5 High intensity
   else if (RUN_NUMBER==80877 || RUN_NUMBER==81030) {
     ontimemin = 975;
-    ontimemax = 1038;
+    ontimemax = 1120; //1038; misses HK PMTs
     offtimemin = 420;//410;
-    offtimemax = 483;//600;
+    offtimemax = 565; //483;//600;
   } 
 
   // SK5 High intensity (source inverted)
   else if (RUN_NUMBER==80884 || RUN_NUMBER==80886) {
     ontimemin = 975;
-    ontimemax = 1038;
+    ontimemax = 1120; //1038; misses HK PMTs
     offtimemin = 420;//410;
-    offtimemax = 483;//600;
+    offtimemax = 565; //483;//600;
   } 
 
   else {
@@ -259,6 +259,9 @@ int main(int argc, char *argv[])
   TH2F *hnqisk_vs_time = new TH2F("hnqisk_vs_time", "Nqisk Time Dependence;Epoch Time (s);Nqisk", 500, StartTime-PadTime, EndTime+PadTime, 100, 0, 500);
   
   TH1F *ttof = new TH1F ("ttof","Hit Times;T-ToF [ns]",3000, 0, 3000.);
+  //TH1F *ttof_channel[nCables-1];
+  //for (int ipmt=0; ipmt<nCables-1; ipmt++)
+  //   ttof_channel[ipmt]= new TH1F (Form("ttof_channel_%d",ipmt+1),Form("PMT %d Hit Times;T-ToF [ns]",ipmt+1),3000, 0, 3000.);
 
   TH1F *hnHitsOnTime = new TH1F ("hnHitsOnTime", "Number of On-time Hits;nHits", 1200, 0, 12000);
   TH1F *hQOnTime = new TH1F ("hQOnTime", "Total On-time Charge;Charge [pC]", 500, 400000, 2400000);
@@ -374,7 +377,8 @@ int main(int argc, char *argv[])
       float distan=sqrt((xball-xpmt)*(xball-xpmt) + (yball-ypmt)*(yball-ypmt) + (zball-zpmt)*(zball-zpmt));
       float tof=rootread->tidsk[j]-distan/CWATER;
       ttof->Fill(tof);
-      
+      //ttof_channel[icab-1]->Fill(tof);
+
       if(tof > ontimemin && tof < ontimemax) {
         h_nhit_ton->Fill(icab);
         h_qisk_ton->Fill(icab, qisk);

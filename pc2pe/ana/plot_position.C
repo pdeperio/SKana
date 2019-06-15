@@ -249,6 +249,31 @@
   int PMTflags[nPMTtypes] = {3, 4, 6, -1};
   TString PMTTypeNames[nPMTtypes] = {"SK2", "SK3", "HK", "Other"};
 
+  // PMT Production Year separated
+  const int nProdYears = 7;
+  
+  float ProductionYearSelection[nProdYears][2] = {
+    -1, 1,
+    1992, 1995.2,
+    1996, 1997.2,
+    2003, 2003.2,
+    2004, 2004.2,
+    2005, 2005.2,
+    2017, 2019
+  };
+
+  TString ProductionYearName[nProdYears] = {
+    "KEK",
+    "92-95",
+    "96-97",
+    "2003",
+    "2004",
+    "2005",
+    "HK"
+  };
+  
+  int ProdYearColors[nProdYears] = {kGray+1, kRed, kBlue, kViolet, kCyan+1, kGreen-2, kOrange+1};
+
   const int nGroups = 35;
   
   TFile *infile = new TFile("pc2pe_output.root");
@@ -338,6 +363,19 @@
     TH2F *h_pc2pe_vs_group = new TH2F(histname, FileTitles[ifile]+";PMT Group;"+TreeVarNames[ifile], nGroups, 0, nGroups, 50, 0.4, 1.6); 
     pc2pe->Project(histname, varname+":group", cut_all);
 
+    
+    TH2F *h_pc2pe_vs_group_pmtyear[nProdYears];
+    for (int iyear=0; iyear<nProdYears; iyear++) {
+      TString histname_year = histname+ProductionYearName[iyear];
+      h_pc2pe_vs_group_pmtyear[iyear] = new TH2F(histname_year, FileTitles[ifile]+" "+ProductionYearName[iyear]+";PMT Group;"+TreeVarNames[ifile], nGroups, 0, nGroups, 50, 0.4, 1.6);
+
+      TString cut_year = Form("%f <= prodyear%s && prodyear%s < %f",
+			      ProductionYearSelection[iyear][0], FileDatasets[ifile].Data(),
+			      FileDatasets[ifile].Data(), ProductionYearSelection[iyear][1]);
+      pc2pe->Project(histname_year, varname+":group", cut_year);
+    }
+    /**/
+    
     TCanvas *c_pc2pe_vs_group = new TCanvas(1);
     
     TLegend *leg_pc2pe_vs_group = new TLegend(0.2, 0.2, 0.7, 0.3);
@@ -359,6 +397,12 @@
     TH1F *h_pc2pe_rms = (TH1F*)h_pc2pe_copy->Clone();
     h_pc2pe_rms->Reset();
 
+    TH1F *h_pc2pe_rms_pmtyear[nProdYears];
+    for (int iyear=0; iyear<nProdYears; iyear++) {
+      h_pc2pe_rms_pmtyear[iyear] = (TH1F*)h_pc2pe_copy->Clone();
+      h_pc2pe_rms_pmtyear[iyear]->Reset();
+    }
+    
     TH1F *h_pc2pe_rms_plus_mean = (TH1F*)h_pc2pe_rms->Clone();
     
     for (int ibin=2; ibin<=h_pc2pe_vs_group->GetNbinsX()-1; ibin++) {
@@ -370,11 +414,23 @@
       
       h_pc2pe_rms->SetBinContent(ibin, RMS);
       h_pc2pe_rms->SetBinError(ibin, RMSError);
-      
-
+            
       h_pc2pe_rms_plus_mean->SetBinContent(ibin, Mean+RMS);
       h_pc2pe_rms_plus_mean->SetBinError(ibin, RMSError); // Wrong
 
+      for (int iyear=0; iyear<nProdYears; iyear++) {
+      TString histname_year = histname+ProductionYearName[iyear];
+	TH1F *h_proj = (TH1F*)h_pc2pe_vs_group_pmtyear[iyear]->ProjectionY(histname_year+Form("_px%d",ibin), ibin, ibin+1);
+	
+	double RMS = h_proj->GetRMS();
+	double RMSError = h_proj->GetRMSError();
+	double Mean = h_proj->GetMean();
+      
+	h_pc2pe_rms_pmtyear[iyear]->SetBinContent(ibin, RMS);
+	h_pc2pe_rms_pmtyear[iyear]->SetBinError(ibin, RMSError);
+      }
+      /**/
+      
       // Draw all projections
       c_projections->cd(ibin+2)->SetLogy(1);
       h_proj->SetTitle(Form("Group %d; pc2pe Relative Gain; Number of Channels", ibin-1));
@@ -449,6 +505,35 @@
     l_unity->SetLineColor(kGray+1);
     l_unity->Draw();
 
+
+    // PMT production year separated
+    /*
+    TCanvas *c_pc2pe_rms_year = new TCanvas(1);
+    TLegend *leg_rms_year = new TLegend(0.7, 0.6, 0.99, 0.99);
+
+    h_pc2pe_rms->SetTitle(FileTitles[ifile]);
+    h_pc2pe_rms->Draw();
+    h_pc2pe_rms->SetMarkerColor(kBlack);
+    h_pc2pe_rms->SetMarkerStyle(8);
+    h_pc2pe_rms->SetMarkerSize(1);
+    leg_rms_year->AddEntry(h_pc2pe_rms, "All", "p");
+    
+    for (int iyear=0; iyear<nProdYears; iyear++) {
+      h_pc2pe_rms_pmtyear[iyear]->SetMarkerStyle(8);
+      h_pc2pe_rms_pmtyear[iyear]->SetMarkerSize(0.5);
+      h_pc2pe_rms_pmtyear[iyear]->SetLineColor(ProdYearColors[iyear]);
+      h_pc2pe_rms_pmtyear[iyear]->SetMarkerColor(ProdYearColors[iyear]);
+      h_pc2pe_rms_pmtyear[iyear]->Draw("HIST p SAME");
+
+      leg_rms_year->AddEntry(h_pc2pe_rms_pmtyear[iyear], ProductionYearName[iyear], "p");
+    }
+
+    leg_rms_year->Draw();
+    c_pc2pe_rms_year->Update();
+    
+    c_pc2pe_rms_year->Print("figures/pc2pe_rms_pmtyear"+CanvasAppend+".png");
+    c_pc2pe_rms_year->Print("figures/pc2pe_rms_pmtyear"+CanvasAppend+".pdf");
+    /**/
     outfile->cd();
     h_pc2pe_rms->Write();
   }

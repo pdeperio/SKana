@@ -57,6 +57,7 @@ ConnectionTable::ConnectionTable(TString ConnectionFile) {
 
   SortTree();
   AddGroupings();
+  AddProductionYear();
 
   tConnection->SetBranchAddress("group", &group);
   tConnection->SetBranchAddress("cableid", &cableid);
@@ -123,5 +124,60 @@ void ConnectionTable::AddGroupings() {
     group_arr[ientry] = group;
     bGroup->Fill();
     ientry++;
+  }
+}
+
+void ConnectionTable::AddProductionYear() {
+
+  const int nSKs = 2;
+
+  const TString SKname[nSKs] = {"_sk4", "_sk5"};
+  const TString filename[nSKs] = {"ana/const/pmt_prod_year.dat", "ana/const/pmtinf.dat"};
+
+  for (int isk=0; isk<nSKs; isk++) {
+    
+    ifstream f_prodyear;
+    f_prodyear.open(filename[isk]);
+    
+    if (!f_prodyear.is_open()) {
+      cerr << "Error: " << filename[isk].Data() << " not opened." << endl;
+      exit (-1);
+    }
+    cout << "Opened: " << filename[isk].Data() << endl;
+    
+    TBranch *bProdyear = tConnection->Branch("prodyear"+SKname[isk], &prodyear[isk], "prodyear"+SKname[isk]+"/F");
+    tConnection->SetBranchAddress("cableid", &cableid);
+    
+    Long64_t nentries = tConnection->GetEntries();
+    
+    int ientry=0;
+    while (!f_prodyear.eof()){
+      
+      tConnection->GetEntry(ientry);
+      
+      if (ientry >= nentries) break;
+      
+      int cableidtmp;
+      
+      f_prodyear >> cableidtmp;
+      
+      if (cableidtmp != cableid) {
+	cerr << "Error " << ientry << ": cableidtmp (" << cableidtmp << ") != cableid (" << cableid << ")" << endl;
+	exit (-2);
+      }
+      
+      int pmt_type, pmtx, pmty, pmtz, something;
+      float prod_year;
+      
+      if (!isk)
+	f_prodyear >> prod_year >> pmtx >> pmty >> pmtz >> something;
+      
+      else
+	f_prodyear >> pmt_type >> prod_year;
+      
+      prodyear[isk] = prod_year;
+      bProdyear->Fill();
+      ientry++;
+    }
   }
 }
