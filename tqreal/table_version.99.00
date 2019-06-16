@@ -4,6 +4,8 @@
 #    link information between run number and constant table version
 #    for SKTQCONV() and sktqconv_qb()
 #
+#    TQ-map 60.00 from 16/06/2019: /disk02/usr6/seanxia/tqmap/tqmap/tqmap_60.00
+#
 # y/m/d     start start   QB/ATM TQ-map gain   comment
 #           run   -run	
-2008 10 22  61888 -02000  51.00  52.00  99.00 
+2008 10 22  61888 -02000  51.00  60.00  99.00 

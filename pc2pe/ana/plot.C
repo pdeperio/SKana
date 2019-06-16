@@ -64,7 +64,8 @@ void plot() {
   //TString datadir = "../output_may21_shortwindow/";
   //TString datadir = "../output_may22_fixtimestability/";
   //TString datadir = "../output_may23_groupfix/";
-  TString datadir = "../output_jun15_fixhk/";
+  //TString datadir = "../output_jun15_fixhk/";
+  TString datadir = "../output_jun16_newtqmap_channels/";
   
   const int nChannels = 11147;
   
@@ -114,22 +115,24 @@ void plot() {
   
   // Must be propagated to llaser_qb_c.cc
   float low_intensity_window = 100;
+  float high_intensity_window = 85; // 63;  misses HK PMTs
+  
   float ontime_window[nFiles][2] = {
     // Tight time-window
-    1180, 1180+low_intensity_window,
-    1000, 1000+low_intensity_window,
-    1000, 1000+low_intensity_window,
-    1000, 1000+low_intensity_window,
+    //1180, 1180+low_intensity_window,
+    //1000, 1000+low_intensity_window,
+    //1000, 1000+low_intensity_window,
+    //1000, 1000+low_intensity_window,
     
-    //1180, 1400,
-    //1000, 1300,
-    //1000, 1300,
-    //1000, 1300,
+    1180, 1400,
+    1000, 1300,
+    1000, 1300,
+    1000, 1300,
     
     1140, 1200,
-    975, 1120, // 1038, misses HK PMTs
-    975, 1120, // 1038, misses HK PMTs
-    975, 1120  // 1038 misses HK PMTs
+    975, 975+high_intensity_window,
+    975, 975+high_intensity_window,
+    975, 975+high_intensity_window 
   };
 
   // Must have same length as ontime_window above?
@@ -137,11 +140,12 @@ void plot() {
     480, 700,
     450, 750,
     450, 750,
-    450, 750,    
+    450, 750,
+
     420, 480,
-    420, 565, // 483,
-    420, 565, // 483,
-    420, 565  // 483
+    420, 420+high_intensity_window,
+    420, 420+high_intensity_window,
+    420, 420+high_intensity_window
     //400, 800,
     //410, 900,
     //410, 900,

@@ -189,17 +189,17 @@ int main(int argc, char *argv[])
   // SK5 High intensity
   else if (RUN_NUMBER==80877 || RUN_NUMBER==81030) {
     ontimemin = 975;
-    ontimemax = 1120; //1038; misses HK PMTs
+    ontimemax = 1060; //1038; misses HK PMTs
     offtimemin = 420;//410;
-    offtimemax = 565; //483;//600;
+    offtimemax = 505; //483;//600;
   } 
 
   // SK5 High intensity (source inverted)
   else if (RUN_NUMBER==80884 || RUN_NUMBER==80886) {
     ontimemin = 975;
-    ontimemax = 1120; //1038; misses HK PMTs
+    ontimemax = 1060; //1038; misses HK PMTs
     offtimemin = 420;//410;
-    offtimemax = 565; //483;//600;
+    offtimemax = 505; //483;//600;
   } 
 
   else {
