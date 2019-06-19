@@ -129,7 +129,7 @@ void plot() {
     1000, 1300,
     1000, 1300,
     
-    1140, 1200,
+    1140, 1240,
     975, 975+high_intensity_window,
     975, 975+high_intensity_window,
     975, 975+high_intensity_window 
@@ -142,7 +142,7 @@ void plot() {
     450, 750,
     450, 750,
 
-    420, 480,
+    420, 520,
     420, 420+high_intensity_window,
     420, 420+high_intensity_window,
     420, 420+high_intensity_window
@@ -158,10 +158,15 @@ void plot() {
   //float QMeanThresholds[nFiles/2] = {22, 22, 22};
   float QMeanThresholds[nFiles/2] = {50, 50, 50, 50};
 
-  TCanvas *c_ttof = new TCanvas("c_ttof","c_ttof", 0, 0, 1200, 600);
-  c_ttof->SetLogy(1);
-  TLegend *leg_ttof = new TLegend(0.2, 0.5, 0.5, 0.85);
+  TCanvas *c_ttof[2];
+  TLegend *leg_ttof[2];
+  for (int iint=0; iint<2; iint++) {
+    c_ttof[iint] = new TCanvas(Form("c_ttof_%d", iint),Form("c_ttof_%d", iint), 0, 0, 1200, 600);
+    c_ttof[iint]->SetLogy(1);
 
+    leg_ttof[iint] = new TLegend(0.2, 0.5, 0.5, 0.85);
+  }
+  
   TCanvas *c_nqisk = new TCanvas("c_nqisk","c_nqisk", 20, 500, 600, 400);
   //c_nqisk->SetLogy(1);
   TLegend *leg_nqisk = new TLegend(0.2, 0.58, 0.75, 0.87);
@@ -199,7 +204,13 @@ void plot() {
     
     ////////////////////////////////////////////
     // Plot TToF
-    c_ttof->cd();
+    int iint = 0;
+    if (ifile>=nFiles/2) {
+      iint = 1;
+      if (ifile==nFiles/2) isDrawn = 0;
+    }
+
+    c_ttof[iint]->cd();
 
     //ttof->Sumw2();
 
@@ -232,7 +243,7 @@ void plot() {
 	TPaveStats *st = (TPaveStats*)ttof->FindObject("stats");
       }
     
-    leg_ttof->AddEntry(ttof, FileTitles[ifile], "l");
+    leg_ttof[iint]->AddEntry(ttof, FileTitles[ifile], "l");
 
     // Set axis ranges
     float ttof_miny = 0.04;
@@ -367,7 +378,7 @@ void plot() {
       h_nhit_ton->GetYaxis()->SetRangeUser(-0.01, maxY);
       
       //leg_nhit_ton->AddEntry(h_nhit_ton, FileTitles[ifile], "l");
-      c_nhit_ton->Print("figures/nhit_ton"+TreeVarNames[ifile]+".png");
+      c_nhit_ton->Print("figures/nhit_ton"+TreeVarNames[ifile]+".pdf");
 
       //print_avgerr(h_nhit_ton);
     }
@@ -399,7 +410,7 @@ void plot() {
       h_nhit_toff->GetYaxis()->SetRangeUser(-0.01, maxY);
       
       //leg_nhit_toff->AddEntry(h_nhit_toff, FileTitles[ifile], "l");
-      c_nhit_toff->Print("figures/nhit_toff"+TreeVarNames[ifile]+".png");
+      c_nhit_toff->Print("figures/nhit_toff"+TreeVarNames[ifile]+".pdf");
       //print_avgerr(h_nhit_toff);
     }
 
@@ -439,6 +450,7 @@ void plot() {
     if (ifile<nFiles/2) {
 
       TH1D *h_rhit_occu_tmp = (TH1D*)h_nhit_ton_minus_toff->Clone();
+      
       for(int ibin=0 ; ibin<=h_rhit_occu_tmp->GetNbinsX() ; ++ibin) {
 
 	double ValBeforeCorr = h_rhit_occu_tmp->GetBinContent(ibin);
@@ -450,7 +462,8 @@ void plot() {
 	if (ValBeforeCorr) error *= ValAfterCorr/ValBeforeCorr;
 	h_rhit_occu_tmp->SetBinError(ibin, error);
       }
-
+      /**/
+      
       h_rhit_occu_tmp->SetTitle(FileTitles[ifile]+" (Occupancy Corrected);PMT Cable;(Ontime - Offtime) Hit Rate (/"+axis_norm+")");
 
       h_rhit_occu_wtf[ifile] = (TH1D*)h_rhit_occu_tmp->Clone();
@@ -463,21 +476,23 @@ void plot() {
     }
   }
 
-  c_ttof->cd();
-  //leg_ttof->Draw();
-  c_ttof->Print("figures/ttof.png");
-
+  for (int iint=0; iint<2; iint++) {
+    c_ttof[iint]->cd();
+    leg_ttof[iint]->Draw();
+    c_ttof[iint]->Print(Form("figures/ttof_%d.pdf",iint));
+  }
+  
   c_nqisk->cd();
   leg_nqisk->Draw();
-  c_nqisk->Print("figures/nqisk.png");
+  c_nqisk->Print("figures/nqisk.pdf");
 
   c_nHitsOnTime->cd();
   leg_nHitsOnTime->Draw();
-  c_nHitsOnTime->Print("figures/nHitsOnTime.png");
+  c_nHitsOnTime->Print("figures/nHitsOnTime.pdf");
   
   c_QOnTime->cd();
   leg_QOnTime->Draw();
-  c_QOnTime->Print("figures/QOnTime.png");
+  c_QOnTime->Print("figures/QOnTime.pdf");
 
   //c_qisk_ton->cd();
   //leg_qisk_ton->Draw();
@@ -502,7 +517,7 @@ void plot() {
     l_rHitThresh->SetLineWidth(2);
     l_rHitThresh->Draw();
 
-    c_rhit_occu->Print("figures/rhit"+TreeVarNames[ifile]+".png");
+    c_rhit_occu->Print("figures/rhit"+TreeVarNames[ifile]+".pdf");
 
     print_avgerr(h_rhit_occu[ifile]);
     
@@ -534,7 +549,7 @@ void plot() {
     l_QMeanThresh->SetLineWidth(2);
     l_QMeanThresh->Draw();
 
-    c_qmean->Print("figures/qmean"+TreeVarNames[ifile]+".png");
+    c_qmean->Print("figures/qmean"+TreeVarNames[ifile]+".pdf");
 
     print_avgerr(h_qmean[ifile]);
 

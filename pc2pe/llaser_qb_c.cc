@@ -181,9 +181,9 @@ int main(int argc, char *argv[])
   // SK4 High intensity
   else if (RUN_NUMBER==61889) {
     ontimemin = 1140;
-    ontimemax = 1200;
+    ontimemax = 1240;
     offtimemin = 420;//400;
-    offtimemax = 480;//750;
+    offtimemax = 520;//750;
   }
 
   // SK5 High intensity
