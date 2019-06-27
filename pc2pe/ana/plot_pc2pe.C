@@ -95,7 +95,43 @@
   TString CanvasAppend = "_sk5only";
 
   /**/
+
+  /*
+  const int nFiles = 4;
+
+  TString TreeVarNames[nFiles] = {
+    "pc2pe",
+    "pc2pe",
+    "pc2pe",
+    "pc2pe"
+  };
+
+  TString FileDatasets[nFiles] = {
+    "_sk4",
+    "_sk5",
+    "_sk5i",
+    "_sk5n"
+  };
+
   
+  int Colors[nFiles] = {
+    kGray+1,
+    kGreen-2,
+    kRed,
+    kBlue
+  };
+
+  TString FileTitles[nFiles] = {
+    "SK4",
+    "March",
+    "Inverted",
+    "April"
+  };
+
+  TString CanvasAppend = "_sk4sk5";
+
+  /**/
+
   /*
   const int nFiles = 2;
 
@@ -207,7 +243,7 @@
   }  
 
   leg->Draw();
-  c_pc2pe->Print("figures/pc2pe"+CanvasAppend+".png");
+  c_pc2pe->Print("figures/pc2pe"+CanvasAppend+".pdf");
 
   
   TH1D *h_pc2pe_pmttypes[nFiles][nPMTtypes];
@@ -276,7 +312,7 @@
     cout << endl;
     
     leg_pc2pe_pmttype->Draw();
-    c_pc2pe_pmttype->Print("figures/"+TreeVarNames[ifile]+FileDatasets[ifile]+"_pmttype.png");
+    c_pc2pe_pmttype->Print("figures/"+TreeVarNames[ifile]+FileDatasets[ifile]+"_pmttype.pdf");
     
   }
   break;
@@ -338,7 +374,7 @@
       
       tRMSoverMeans->Draw();
       
-      c_pc2pe_2d->Print("figures/"+histname+".png");
+      c_pc2pe_2d->Print("figures/"+histname+".pdf");
     }
   }
   /**/
@@ -422,7 +458,7 @@
       }
 
       leg_pc2pe_2d_sep->Draw();
-      c_pc2pe_2d_sep->Print("figures/"+histname_base+"_groupsep.png");
+      c_pc2pe_2d_sep->Print("figures/"+histname_base+"_groupsep.pdf");
 
     }
   }
@@ -509,7 +545,7 @@
       cout << endl;
       
       leg_pc2pe_2d_pmtsep->Draw();
-      c_pc2pe_2d_pmtsep->Print("figures/"+histname_base+"_pmtsep.png");
+      c_pc2pe_2d_pmtsep->Print("figures/"+histname_base+"_pmtsep.pdf");
 
     }
   }

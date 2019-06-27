@@ -3,8 +3,8 @@
   gStyle->SetTitleX(0.25);
   gStyle->SetPadRightMargin(0.1);
 
-  TString datadir = "../output_apr24/";
-  //TString datadir = "../output_apr24_time/";
+  //TString datadir = "../output_apr24/";
+  TString datadir = "../output_apr24_time/";
   //TString datadir = "../output_may22_fixtimestability/";
   //TString datadir = "../output_may21_shortwindow/";
 
@@ -24,14 +24,14 @@
   };
 
   TString FileTitles[nFiles] = {
-    "SK4 Low", // (61892-61895)",
-    "SK5 Low", // (80871-80875)",
-    "SK5 Low Inv.", // (80885)",
-    "SK5 Low New", // (80885)",
-    "SK4 High", // (61889)",
-    "SK5 High", // (80877)",
-    "SK5 High Inv.", // (80884, 80886)"
-    "SK5 High New" // (80884, 80886)"
+    "SK4 Low (Runs 61892-61895)",
+    "SK5 Low March (Runs 80871, 80873, 80875)",
+    "SK5 Low Inv. (Run 80885)",
+    "SK5 Low April (Run 81028)",
+    "SK4 High (Run 61889)",
+    "SK5 High March (Run 80877)",
+    "SK5 High Inv. (Runs 80884, 80886)",
+    "SK5 High April (Run 81030)"
   };
 
   TString TimeAxis = "#splitline{%Y-%m-%d}{%H:%M}";
@@ -56,9 +56,9 @@
     }
 
     // Timing cut on SK5 Low Inv. for laser stability
-    if (ifile==2) {
-      //float TimeCut = 1553583000;  // Inv.
-      float TimeCut = 1555993848;  // New
+    if (ifile==2 || ifile==3) {
+      float TimeCut = 1553583000;  // Inv.
+      if (ifile==3) TimeCut = 1555993848;  // New
       TLine *l_TimeCut = new TLine(TimeCut, 0, TimeCut, 500);
       l_TimeCut->SetLineColor(kGreen-2);
       l_TimeCut->SetLineStyle(2);
@@ -66,7 +66,7 @@
       l_TimeCut->Draw();
 
     }
-    c_nqisk->Print(Form("figures/nqisk_vs_time_%d.png",ifile));
+    c_nqisk->Print(Form("figures/nqisk_vs_time_%d.pdf",ifile));
 
   }
 
@@ -89,7 +89,7 @@
       xax->SetTimeFormat(TimeAxis);
       xax->SetTimeOffset(0, "gmt");
     }
-    c_QOnTime->Print(Form("figures/QOnTime_vs_time_%d.png",ifile));
+    c_QOnTime->Print(Form("figures/QOnTime_vs_time_%d.pdf",ifile));
   }
 
   
@@ -110,7 +110,7 @@
       xax->SetTimeFormat(TimeAxis);
       xax->SetTimeOffset(0, "gmt");
     }
-    c_monitor_q->Print(Form("figures/monitor_q_vs_time_%d.png",ifile));
+    c_monitor_q->Print(Form("figures/monitor_q_vs_time_%d.pdf",ifile));
   }
 
   for (int ifile=0; ifile<nFiles; ifile++) {
@@ -122,7 +122,7 @@
     h_monitor_t->SetTitle(FileTitles[ifile]);
     h_monitor_t->Draw();
     
-    c_monitor_t->Print(Form("figures/monitor_t_%d.png",ifile));
+    c_monitor_t->Print(Form("figures/monitor_t_%d.pdf",ifile));
   }
   
 }

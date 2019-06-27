@@ -67,8 +67,8 @@
   TString CanvasAppend = "_sk3only";
 
   /**/
-  /*
   
+  /*
   const int nFiles = 4;
   TString TreeVarNames[nFiles] = {
     "pc2pe",
@@ -91,7 +91,7 @@
   
   TString FileTitles[nFiles] = {
     "March",
-    "Upside Down",
+    "Inverted",
     "April",
     "Average"
   };
@@ -176,7 +176,7 @@
   enum config_enum {sk5avg, sk4official, sk4};
   
   int Colors[nFiles] = {kBlack, kRed, kBlue};
-  int Markers[nFiles] = {20, 4, 21};
+  int Markers[nFiles] = {20, 4, 25};
   int StartingMarker = 20;
   
   TString FileTitles[nFiles] = {
@@ -282,11 +282,11 @@
 
   TCanvas *c_pc2pe = new TCanvas(1);
   TLegend *leg = new TLegend(0.2, 0.85, 0.9, 0.95);
-  leg->SetNColumns(3);
+  leg->SetNColumns(2);
   
   TCanvas *c_pc2pe_rms = new TCanvas(1);
   TLegend *leg_rms = new TLegend(0.2, 0.2, 0.8, 0.3);
-  leg_rms->SetNColumns(3);
+  leg_rms->SetNColumns(2);
 
   TH1D *h_pc2pe[nFiles];
   TH1D *h_pc2pe_count[nFiles];

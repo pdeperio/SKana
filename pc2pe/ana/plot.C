@@ -64,6 +64,7 @@ void plot() {
   //TString datadir = "../output_may21_shortwindow/";
   //TString datadir = "../output_may22_fixtimestability/";
   //TString datadir = "../output_may23_groupfix/";
+  //TString datadir = "../output_jun11_binningcheck/";
   //TString datadir = "../output_jun15_fixhk/";
   TString datadir = "../output_jun16_newtqmap_channels/";
   
@@ -86,18 +87,27 @@ void plot() {
   };
 
   TString FileTitles[nFiles] = {
-    "SK4 Low", // (61892-61895)",
-    "SK5 Low", // (80871-80875)",
-    "SK5 Low Inv.", // (80885)",
-    "SK5 Low New", // (80885)",
-    "SK4 High", // (61889)",
-    "SK5 High", // (80877)",
-    "SK5 High Inv.", // (80884, 80886)"
-    "SK5 High New" // (80884, 80886)"
+    "SK4 Low (Runs 61892-61895)",
+    "SK5 Low March (Runs 80871, 80873, 80875)",
+    "SK5 Low Inv. (Run 80885)",
+    "SK5 Low April (Run 81028)",
+    "SK4 High (Run 61889)",
+    "SK5 High March (Run 80877)",
+    "SK5 High Inv. (Runs 80884, 80886)",
+    "SK5 High April (Run 81030)"
+
+    //"SK4 Low", // (61892-61895)",
+    //"SK5 Low", // (80871-80875)",
+    //"SK5 Low Inv.", // (80885)",
+    //"SK5 Low New", // (80885)",
+    //"SK4 High", // (61889)",
+    //"SK5 High", // (80877)",
+    //"SK5 High Inv.", // (80884, 80886)"
+    //"SK5 High New" // (80884, 80886)"
   };
 
   const int nConfigs = nFiles/2 + 1; // +1 for SK5 weighted average
-  // Must maintain this ordering for sk5avg to work properly below
+  // Must maintain this ordering ("sk5" first) for sk5avg weighted averaging to work properly below
   enum config_enum {sk4, sk5, sk5i, sk5n, sk5avg};
   TString TreeVarNames[nConfigs] = {
     "_sk4", "_sk5", "_sk5i", "_sk5n", "_sk5avg"
@@ -155,6 +165,7 @@ void plot() {
   };
 
   float rHitThresholds[nFiles/2] = {0.009, 0.005, 0.005, 0.005};
+
   //float QMeanThresholds[nFiles/2] = {22, 22, 22};
   float QMeanThresholds[nFiles/2] = {50, 50, 50, 50};
 
@@ -730,7 +741,6 @@ void plot() {
       qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
 
       if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
-	  && !(pmtflag[ifile]==6 && channel==7100) // Skip abnormally large relative gain HK PMT
 	  //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
 	  ) {
 
@@ -745,8 +755,8 @@ void plot() {
       }
       
       else
-	if (pmtflag[ifile]==6)
-	  cout << "Bad pc2pe: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	if (pmtflag[ifile]!=0)
+	cout << "Bad pc2pe: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
 
     }
 
@@ -792,10 +802,12 @@ void plot() {
 
 	rhit[ifile] = h_rhit_occu[ifile]->GetBinContent(ibin);
 	qmean[ifile] = h_qmean[ifile]->GetBinContent(ibin);
-	
+
+	//rhit_err[ifile] = h_rhit_occu[ifile]->GetBinError(ibin);
+	//qmean_err[ifile] = h_qmean[ifile]->GetBinError(ibin);
+
 	// Good channel selection by threshold
 	if (rhit[ifile] > rHitThresholds[ifile] && qmean[ifile] > QMeanThresholds[ifile]
-	    && !(pmtflag[ifile]==6 && channel==7100) // Skip abnormally large relative gain HK PMT
 	    //&& (pmtflag[ifile]==3 || pmtflag[ifile]==4)  // For ignoring HK PMTs
 	    ) {
 
@@ -807,8 +819,8 @@ void plot() {
 	  ratio_err[ifile] = h_qmean_over_rhit[ifile]->GetBinError(ibin);
 	  ratio_norm_err[ifile] = h_pc2pe[ifile]->GetBinError(ibin);
 
-	  if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
-	    cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	  //if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
+	  //cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << ratio_norm[ifile] << " " << ratio[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
 
 	}
 
@@ -822,32 +834,72 @@ void plot() {
       // SK5 Weighted average
       else {
 
-	bool b_errs_gt_zero = 1;
-	
-	pc2pe_bad[ifile] = pc2pe_bad[sk5];
-	for (int jfile=sk5; jfile<=sk5n; jfile++) {
-	  pc2pe_bad[ifile] = pc2pe_bad[ifile] && pc2pe_bad[jfile];
-
-	  b_errs_gt_zero = b_errs_gt_zero && ratio_norm_err[jfile] > 0;
-	}
-
+	// Initialize
+	int nSK5files = 0;
+	pc2pe_bad[ifile] = 0;
+	  
 	double sum_mean_over_err2 = 0;
 	double sum_err2 = 0;
-	
-	if (!pc2pe_bad[ifile] && b_errs_gt_zero) {
 
-	  for (int jfile=sk5; jfile<=sk5n; jfile++) {
-	    sum_mean_over_err2 += ratio_norm[jfile]/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
-	    sum_err2 += 1/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
-	  }
+	for (int jfile=sk5; jfile<=sk5n; jfile++) {
 	  
+	  nSK5files++;
+	  
+	  pc2pe_bad[ifile] += pc2pe_bad[jfile];
+
+	  // Skip bad dataset
+	  if (pc2pe_bad[jfile]) continue;
+	  
+	  sum_mean_over_err2 += ratio_norm[jfile]/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
+	  sum_err2 += 1/(ratio_norm_err[jfile]*ratio_norm_err[jfile]);
+	}
+
+	// Calculate correction factor if there is at least 1 good dataset
+	if (pc2pe_bad[ifile]<nSK5files) {
+
+	  // Later scripts assume this variable is 0 for good correction factors
+	  pc2pe_bad[ifile] = 0;
+
 	  ratio_norm[ifile] = sum_mean_over_err2/sum_err2;
 	  ratio_norm_err[ifile] = sqrt(1/sum_err2);
-
+	  
 	  h_pc2pe[ifile]->SetBinContent(ibin, ratio_norm[ifile]);
 	  h_pc2pe[ifile]->SetBinError(ibin, ratio_norm_err[ifile]);
+	  
+	  /*
+	  // Average charge
+	  sum_mean_over_err2 = 0;
+	  sum_err2 = 0;
+
+	  for (int jfile=sk5; jfile<=sk5n; jfile++) {
+	  sum_mean_over_err2 += qmean[jfile]/(qmean_err[jfile]*qmean_err[jfile]);
+	  sum_err2 += 1/(qmean_err[jfile]*qmean_err[jfile]);
+	  }
+	  
+	  qmean[ifile] = sum_mean_over_err2/sum_err2;
+	  qmean_err[ifile] = sqrt(1/sum_err2);
+
+	  // Average hits
+	  sum_mean_over_err2 = 0;
+	  sum_err2 = 0;
+
+	  for (int jfile=sk5; jfile<=sk5n; jfile++) {
+	  sum_mean_over_err2 += rhit[jfile]/(rhit_err[jfile]*rhit_err[jfile]);
+	  sum_err2 += 1/(rhit_err[jfile]*rhit_err[jfile]);
+	  }
+	  
+	  rhit[ifile] = sum_mean_over_err2/sum_err2;
+	  rhit_err[ifile] = sqrt(1/sum_err2);
+	  /**/
+
+	  if (fabs(ratio_norm[ifile])>1.5 || fabs(ratio_norm[ifile])<0.5) 
+	    cout << "Outlier: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << ratio_norm[ifile] << " " << ratio[ifile] << endl; //<< " " << rhit[ifile] << " " << qmean[ifile] << endl;
 
 	}
+	
+	//else
+	//cout << "Bad pc2pe: " << TreeVarNames[ifile].Data() << " " << channel << " " << pmtflag[ifile] << " " << rhit[ifile] << " " << qmean[ifile] << endl;
+	  //cout << channel << " ";
       }
     }
 
@@ -855,13 +907,14 @@ void plot() {
     //if(std::find(badchannels.begin(), badchannels.end(), channel) != badchannels.end())
     badchannel = 0;
     for (int ib=0; ib<badchannels.size(); ib++) {
-      if (badchannels[ib] < channel) continue;
-      else if (channel == badchannels[ib]) {
+      //if (badchannels[ib] < channel) continue;  // Assumes ordered list
+      if (channel == badchannels[ib]) {
 	badchannel = 1;
 	break;
-      } else {
-	break;
       }
+      //else { // Assumes ordered list
+      //  break;
+      //}
     }
 
     // Official SK3/SK4 table
