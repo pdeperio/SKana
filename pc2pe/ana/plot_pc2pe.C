@@ -60,7 +60,7 @@
 
   /**/
 
-  
+  /*
   const int nFiles = 4;
 
   TString TreeVarNames[nFiles] = {
@@ -132,30 +132,34 @@
 
   /**/
 
-  /*
-  const int nFiles = 2;
+  
+  const int nFiles = 3;
 
   TString FileDatasets[nFiles] = {
     "_sk5avg",
-    "_sk4official"
+    "_sk4official",
+    "_sk4"
   };
 
   TString TreeVarNames[nFiles] = {
+    "pc2pe",
     "pc2pe",
     "pc2pe"
   };
   
   int Colors[nFiles] = {
     kBlack,
-    kGray+2
+    kRed,
+    kBlue
   };
 
   TString FileTitles[nFiles] = {
     "SK5",
-    "SK3/4 official"
+    "SK3/4 official",
+    "SK4"
   };
   
-  TString CanvasAppend = "";
+  TString CanvasAppend = "final";
   /**/
 
   /*

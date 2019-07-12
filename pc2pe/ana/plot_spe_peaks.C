@@ -15,7 +15,7 @@ void plot_spe_peaks(TString spe_var = "Mean")
 
   TH1D *h_spepeaks[nPMTtypes];
   for (int ipmttype=0; ipmttype<nPMTtypes; ipmttype++) {
-    h_spepeaks[ipmttype] = new TH1D("h_spepeaks"+PMTTypeNames[ipmttype], ";SPE "+spe_var+";Number of Channels", 100, 1.9, 4.1);
+    h_spepeaks[ipmttype] = new TH1D("h_spepeaks"+PMTTypeNames[ipmttype], ";SPE "+spe_var+";Number of Channels", 100, 2.3, 4.1);
     h_spepeaks[ipmttype]->Sumw2();
   }  
   
@@ -59,6 +59,6 @@ void plot_spe_peaks(TString spe_var = "Mean")
   }
   leg->Draw();
 
-  c1->Print("figures/spe_"+spe_var+".png");
+  c1->Print("figures/spe_"+spe_var+".pdf");
   
 }

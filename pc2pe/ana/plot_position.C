@@ -2,7 +2,7 @@
   gStyle->SetOptStat(0);
   //gStyle->SetPadRightMargin(0.12);
 
-  /*
+  
   const int nFiles = 6;
 
   TString FileDatasets[nFiles] = {
@@ -189,7 +189,7 @@
 
   /**/
 
-  
+  /*
   const int nFiles = 2;
 
   TString FileDatasets[nFiles] = {
@@ -473,7 +473,7 @@
 
     leg_pc2pe_vs_group->Draw();
 
-    c_pc2pe_vs_group->Print("figures/"+varname+"_vs_group_rmsoverlay.png");
+    c_pc2pe_vs_group->Print("figures/"+varname+"_vs_group_rmsoverlay.pdf");
     
     // Compare RMSs
     c_pc2pe_rms->cd();
@@ -507,10 +507,11 @@
 
 
     // PMT production year separated
-    /*
+    
     TCanvas *c_pc2pe_rms_year = new TCanvas(1);
-    TLegend *leg_rms_year = new TLegend(0.7, 0.6, 0.99, 0.99);
-
+    TLegend *leg_rms_year = new TLegend(0.35, 0.80, 0.9, 0.99);
+    leg_rms_year->SetNColumns(3);
+    
     h_pc2pe_rms->SetTitle(FileTitles[ifile]);
     h_pc2pe_rms->Draw();
     h_pc2pe_rms->SetMarkerColor(kBlack);
@@ -519,6 +520,9 @@
     leg_rms_year->AddEntry(h_pc2pe_rms, "All", "p");
     
     for (int iyear=0; iyear<nProdYears; iyear++) {
+
+      if (FileDatasets[ifile].Contains("sk4") && iyear==nProdYears-1) continue;
+      
       h_pc2pe_rms_pmtyear[iyear]->SetMarkerStyle(8);
       h_pc2pe_rms_pmtyear[iyear]->SetMarkerSize(0.5);
       h_pc2pe_rms_pmtyear[iyear]->SetLineColor(ProdYearColors[iyear]);
@@ -529,10 +533,10 @@
     }
 
     leg_rms_year->Draw();
+    h_pc2pe_rms->GetYaxis()->SetRangeUser(0, 0.165);
     c_pc2pe_rms_year->Update();
     
-    c_pc2pe_rms_year->Print("figures/pc2pe_rms_pmtyear"+CanvasAppend+".png");
-    c_pc2pe_rms_year->Print("figures/pc2pe_rms_pmtyear"+CanvasAppend+".pdf");
+    c_pc2pe_rms_year->Print("figures/pc2pe_rms_pmtyear"+FileDatasets[ifile]+CanvasAppend+".pdf");
     /**/
     outfile->cd();
     h_pc2pe_rms->Write();
@@ -540,17 +544,15 @@
 
   c_pc2pe->cd();
   leg->Draw();
-  c_pc2pe->Print("figures/pc2pe_grouped"+CanvasAppend+".png");
   c_pc2pe->Print("figures/pc2pe_grouped"+CanvasAppend+".pdf");
 
   c_pc2pe_rms->cd();
   leg_rms->Draw();
-  c_pc2pe_rms->Print("figures/pc2pe_rms"+CanvasAppend+".png");
   c_pc2pe_rms->Print("figures/pc2pe_rms"+CanvasAppend+".pdf");
 
   c_projections->cd(2);
   leg_projections->Draw();
   c_projections->cd(3);
   leg_lines->Draw();
-  c_projections->Print("figures/pc2pe_group_projections.png");
+  c_projections->Print("figures/pc2pe_group_projections.pdf");
 }
