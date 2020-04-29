@@ -33,8 +33,8 @@ unused in this OfficialEventParser
    Float_t         dir[10][3];   //[nring]
    Float_t         dirtot[3];
    Float_t         ang[10];   //[nring]
-   Float_t         rtot[10];   //[nring]
-   Float_t         amom[10];   //[nring]
+  Float_t         rtot[10];   //[nring]
+  Float_t         amom[10];   //[nring]
    Float_t         rtote[10];   //[nring]
    Float_t         amome[10];   //[nring]
    Float_t         rtotm[10];   //[nring]
@@ -45,9 +45,9 @@ unused in this OfficialEventParser
    UInt_t          nbye;
    Float_t         probms[10][6];   //[nring]
    Float_t         prmslg[10][6];   //[nring]
+   Int_t           date[3];
 /*
 unused in this OfficialEventParser
-   Int_t           date[3];
    Int_t           time[4];
    Float_t         elpsday;
    Int_t           numpo[10];   //[nring]
@@ -262,36 +262,49 @@ Unused in this OfficialEventParser
    Int_t           scattering;
    Int_t           piless_dcy;
 */
+   
    Int_t           cluster_ncand;
    Float_t         cluster_tstart[10];   //[cluster_ncand]
    Float_t         cluster_tend[10];   //[cluster_ncand]
    Int_t           cluster_nhits[10];   //[cluster_ncand]
    Float_t         cluster_totq[10];   //[cluster_ncand]
    Int_t           cluster_goodflag[10];   //[cluster_ncand]
-   Int_t           cluster_npeaks[10][4];   //[cluster_ncand]
-   Int_t           cluster_ipeak[10][4][10];   //[cluster_ncand]
-   Float_t         cluster_timeofpeak[10][4][10];   //[cluster_ncand]
-   Int_t           muechk_ncand[4];
-   Float_t         muechk_tpeak[4][10];
-   Int_t           muechk_bg[4][10];
-   Float_t         muechk_mean[4][10];
-   Float_t         muechk_excess[4][10];
-   Float_t         muechk_signif[4][10];
-   Int_t           muechk_icluster[4][10];
-   Int_t           nse;
+   Int_t           cluster_npeaks[10][6];   //[cluster_ncand]
+   Int_t           cluster_ipeak[10][6][10];   //[cluster_ncand]
+   Float_t         cluster_timeofpeak[10][6][10];   //[cluster_ncand]
+   Int_t           muechk_ncand[6];
+   Float_t         muechk_tpeak[6][10];
+   Int_t           muechk_bg[6][10];
+   Float_t         muechk_mean[6][10];
+   Float_t         muechk_excess[6][10];
+   Float_t         muechk_signif[6][10];
+   Int_t           muechk_icluster[6][10];
    Float_t         trgoff;
-   Int_t           fqnhitpmt[10];   //[nse]
-   Float_t         fqtotq[10];   //[nse]
-   Float_t         fq0rtotmu[10];   //[nse]
-   Float_t         fq0rnll[10];   //[nse]
-   Int_t           fq1rpcflg[10][7];   //[nse]
-   Float_t         fq1rmom[10][7];   //[nse]
-   Float_t         fq1rt0[10][7];   //[nse]
-   Float_t         fq1rtotmu[10][7];   //[nse]
-   Float_t         fq1rnll[10][7];   //[nse]
-   Float_t         fq1rvtx[10][7][3];   //[nse]
-   Float_t         fq1rdir[10][7][3];   //[nse]
-   Float_t         fq1rpar7[10][7];   //[nse]
+   Int_t           fqntwnd;
+   Int_t           fqtwnd_iclstr[10];   //[fqntwnd]
+   Int_t           fqtwnd_npeak[10];   //[fqntwnd]
+   Float_t         fqtwnd_prftt0[10];   //[fqntwnd]
+   Float_t         fqtwnd_prftvtx[10][3];   //[fqntwnd]
+   Float_t         fqtwnd[10][2];   //[fqntwnd]
+   Float_t         fqtwnd_peakt0[10][10];   //[fqntwnd]
+   Float_t         fqtwnd_peakiness[10][10];   //[fqntwnd]
+   Int_t           fqnse;
+   Int_t           fqitwnd[10];   //[fqnse]
+   Int_t           fqipeak[10];   //[fqnse]
+   Int_t           fqnhitpmt[10];   //[fqnse]
+   Float_t         fqtotq[10];   //[fqnse]
+   Float_t         fq0rtotmu[10];   //[fqnse]
+   Float_t         fq0rnll[10];   //[fqnse]
+   Int_t           fqn50[10];   //[fqnse]
+   Float_t         fqq50[10];   //[fqnse]
+   Int_t           fq1rpcflg[10][7];   //[fqnse]
+   Float_t         fq1rmom[10][7];   //[fqnse]
+   Float_t         fq1rt0[10][7];   //[fqnse]
+   Float_t         fq1rtotmu[10][7];   //[fqnse]
+   Float_t         fq1rnll[10][7];   //[fqnse]
+   Float_t         fq1rvtx[10][7][3];   //[fqnse]
+   Float_t         fq1rdir[10][7][3];   //[fqnse]
+   Float_t         fq1rpar7[10][7];   //[fqnse]
    Int_t           fqpi0pcflg[2];
    Float_t         fqpi0mom1[2];
    Float_t         fqpi0mom2[2];
@@ -330,40 +343,7 @@ Unused in this OfficialEventParser
    Float_t         fq4rtotmu[2][2][2][2];
    Float_t         fq4rnll[2][2][2][2];
    Float_t         fq4rdir4[2][2][2][2][3];
-   Int_t           fqtestn1r;
-   Int_t           fqtest1rstage[30];   //[fqtestn1r]
-   Int_t           fqtest1rse[30];   //[fqtestn1r]
-   Int_t           fqtest1rpid[30];   //[fqtestn1r]
-   Int_t           fqtest1rpcflg[30];   //[fqtestn1r]
-   Float_t         fqtest1rmom[30];   //[fqtestn1r]
-   Float_t         fqtest1rt0[30];   //[fqtestn1r]
-   Float_t         fqtest1rtotmu[30];   //[fqtestn1r]
-   Float_t         fqtest1rnll[30];   //[fqtestn1r]
-   Float_t         fqtest1rvtx[30][3];   //[fqtestn1r]
-   Float_t         fqtest1rdir[30][3];   //[fqtestn1r]
-   Float_t         fqtest1rpar7[30];   //[fqtestn1r]
-   Int_t           fqtestnpi0;
-   Int_t           fqtestpi0stage[30];   //[fqtestnpi0]
-   Int_t           fqtestpi0pcflg[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0mom1[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0mom2[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0momtot[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0dconv1[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0dconv2[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0t0[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0totmu[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0nll[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0mass[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0photangle[30];   //[fqtestnpi0]
-   Float_t         fqtestpi0vtx[30][3];   //[fqtestnpi0]
-   Float_t         fqtestpi0dir1[30][3];   //[fqtestnpi0]
-   Float_t         fqtestpi0dir2[30][3];   //[fqtestnpi0]
-   Float_t         fqtestpi0dirtot[30][3];   //[fqtestnpi0]
 
-   Float_t         stmuent[3];
-   Float_t         stmudir[3];
-   Float_t         stmugood;
-   Float_t         stmuqent;
 
    Int_t           Npvc;
    Int_t           Ipvc[100];   //[Npvc]
@@ -386,6 +366,49 @@ Unused in this OfficialEventParser
    Int_t           iorgprt[200];   //[nscndprt]
    Float_t         pprnt[200][3];   //[nscndprt]
    Int_t           iflgscnd[200];   //[nscndprt]
+
+
+   // STMU output
+   Int_t           stnrun;
+   Int_t           stnev;
+   Int_t           stnsub;
+   Float_t         stpotot;
+   Float_t         strange;
+   Float_t         stbgood;
+   Float_t         stegood;
+   Float_t         stamom;
+   Float_t         stvmom;
+   Float_t         stmsrtot;
+   Float_t         strtot;
+   Float_t         stpomax;
+   Float_t         stprmslg;
+   Float_t         stwtot;
+   Float_t         stangwall;
+   Float_t         stposmu[3];
+   Float_t         stpose[3];
+   Float_t         stdirmu[3];
+   Float_t         stdire[3];
+   Float_t         strangemc;
+   Float_t         stt;
+   Float_t         stn50;
+   Float_t         stamomdcye;
+   Float_t         stq50;
+   Int_t           stnall;
+   Int_t           stnmue;
+   Int_t           stmuetype;
+   Int_t           stnday[3];
+   Int_t           stntim[4];
+   Float_t         strangev;
+   Float_t         stamomv;
+   Float_t         stamomve;
+   Float_t         stposvmu[3];
+   Float_t         stposve[3];
+   Float_t         stdirvmu[3];
+   Float_t         stdirve[3];
+   Int_t           stdcyepidv;
+   Float_t         stposemc[3];
+   Float_t         stdecaytv;
+
 };
 
 #endif
