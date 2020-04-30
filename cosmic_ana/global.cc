@@ -35,7 +35,6 @@ std::string global::sk4stmumcfilename  ="/Users/pdeperio/T2K/SK/SoftwareAna/Data
 
 // Reco 1
 //std::string global::sk4fqdatafilename="/Users/pdeperio/T2K/SK/SoftwareAna/Data/escale/stopmu11d_fitqun_v3r0/output/patmue.fq_v3r0.root";
-std::string global::sk4fqdatafilename="/Users/pdeperio/T2K/SK/SoftwareAna/Data/escale/stopmu11d_fitqun_v3r1/output//patmue.fq_v3r1.root";
-
-std::string global::sk4fqmcfilename  ="/Users/pdeperio/T2K/SK/SoftwareAna/Data/escale/stopmu11d_fitqun_v3r0/output/stopmu_mc_1380_13a.fq_v3r0.root";
+std::string global::sk4fqdatafilename="/project/rpp-blairt2k/pdeperio/cosmics_pmt_shift/stopmu_mc_tarek_polarized_photon_fiTQun_pmtshift.root";
+std::string global::sk4fqmcfilename  = "/project/rpp-blairt2k/pdeperio/cosmics_pmt_shift/stopmu_mc_tarek_polarized_photon_fiTQun.root";
 

@@ -8,8 +8,8 @@ namespace global
 
   const int nMCs = 2;
 
-  const int nRecos = 2;
-  enum reco_enum {apfit, fitqun};
+  const int nRecos = 1;
+  enum reco_enum {fitqun, apfit};
 
   extern std::string sk4fqdatafilename;
   extern std::string sk4fqmcfilename;

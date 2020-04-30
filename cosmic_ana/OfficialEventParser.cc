@@ -82,6 +82,134 @@ TH3D* OfficialEventParser::MakeNewHisto(const char* name, const char* title, Int
 
 
 
+void OfficialEventParser::InitHistogramsEscaleSimple(int ireco, int imc){
+  // Fill histograms in a root file.
+  string outputnameroot="";
+
+  double minLength = 400;  // ns
+  double maxHits[nSE] = {12000, 600};
+  double maxCharge[nSE] = {3e5, 1200};
+
+  //for (int ireco=0; ireco<nRecos; ireco++) 
+  {
+	
+    char *h_name[2] = {"h", "hmc"};
+    //for (int imc=0; imc<nSample; imc++) 
+    {
+
+      string outputname=outputnameroot+Form("%s_reco%d_nrg%d_Elt%d_file%d.root",h_name[imc],ireco,_nrgSepType,_maxE,_fileNum);
+      efile[imc][ireco] = new TFile(outputname.c_str(),"recreate");
+
+      TString histName;
+      
+      for (int ise=0; ise<nSE; ise++) {
+	
+	histName = Form("%s_cosmic_ise%d_mom_binning_reco%d",h_name[imc],ise,ireco);
+	
+	if (ise==ise_muon)
+	  h_cosmic_mom_binning[imc][ireco][ise] = MakeNewHisto(histName.Data(), Form("%s; Momentum (MeV/c)",histName.Data()), nMuonMomBinsLike, muonMomBinsLike, h_vect_hists[imc][ireco]);
+	else if (ise==ise_dcye)
+	  h_cosmic_mom_binning[imc][ireco][ise] = MakeNewHisto(histName.Data(), Form("%s; Momentum (MeV/c)",histName.Data()), nDcyeMomBinsLike, dcyeMomBinsLike, h_vect_hists[imc][ireco]);
+
+	
+	histName = Form("%s_cosmic_ise%d_fqnhitsnorm_reco%d",h_name[imc],ise,ireco);
+	h_cosmic_fqnhitsnorm[imc][ise][ireco] = MakeNewHisto(histName.Data(), Form("%s; Hit Rate (Hits / ns)",histName.Data()), 100, 0, maxHits[ise]/minLength, h_vect_hists[imc][ireco]);
+
+
+	histName = Form("%s_cosmic_ise%d_fqnhits_reco%d",h_name[imc],ise,ireco);
+	h_cosmic_fqnhits[imc][ise][ireco] = MakeNewHisto(histName.Data(), Form("%s; Hits in fiTQun Sub-Event",histName.Data()), 100, 0, maxHits[ise], h_vect_hists[imc][ireco]);
+
+	histName = Form("%s_cosmic_ise%d_fqtotq_reco%d",h_name[imc],ise,ireco);
+	h_cosmic_fqtotq[imc][ise][ireco] = MakeNewHisto(histName.Data(), Form("%s; Charge in fiTQun Sub-Event",histName.Data()), 100, 0, maxCharge[ise], h_vect_hists[imc][ireco]);
+
+	histName = Form("%s_cosmic_ise%d_fqtotqnorm_reco%d",h_name[imc],ise,ireco);
+	h_cosmic_fqtotqnorm[imc][ise][ireco] = MakeNewHisto(histName.Data(), Form("%s; Charge Rate (pe / ns)",histName.Data()), 100, 0, maxCharge[ise]/minLength, h_vect_hists[imc][ireco]);
+
+	histName = Form("%s_cosmic_ise%d_wall_reco%d",h_name[imc],ise,ireco);
+	if (ise==0) h_cosmic_wall[imc][ise][ireco] = MakeNewHisto(histName.Data(),  Form("%s; Distance from Nearest Wall (cm)",histName.Data()), 120, -600, 600, h_vect_hists[imc][ireco]);
+	else h_cosmic_wall[imc][ise][ireco] = MakeNewHisto(histName.Data(),  Form("%s; Distance from Nearest Wall (cm)",histName.Data()), 120, -600, 1800, h_vect_hists[imc][ireco]);
+
+	for (int icut=0; icut<nCuts; icut++) {
+	  histName = Form("%s_cosmic_cut%d_ise%d_z_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_z[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(), Form("%s; z (cm)",histName.Data()), 100, -2000, 2000, h_vect_hists[imc][ireco]);
+	  
+	  histName = Form("%s_cosmic_cut%d_ise%d_r2_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_r2[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(),  Form("%s; R^{2} (cm^{2})",histName.Data()), 100, 0000000, 4000000, h_vect_hists[imc][ireco]);
+
+	  histName = Form("%s_cosmic_cut%d_ise%d_zzoom_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_zzoom[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(), Form("%s; z (cm)",histName.Data()), 100, 1400, 2200, h_vect_hists[imc][ireco]);
+	  
+	  histName = Form("%s_cosmic_cut%d_ise%d_r2zoom_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_r2zoom[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(),  Form("%s; R^{2} (cm^{2})",histName.Data()), 100, 1400000, 4200000, h_vect_hists[imc][ireco]);
+
+	  histName = Form("%s_cosmic_cut%d_ise%d_z_nearwall_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_z_nearwall[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(), Form("%s;z (cm)",histName.Data()), 100, 1650, 1900, h_vect_hists[imc][ireco]);
+	  histName = Form("%s_cosmic_cut%d_ise%d_r2_nearwall_reco%d",h_name[imc],icut,ise,ireco);
+	  h_cosmic_r2_nearwall[imc][ise][ireco][icut]     = MakeNewHisto(histName.Data(), Form("%s;R^{2} (cm^{2})",histName.Data()), 100, 2400000, 3400000, h_vect_hists[imc][ireco]);
+
+	  float lnLrat1R_low[nRecos][nSE] = {
+	    -12000, -500
+	    //-1, 0, //apfit
+	    //-25000, -500,
+	  };
+  
+	  float lnLrat1R_high[nRecos][nSE] = {
+	    2000, 700
+	    //1, 1, //apfit
+	    //2000, 1000,
+	  };
+	
+	  histName = Form("%s_cosmic_ise%d_lnLrat1R_vs_mom_reco%d",h_name[imc],ise,ireco);
+	  if (ise==0) {
+	    h_cosmic_lnLrat1R_vs_mom[imc][ise][ireco]     = MakeNewHisto(histName.Data(), Form("%s;p_{e} (MeV/c); ln(L_{e}/L_{#mu})",histName.Data()), 250, 0, min(_maxE,5000),  (int)((lnLrat1R_high[ireco][ise]-lnLrat1R_low[ireco][ise])/20), lnLrat1R_low[ireco][ise], lnLrat1R_high[ireco][ise], h_vect_hists[imc][ireco]);
+	  } else {
+	    h_cosmic_lnLrat1R_vs_mom[imc][ise][ireco]     = MakeNewHisto(histName.Data(), Form("%s;p_{e} (MeV/c); ln(L_{e}/L_{#mu})",histName.Data()), 100, 0, 100, 150, lnLrat1R_low[ireco][ise], lnLrat1R_high[ireco][ise], h_vect_hists[imc][ireco]);
+	  }
+		
+	}
+
+      }
+
+      histName = Form("%s_cosmic_nmue_reco%d",h_name[imc],ireco); 
+      h_cosmic_nmue[imc][ireco] = MakeNewHisto(histName.Data(),  Form("%s;Number of Decay-e",histName.Data()), 7, -0.5, 6.5, h_vect_hists[imc][ireco]);
+      
+      histName = Form("%s_cosmic_n50_reco%d",h_name[imc],ireco);
+      h_cosmic_n50[imc][ireco] = MakeNewHisto(histName.Data(), Form("%s;  n50 (# of Hits)",histName.Data()), 100, 0, 500, h_vect_hists[imc][ireco]);
+
+      histName = Form("%s_cosmic_q50_reco%d",h_name[imc],ireco);
+      h_cosmic_q50[imc][ireco] = MakeNewHisto(histName.Data(), Form("%s; q50 (p.e.)",histName.Data()), 100, 0, 800, h_vect_hists[imc][ireco]);
+
+      histName = Form("%s_cosmic_emom_reco%d",h_name[imc],ireco);
+      h_cosmic_emom[imc][ireco] = MakeNewHisto(histName.Data(), Form("%s;Momentum (MeV/c)",histName.Data()), nMomBins[ise_dcye], momLow[ise_dcye], momHigh[ise_dcye], h_vect_hists[imc][ireco]);
+
+      histName = Form("%s_cosmic_mumom_reco%d",h_name[imc],ireco);
+      h_cosmic_mumom[imc][ireco] = MakeNewHisto(histName.Data(), Form("%s; Momentum (MeV/c)",histName.Data()), nMomBins[ise_muon], momLow[ise_muon], momHigh[ise_muon], h_vect_hists[imc][ireco]);
+
+
+      histName = Form("%s_cosmic_lifetime_reco%d",h_name[imc],ireco);
+      h_cosmic_lifetime[imc][ireco] = MakeNewHisto(histName.Data(),Form("%s; Decay-e Time, #Deltat (#mus)",histName.Data()), 250, 0, 25, h_vect_hists[imc][ireco]); 
+      
+      histName = Form("%s_cosmic_range_vs_mumom_reco%d",h_name[imc],ireco);
+      h_cosmic_range_vs_mumom[imc][ireco]     = MakeNewHisto(histName.Data(), Form("%s;Momentum (GeV/c);Range (m)",histName.Data()), 60, 0, 12, 100, 0, 50, h_vect_hists[imc][ireco]);
+
+      for (int icut=0; icut<nRangeCuts; icut++) {
+	for (int irange=0; irange<nRanges; irange++) {
+	
+	  double rangeLowEdge = (rangeLow+irange*rangeStep);
+	  double rangeHighEdge = (rangeLow+(irange+1)*rangeStep);
+	
+	  double MomOverRangeHigh = 3.5;
+	  if (irange==0) MomOverRangeHigh = 5;
+
+	  histName = Form("%s_cosmic_mom_over_range_reco%d_rangesep%03d_%03d_icut%d",h_name[imc],ireco,(int)rangeLowEdge,(int)rangeHighEdge,icut);
+	  h_cosmic_mom_over_range_rangesep[imc][ireco][irange][icut] = MakeNewHisto(histName.Data(), Form("%s; p/Range (MeV/c/cm)", histName.Data()), 40, 1.5, MomOverRangeHigh, h_vect_hists[imc][ireco]);
+	}
+      }
+
+    }
+  }
+}
+
 
 void OfficialEventParser::InitHistograms(int ireco, int imc){
   // Fill histograms in a root file.
@@ -247,15 +375,15 @@ void OfficialEventParser::InitHistograms(int ireco, int imc){
 	h_cosmic_fq1rtotmu_vs_year[imc][ise][ireco] = MakeNewHisto(histName.Data(), Form("%s; Year; Predicted Charge (p.e.)",histName.Data()), nYearBins, yearRange[0], yearRange[1], 100, 0, maxCharge[ise], h_vect_hists[imc][ireco]);
 
 	float lnLrat1R_low[nRecos][nSE] = {
-	  -1, 0, //apfit
-	  //-25000, -500,
 	  -12000, -500
+	  //-1, 0, //apfit
+	  //-25000, -500,
 	};
   
 	float lnLrat1R_high[nRecos][nSE] = {
-	  1, 1, //apfit
-	  //2000, 1000,
 	  2000, 700
+	  //1, 1, //apfit
+	  //2000, 1000,
 	};
 	
 	histName = Form("%s_cosmic_ise%d_lnLrat1R_vs_mom_reco%d",h_name[imc],ise,ireco);
@@ -412,7 +540,10 @@ void OfficialEventParser::Parse(int ireco){
     } else {
 
 
-      if (isCosmic(ireco)) FillCosmic(ireco);
+      if (isCosmic(ireco)) {
+	//FillCosmic(ireco);
+	FillCosmicEscaleSimple(ireco);
+      }
       
 
     }
@@ -427,7 +558,274 @@ bool OfficialEventParser::isCosmic(int ireco){
   return isTrue;
 
 }
+void OfficialEventParser::FillCosmicEscaleSimple(int ireco){
 
+  int imc=-1;
+  if (get_datatype() == fcMC) imc = 1; // mc
+  else if (get_datatype() == fcData) imc = 0;
+
+  // Count events for normalization
+  nentries_norm[imc][ireco]++;
+
+  // Get Reconstructed info
+
+  etime = get_dcye_time(ireco, ise_dcye);
+      
+  for (int ise=0; ise<nSE; ise++) {
+    
+    // Momentum
+    mom_rec[ise] = get_1Rmom(ireco, ise);
+
+    imom_rec_idx[ise] = h_cosmic_mom_binning[imc][ireco][ise]->FindBin(mom_rec[ise])-1;
+    
+    // Vertex
+    TVector3 vertex(get_vertex(ireco, ise));
+    v_vtx_rec[ise] = vertex;
+    
+    float vertex_xyz[3];
+    v_vtx_rec[ise].GetXYZ(vertex_xyz);
+    wall[ise] = get_wall(vertex_xyz);  
+    
+    // Direction
+    TVector3 dir(get_1Rdir(ireco, ise));
+    v_dir_rec[ise] = dir;
+
+    // Likelihoods
+    lnLrat1R[ise] = getLnLrat1R(ireco, ise);
+    
+    r2[ise] = v_vtx_rec[ise][0]*v_vtx_rec[ise][0]+v_vtx_rec[ise][1]*v_vtx_rec[ise][1]; 
+    z[ise] = v_vtx_rec[ise][2];
+  }
+    
+  // Get total ID charge
+  double potot = get_potot(ireco);
+  //h_cosmic_potot[imc][ireco]->Fill(potot);
+
+
+  int    itwnd[nSE];
+  int    icluster[nSE];
+
+  double cltstart[nSE];
+  double cltend[nSE];
+  double cllength[nSE];
+
+  int    clnhits[nSE];
+  float  cltotq[nSE];
+  double clnhitsnorm[nSE];
+  double cltotqnorm[nSE];
+
+
+  int    fqnhits[nSE];
+  float  fqtotq[nSE];
+  double fqnhitsnorm[nSE];
+  double fqtotqnorm[nSE];
+
+  float  fq1rtotmu[nSE];
+
+  for (int ise=0; ise<nSE; ise++) {
+    itwnd[ise] = E->fqitwnd[ise];		      
+    icluster[ise] = E->fqtwnd_iclstr[itwnd[ise]];	      
+    
+    cltstart[ise] = E->cluster_tstart[icluster[ise]]/1000;    
+    cltend[ise] = E->cluster_tend[icluster[ise]]/1000;	      
+    cllength[ise] = cltend[ise]-cltstart[ise];		      
+                                                     
+    clnhits[ise] = E->cluster_nhits[icluster[ise]];	      
+    cltotq[ise] = E->cluster_totq[icluster[ise]];	      
+    clnhitsnorm[ise] = clnhits[ise]/cllength[ise]/1000;	      
+    cltotqnorm[ise] = cltotq[ise]/cllength[ise]/1000;	      
+    
+    fqnhits[ise] = E->fqnhitpmt[ise];		      
+    fqtotq[ise] = E->fqtotq[ise];		      
+    fqnhitsnorm[ise] = fqnhits[ise]/cllength[ise]/1000;	      
+    fqtotqnorm[ise] = fqtotq[ise]/cllength[ise]/1000;	      
+    
+    fq1rtotmu[ise] = E->fq1rtotmu[ise][get1rType(ireco,ise)];     
+  }
+
+
+  // Cut: potot for sufficient light in event
+  //if (potot > 1000) 
+  h_cosmic_fqtotqnorm[imc][ise_muon][ireco]->Fill(fqtotqnorm[ise_muon]);
+  //h_cosmic_cllength_vs_year[imc][ise_muon][ireco]->Fill(year, cllength[ise_muon]);
+  
+  if ( ( ( (ireco==apfit&&recoSelect==bothreco) || recoSelect==allapfit) && E->stpotot<110e3 ) ||
+       //( ( (ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun ) && E->potot<110e3 ) //fqtotqnorm[ise_muon]<75 )
+       ( ( (ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun ) && fqtotqnorm[ise_muon]<75 )
+       ) {
+  
+
+    h_cosmic_mom_binning[imc][ireco][ise_muon]->Fill(mom_rec[ise_muon]);
+
+      
+    // Cut: PID must be muon-like cut (fiTQun), or Muon-goodness (stmufit) 
+    //if ( (ireco==apfit && get1rType(ireco,ise_muon) == 3 ) ||
+    if ( ( ((ireco==apfit&&recoSelect==bothreco) || recoSelect==allapfit) && lnLrat1R[ise_muon] >= -0.9 ) ||
+	 ( (ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun ) ) { // && get1rType(ireco,ise_muon) == imu ) ) {
+
+      // Single ring likelihood
+      
+      // Cut: 1-ring
+      //if (is1R(ireco)) 
+      { 
+	
+	// Sub-GeV or Multi-GeV (currently based on momentum)
+	
+	bool bIsSubGeV = mom_rec[ise_muon]<1330; //isSubGeV(ireco);
+	
+	if ( (_nrgSepType == 0 && mom_rec[ise_muon]<_maxE) || 
+	     (_nrgSepType == 1 && bIsSubGeV) ||
+	     (_nrgSepType == 2 && !bIsSubGeV && mom_rec[ise_muon]<_maxE) ) {
+	  
+	  int nmue = muedcy(ireco);
+	  h_cosmic_nmue[imc][ireco]->Fill(nmue);
+
+	  // Cut: 1 decay-e
+	  //if (nmue==1 && cllength>0.7) {
+	  if (nmue==1) {
+
+	    TVector3 vertex_diff = v_vtx_rec[ise_dcye]-v_vtx_rec[ise_muon];
+	    //TVector3 vertex_diff_mc = v_vtx_tru[ise_dcye]-v_vtx_tru[ise_muon];
+	    double range = vertex_diff.Mag();
+	    //double range_mc = vertex_diff_mc.Mag();
+	    float MomOverRange = mom_rec[ise_muon]/range;
+
+	    ddir_res = vertex_diff.Angle(v_dir_rec[ise_muon])*180/TMath::Pi();
+	    //range_res = range - range_mc;
+
+	    int n50 = get_n50(ireco, ise_dcye);
+	    float q50 = get_q50(ireco, ise_dcye);
+	
+	    int inGate = isInGate(ireco,ise_dcye);
+	    //h_cosmic_ingate_vs_year[imc][ireco]->Fill(year, inGate);
+	    
+	    if (!inGate) {
+	      
+	      h_cosmic_lifetime[imc][ireco]->Fill(etime);
+
+	      if (1.2<etime) {
+		
+		// Cut: Fit goodness (stmufit) and pcflg (fiTQun)
+		//for (int ise=0; ise<2; ise++) h_cosmic_pcflg_vs_year[imc][ise][ireco]->Fill(year, E->fq1rpcflg[ise][get1rType(ireco,ise)]);
+		if ( ( ((ireco==apfit&&recoSelect==bothreco) || recoSelect==allapfit) && lnLrat1R[ise_dcye]>0.5) ||
+		     ( ((ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun) && E->fq1rpcflg[ise_dcye][ie]==0 && E->fq1rpcflg[ise_muon][imu]==0 
+		       //&& getLnLrat1R(ireco,ise_dcye)<0 
+		       ) ) { // && get1rType(ireco,ise_dcye) == ie ) ) {    
+		  
+		  // Vertex at top or side
+		  double r = sqrt(r2[ise_muon]);
+		  Bool_t topEnter = (z[ise_muon] > 1750.0 && z[ise_muon]<1850.0) && r < 1600.0;	      
+		  Bool_t sideEnter = (z[ise_muon] < 1750.0) && (r> 1600.0 && r < 1750.0);
+
+		  for (int ise=0; ise<2; ise++) {
+		    if (etime<10) {
+		      
+		      if ((ise==ise_dcye && (topEnter || sideEnter)) || ise==ise_muon) {
+			h_cosmic_wall[imc][ise][ireco]->Fill(wall[ise]);
+			h_cosmic_z[imc][ise][ireco][0]->Fill(v_vtx_rec[ise][2]); 
+			h_cosmic_r2[imc][ise][ireco][0]->Fill(r2[ise]);
+			h_cosmic_zzoom[imc][ise][ireco][0]->Fill(v_vtx_rec[ise][2]); 
+			h_cosmic_r2zoom[imc][ise][ireco][0]->Fill(r2[ise]);
+			
+			if (r<1400) h_cosmic_z_nearwall[imc][ise][ireco][0]->Fill(v_vtx_rec[ise][2]); 
+			else if (fabs(z[ise_muon])<1500) h_cosmic_r2_nearwall[imc][ise][ireco][0]->Fill(r2[ise]);
+		      }
+		    }
+		  }
+
+
+		  // Dcye-e vertex in ID
+		  if (wall[ise_dcye]>100) {
+		    
+		    if (etime<10) {
+
+		      if (topEnter || sideEnter) {
+			
+			float mom_like = get_1Rmom(ireco, ise_muon);
+
+			if ((ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun)
+			  mom_like = E->fq1rmom[ise_muon][ie];
+			
+			h_cosmic_lnLrat1R_vs_mom[imc][ise_muon][ireco]->Fill(mom_like,-E->fq1rnll[ise_muon][ie]+E->fq1rnll[ise_muon][imu]);
+		      }
+		    }
+				  
+		    h_cosmic_range_vs_mumom[imc][ireco]->Fill(mom_rec[ise_muon]/1000, range/100);
+
+		    if (range<rangeHigh*100) {
+		      int range_idx = (int)((range/100-rangeLow)/rangeStep);
+		    
+		      // Official E-Scale
+		      if (etime>2 && v_dir_rec[ise_muon][2]<-0.94 && hasRvtxInFid(ireco)) 
+			if ( (ireco==apfit && fabs(z[ise_muon]-1810)<0.1) || (ireco==fitqun && topEnter) )
+			  h_cosmic_mom_over_range_rangesep[imc][ireco][range_idx][0]->Fill(MomOverRange);
+		      
+		      if (etime<10) {
+			
+			if (topEnter || sideEnter)
+			  h_cosmic_mom_over_range_rangesep[imc][ireco][range_idx][1]->Fill(MomOverRange);
+			
+			if (topEnter)
+			  h_cosmic_mom_over_range_rangesep[imc][ireco][range_idx][2]->Fill(MomOverRange);
+			
+			else if (sideEnter)
+			  h_cosmic_mom_over_range_rangesep[imc][ireco][range_idx][3]->Fill(MomOverRange);
+		      }
+		      
+		    }
+		  }
+
+		  // Cut: Decay-e vertex in FV
+                  if (wall[ise_dcye]>100 && etime<10 && (topEnter || sideEnter)) {
+		
+		    for (int ise=0; ise<nSE; ise++) {
+
+		      int icut=0;
+		      //if (wall[ise_dcye]<200)
+		      //if (8.5 < mom_tru[ise_dcye] && mom_tru[ise_dcye] < 11.5)
+		    
+		      h_cosmic_fqnhits[imc][ise][ireco]->Fill(fqnhits[ise]);
+		      h_cosmic_fqtotq[imc][ise][ireco]->Fill(fqtotq[ise]);
+		      h_cosmic_fqnhitsnorm[imc][ise][ireco]->Fill(fqnhitsnorm[ise]);
+		      if (ise==ise_dcye) h_cosmic_fqtotqnorm[imc][ise][ireco]->Fill(fqtotqnorm[ise]);
+		    }
+
+		    h_cosmic_n50[imc][ireco]->Fill(n50);
+		    //if (n50>60) 
+		    {			
+		    
+		      //h_cosmic_lifetime_vs_year[imc][ireco]->Fill(year, etime);
+		      //h_cosmic_emom_vs_lifetime_vs_year[imc][ireco]->Fill(year, etime, mom_rec[ise_dcye]);
+
+		      // Final Decay-e spectrum
+		      //if (1.2<etime && etime<10) 
+		      {
+
+			//for (int ise=0; ise<2; ise++) h_cosmic_fq1rtotmu[imc][ise][ireco]->Fill(fq1rtotmu[ise]);
+
+			h_cosmic_q50[imc][ireco]->Fill(q50);
+			
+			h_cosmic_emom[imc][ireco]->Fill(mom_rec[ise_dcye]);
+			h_cosmic_mumom[imc][ireco]->Fill(mom_rec[ise_muon]);
+
+			h_cosmic_mom_binning[imc][ireco][ise_dcye]->Fill(mom_rec[ise_dcye]);
+
+			float mom_like = get_1Rmom(ireco, ise_dcye);
+			if ((ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun)
+			  mom_like = E->fq1rmom[ise_dcye][ie];
+			h_cosmic_lnLrat1R_vs_mom[imc][ise_dcye][ireco]->Fill(mom_like,-E->fq1rnll[ise_dcye][ie]+E->fq1rnll[ise_dcye][imu]);      
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }  
+  }
+}
 
 void OfficialEventParser::FillCosmic(int ireco){
 
@@ -1555,7 +1953,7 @@ float *OfficialEventParser::get_vertex(int ireco, int ise){
   }
   else if ((ireco==fitqun&&recoSelect==bothreco) || recoSelect==allfitqun) {
     int i1rPID = get1rType(ireco,ise);
-    return E->fq1rvtx[ise][i1rPID];
+    return E->fq1rpos[ise][i1rPID];
   }
   
 }

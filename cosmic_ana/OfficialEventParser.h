@@ -188,6 +188,46 @@ private:
 	TH1D * h_cosmic_time_res[nSample][nSE][nRecos][nCuts];
 	TH1D * h_cosmic_ddir_res[nSample][nRecos][nCuts];
 
+	// E-scale simple
+	TH1D * h_cosmic_emom[nSample][nRecos];
+	TH1D * h_cosmic_mumom[nSample][nRecos];
+	TH1D * h_cosmic_lifetime[nSample][nRecos];
+	TH2D * h_cosmic_emom_vs_lifetime[nSample][nRecos];
+	TH2D * h_cosmic_range_vs_mumom[nSample][nRecos];
+
+	TH1D * h_cosmic_nmue[nSample][nRecos];
+	TH1D * h_cosmic_ingate[nSample][nRecos];
+
+	TH1D * h_cosmic_wall[nSample][nSE][nRecos];
+	TH1D * h_cosmic_z[nSample][nSE][nRecos][nCuts];
+	TH1D * h_cosmic_r2[nSample][nSE][nRecos][nCuts];
+	TH1D * h_cosmic_zzoom[nSample][nSE][nRecos][nCuts];
+	TH1D * h_cosmic_r2zoom[nSample][nSE][nRecos][nCuts];
+
+	TH1D * h_cosmic_pcflg[nSample][nSE][nRecos];
+	
+	TH1D * h_cosmic_vtx_prfvtx_diff[nSample][nSE][nRecos];
+
+	TH1D * h_cosmic_mom_over_range_rangesep[nSample][nRecos][nRanges][nRangeCuts];
+
+	TH1D * h_cosmic_Lmuon[nSample][nRecos][nMuonLikes][nMuonMomBinsLike];
+	TH1D * h_cosmic_Ldcye[nSample][nRecos][nDcyeLikes][nDcyeMomBinsLike];
+
+	TH1D * h_cosmic_muonmisid[nSample][nRecos][nMuonMomBinsLike];
+	TH1D * h_cosmic_dcyemisid[nSample][nRecos][nDcyeMomBinsLike];
+
+	TH1D * h_cosmic_n50[nSample][nRecos];
+	TH1D * h_cosmic_q50[nSample][nRecos];
+
+	TH1D * h_cosmic_fqtotqnorm[nSample][nSE][nRecos];
+	TH1D * h_cosmic_fqnhitsnorm[nSample][nSE][nRecos];
+
+	TH1D * h_cosmic_fqnhits[nSample][nSE][nRecos];
+	TH1D * h_cosmic_fqtotq[nSample][nSE][nRecos];
+	TH1D * h_cosmic_fqtotmu[nSample][nSE][nRecos];
+	TH1D * h_cosmic_fq1rtotmu[nSample][nSE][nRecos];
+
+	
 	bool fcmc;      // true : MC, false : data
 	int  _version;  // SK detector version
 	int  _nrgSepType;  // nrgSepType (0: all, 1: sub-GeV, 2: multi-GeV)
@@ -248,6 +288,7 @@ public :
 
 	OfficialEventParser();
 	void InitHistograms(int ireco, int imc);
+	void InitHistogramsEscaleSimple(int ireco, int imc);
 	void InitEvent();
 	void Parse(int ireco=0);
 	void Print();
@@ -255,6 +296,7 @@ public :
 	void operator()(  TChain *fChain, int ireco );
 	
 	void FillCosmic(int ireco);
+	void FillCosmicEscaleSimple(int ireco);
 
 	double weight();
 
@@ -333,7 +375,7 @@ public :
 	void rotateVector(float *vector, double theta, double phi);
 
 
-	double OfficialEventParser::minimum_distance(TVector2 v, TVector2 w, TVector2 p) {
+	double minimum_distance(TVector2 v, TVector2 w, TVector2 p) {
 	  // Return minimum distance between line segment vw and point p
 	  const double l2 = (v-w).Mod2();  // i.e. |w-v|^2 -  avoid a sqrt
 	  //if (l2 == 0.0) return distance(p, v);   // v == w case
@@ -658,7 +700,7 @@ void OfficialEventParser::operator()(  TChain *fChain, int ireco ){
    fChain->SetBranchAddress("fq1rt0", E->fq1rt0);
    fChain->SetBranchAddress("fq1rtotmu", E->fq1rtotmu);
    fChain->SetBranchAddress("fq1rnll", E->fq1rnll);
-   fChain->SetBranchAddress("fq1rvtx", E->fq1rvtx);
+   fChain->SetBranchAddress("fq1rpos", E->fq1rpos);
    fChain->SetBranchAddress("fq1rdir", E->fq1rdir);
    //fChain->SetBranchAddress("fq1rpar7", E->fq1rpar7);
    //fChain->SetBranchAddress("fqpi0pcflg", E->fqpi0pcflg);

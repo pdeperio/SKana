@@ -42,10 +42,11 @@ int main(int argc, char *argv[]){
   string inputfilename[nMCs][nRecos];
   
   inputfilename[0][fitqun] =  sk4fqdatafilename;
-  inputfilename[0][apfit]  =  sk4stmudatafilename;
   inputfilename[1][fitqun] =  sk4fqmcfilename;
-  inputfilename[1][apfit]  =  sk4stmumcfilename;
-  
+  if (nRecos>1) {
+    inputfilename[0][apfit]  =  sk4stmudatafilename;
+    inputfilename[1][apfit]  =  sk4stmumcfilename;
+  }
   TChain *_Chains[nMCs][nRecos];
   
   int version = 4; // SK4
@@ -66,9 +67,10 @@ int main(int argc, char *argv[]){
 
       //if (ireco==fitqun) continue;
 
-      Parser->InitHistograms(ireco, imc); // this needs livetime information
+      //Parser->InitHistograms(ireco, imc); // this needs livetime information
+      Parser->InitHistogramsEscaleSimple(ireco, imc); 
 
-      _Chains[imc][ireco] = new TChain("h1");
+      _Chains[imc][ireco] = new TChain("fiTQun");
       _Chains[imc][ireco]->Add(inputfilename[imc][ireco].c_str());
       
       (*Parser)(_Chains[imc][ireco],ireco);

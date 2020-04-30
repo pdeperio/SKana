@@ -14,7 +14,7 @@
 #include <TFitResult.h>
 #include <TH1.h>
 #include <TH2.h>
-#include <TGraphErrors.H>
+#include <TGraphErrors.h>
 #include <TText.h>
 #include <TLatex.h>
 #include <TLine.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
   using namespace std;
   
   const int nMCs = 2;
-  const int nRecos = 2;
+  const int nRecos = 1;
   const int nSE = 2;
 
   const int nPars = 5;
@@ -108,17 +108,20 @@ int main(int argc, char *argv[]){
 
   for (int ireco=0; ireco<nRecos; ireco++) {
     for (int i=0; i<2; i++) {
-      string filename = Form("%s_reco%d_nrg%d_Elt%d.root",h_name[i], ireco, nrgSepType, maxE);
+      string filename = Form("%s_reco%d_nrg%d_Elt%d_file-1.root", h_name[i], ireco, nrgSepType, maxE);
       cout << filename.c_str() << endl;
       file[i][ireco] = new TFile(filename.c_str());
 
       //nEntriesForLifetimeNorm[i][ireco] = ((TH1D*)file[i][ireco]->Get(Form("%s_cosmic_nmue_reco%d",h_name[i],ireco)))->Integral();
       
-      TH2D *htmp = (TH2D*)file[i][ireco]->Get(Form("%s_cosmic_nmue_vs_year_reco%d",h_name[i],ireco));
-      int apr2009bin = htmp->GetXaxis()->FindBin(2009.+3/12.);
-      if (i) normToData[i][ireco] = htmp->ProjectionX("_pxfornorm",2,2)->Integral();
-      else normToData[i][ireco] = htmp->GetBinContent(apr2009bin,2);
-      cout << ireco << " " << i << " " << apr2009bin << " " << normToData[i][ireco] << endl;
+      //TH2D *htmp = (TH2D*)file[i][ireco]->Get(Form("%s_cosmic_nmue_vs_year_reco%d",h_name[i],ireco));
+      //int apr2009bin = htmp->GetXaxis()->FindBin(2009.+3/12.);
+      //if (i) normToData[i][ireco] = htmp->ProjectionX("_pxfornorm",2,2)->Integral();
+      //else normToData[i][ireco] = htmp->GetBinContent(apr2009bin,2);
+
+      TH1D *htmp = (TH1D*)file[i][ireco]->Get(Form("%s_cosmic_nmue_reco%d",h_name[i],ireco));
+      normToData[i][ireco] = htmp->Integral();
+      cout << ireco << " " << i << " " << normToData[i][ireco] << endl;
     }
 
     dataScale[ireco] = normToData[0][ireco]/normToData[1][ireco];
@@ -224,7 +227,7 @@ int main(int argc, char *argv[]){
 	  tempH1[i][ireco]->Rebin(2);
 
 	  else if ( (strNameOrig.find("_wall_")!=string::npos) ) {
-	    tempH1[i][ireco]->Rebin(4);
+	    //tempH1[i][ireco]->Rebin(4);
 	  }
 	  else if ( (strNameOrig.find("zenith_ise1")!=string::npos) ) {
 	    tempH1[i][ireco]->Rebin(4);
@@ -245,7 +248,28 @@ int main(int argc, char *argv[]){
 	  else if (strNameOrig.find("_ddir_")!=string::npos) {
 	    if (!doLog) tempH1[i][ireco]->GetXaxis()->SetRangeUser(0, 15);
 	  }
-
+	  else if ( (strNameOrig.find("_ise0_zzoom_")!=string::npos) ) {
+	    tempH1[i][ireco]->GetXaxis()->SetRangeUser(1650, 1950);
+	  } 
+	  else if ( (strNameOrig.find("_ise0_r2zoom_")!=string::npos) ) {
+	    tempH1[i][ireco]->GetXaxis()->SetRangeUser(2506100, 3206100);
+	  } 
+	  else if ( (strNameOrig.find("_ise0_r2zoom_")!=string::npos) ) {
+	    tempH1[i][ireco]->GetXaxis()->SetRangeUser(2506100, 3206100);
+	  } 
+	  else if ( (strNameOrig.find("_ise0_wall_")!=string::npos) ) {
+	    tempH1[i][ireco]->GetXaxis()->SetRangeUser(-150, 150);
+	  } 
+	  else if ( (strNameOrig.find("_ise0_Le_Lmu_")!=string::npos) ) {
+	    if ( (strNameOrig.find("_momsep0_500")!=string::npos) || 
+		 (strNameOrig.find("_momsep500_1000")!=string::npos) ) { 
+	      tempH1[i][ireco]->GetXaxis()->SetRangeUser(-1400, 500);
+	    }
+	  } 	      
+	  else if ( (strNameOrig.find("_ise1_Le_Lmu_")!=string::npos) ) {
+	    if ( (strNameOrig.find("_momsep40_45")!=string::npos) )
+	      tempH1[i][ireco]->GetXaxis()->SetRangeUser(-150, 500);
+	  } 
 
 	  // Resolution (1-sigma from 0)
 	  if (strNameOrig.find("_res_")!=string::npos) {
@@ -313,8 +337,10 @@ int main(int argc, char *argv[]){
 	  maxY = tempH1[i][ireco]->GetMaximum() > maxY ? tempH1[i][ireco]->GetMaximum() : maxY;
 	  
 	  
-	  tempH1[i][ireco]->SetLineColor(ireco+1);
-	  tempH1[i][ireco]->SetMarkerColor(ireco+1);
+	  //tempH1[i][ireco]->SetLineColor(ireco+1);
+	  //tempH1[i][ireco]->SetMarkerColor(ireco+1);
+	  tempH1[i][ireco]->SetLineColor(i+1);
+	  tempH1[i][ireco]->SetMarkerColor(i+1);
 	  if (i==0 && ireco==1) {
 	    tempH1[i][ireco]->SetLineColor(kBlack);
 	    tempH1[i][ireco]->SetMarkerColor(kBlack);
@@ -462,7 +488,8 @@ int main(int argc, char *argv[]){
 	  if (i && strNameOrig.find("_mom_res_")!=string::npos) gausDist = 0;
 	  else if (strNameOrig.find("mom_over_range")!=string::npos) gausDist = 1;
 	  else if (strNameOrig.find("_nearwall_")!=string::npos) gausDist = 2;
-	  
+	  else if (strNameOrig.find("_emom_")!=string::npos) gausDist = 3;
+
 	  if (gausDist>=0) {
 	    double gausMean = tempH1[i][ireco]->GetMean();
 	    double gausRMS = tempH1[i][ireco]->GetRMS();
@@ -480,8 +507,8 @@ int main(int argc, char *argv[]){
 	      err[i][ireco] = f[i][ireco]->GetParameter(2); 
 	      errerr[i][ireco] = f[i][ireco]->GetParError(2); 
 	    }
-	    else if (gausDist==1) err[i][ireco] = f[i][ireco]->GetParError(1);   // momentum/range
-	    else if (gausDist==2) {
+	    //else if (gausDist==1) err[i][ireco] = f[i][ireco]->GetParError(1);   // momentum/range
+	    else if (gausDist>=1) {
 	      mean[i][ireco] = tempH1[i][ireco]->GetMean();
 	      meanerr[i][ireco] = tempH1[i][ireco]->GetMeanError();
 	      err[i][ireco] = tempH1[i][ireco]->GetRMS();
@@ -507,9 +534,9 @@ int main(int argc, char *argv[]){
 	    textVal[i][ireco].SetText(0.6, 0.8-i*0.1, Form("Mean: %.3f, #sigma: %.3f", mean[i][ireco], err[i][ireco]));
 	    if (gausDist==0) tempH1[i][ireco]->SetTitle(Form("Mean: %.2f #pm %.2f%%, #sigma: %.2f #pm %.2f%%", mean[i][ireco], meanerr[i][ireco], err[i][ireco], errerr[i][ireco]));
 	    
-	    //if (doPrint) 
-	    //f[i][ireco]->Draw("SAME");
-	    //if (doPrint) textVal[i][ireco].Draw("SAME");
+	    if (doPrint) 
+	      f[i][ireco]->Draw("SAME");
+	    if (doPrint) textVal[i][ireco].Draw("SAME");
 	    
 	  }
 
@@ -532,6 +559,7 @@ int main(int argc, char *argv[]){
 	  //  cout << f[i][ireco]->Eval(-1) << " " << f[i][ireco]->Eval(1) << " " << f[i][ireco]->Eval(-1)/f[i][ireco]->Eval(1) << endl; 
 	  //}
 	}
+	outtext << endl;
 	
 	// Calculate differences
 	TText textValDiff;
@@ -543,13 +571,20 @@ int main(int argc, char *argv[]){
 	     (strNameOrig.find("_mom_ise1_")!=string::npos) ||
 	     (strNameOrig.find("_ddir_")!=string::npos) ) {
 	
+	  //double diff = 100*(mean[1][ireco]-mean[0][ireco])/mean[0][ireco];
+	  //double errdiff = 100*sqrt(pow(err[0][ireco],2)+pow(err[1][ireco],2))/mean[0][ireco];
+	  //textValDiff.SetText(0.6, 0.6, Form("%.3f %.3f", diff, errdiff));
+	  ////if (doPrint) textValDiff.Draw("SAME");
+	  //
+	  //outtext << tempH1[i][ireco]->GetName() << " " << mean[1][ireco] << " ± " << err[1][ireco] << " " <<  mean[0][ireco] << " ± " << err[0][ireco] << " " << diff << " ± " << errdiff << endl; 
+		      
 	  double diff = 100*(mean[1][ireco]-mean[0][ireco])/mean[0][ireco];
-	  double errdiff = 100*sqrt(pow(err[0][ireco],2)+pow(err[1][ireco],2))/mean[0][ireco];
+	  double errdiff = 100*sqrt(pow(meanerr[0][ireco],2)+pow(meanerr[1][ireco],2))/mean[0][ireco];
 	  textValDiff.SetText(0.6, 0.6, Form("%.3f %.3f", diff, errdiff));
 	  //if (doPrint) textValDiff.Draw("SAME");
 	  
-	  outtext << tempH1[i][ireco]->GetName() << " " << mean[1][ireco] << " ± " << err[1][ireco] << " " <<  mean[0][ireco] << " ± " << err[0][ireco] << " " << diff << " ± " << errdiff << endl; 
-		      
+	  outtext << tempH1[i][ireco]->GetName() << " " << mean[1][ireco] << " ± " << meanerr[1][ireco] << " " <<  mean[0][ireco] << " ± " << meanerr[0][ireco] << " " << diff << " ± " << errdiff << endl; 
+
 	} 	
 	
 	

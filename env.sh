@@ -1,1 +1,1 @@
-/usr/local/sklib_gcc4.8.5/skofl_19a/env.sh
+../fitqun/setup.sh

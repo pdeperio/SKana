@@ -302,7 +302,7 @@ Unused in this OfficialEventParser
    Float_t         fq1rt0[10][7];   //[fqnse]
    Float_t         fq1rtotmu[10][7];   //[fqnse]
    Float_t         fq1rnll[10][7];   //[fqnse]
-   Float_t         fq1rvtx[10][7][3];   //[fqnse]
+   Float_t         fq1rpos[10][7][3];   //[fqnse]
    Float_t         fq1rdir[10][7][3];   //[fqnse]
    Float_t         fq1rpar7[10][7];   //[fqnse]
    Int_t           fqpi0pcflg[2];
